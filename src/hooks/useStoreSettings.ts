@@ -56,24 +56,27 @@ interface StoreSettings {
 }
 
 function buildSettingsImageUrl(path?: string | null) {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+
   // If the path already includes 'settings/', we don't need to add it again
-  if (path.startsWith('settings/')) {
-    return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || 'podemaismidia'}/${path}`;
+  if (path.startsWith("settings/")) {
+    return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || "lojapod"}/${path}`;
   }
-  
-  return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || 'podemaismidia'}/settings/${path}`;
+
+  return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || "lojapod"}/settings/${path}`;
 }
 
 export function useStoreSettings() {
   return useQuery({
     queryKey: ["store-settings"],
     queryFn: async (): Promise<StoreSettings> => {
-      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/settings`, {
-        headers: getApiHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_ADMIN_API}/store/settings`,
+        {
+          headers: getApiHeaders(),
+        },
+      );
       if (!response.ok) throw new Error("Failed to fetch store settings");
       const data = await response.json();
 
@@ -85,7 +88,7 @@ export function useStoreSettings() {
         bannerUrls: (data.bannerUrls || []).map(buildSettingsImageUrl),
         marketingLinks: (data.marketingLinks || []).map((link: any) => ({
           ...link,
-          imageUrl: buildSettingsImageUrl(link.imageUrl)
+          imageUrl: buildSettingsImageUrl(link.imageUrl),
         })),
       };
     },

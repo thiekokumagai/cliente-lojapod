@@ -31,33 +31,39 @@ interface NewApiProduct {
 }
 
 function buildImageUrl(path?: string) {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || 'podemaismidia'}/${path}`;
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || "lojapod"}/${path}`;
 }
 
 function buildCategoryImageUrl(path?: string) {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || 'podemaismidia'}/${path}`;
+  if (!path) return "";
+  if (path.startsWith("http")) return path;
+  return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || "lojapod"}/${path}`;
 }
 
-function buildVariationGroupFromNewApi(product: NewApiProduct): ProductVariationGroup | undefined {
+function buildVariationGroupFromNewApi(
+  product: NewApiProduct,
+): ProductVariationGroup | undefined {
   if (!product.variations || product.variations.length === 0) return undefined;
 
   const firstVariation = product.variations[0].variation;
-  
+
   if (!firstVariation) return undefined;
 
-  const linkedOptions = firstVariation.options.filter(opt => {
-    return product.items?.some(item => 
-      item.options.some(o => o.option.value === opt.value)
-    ) ?? false;
+  const linkedOptions = firstVariation.options.filter((opt) => {
+    return (
+      product.items?.some((item) =>
+        item.options.some((o) => o.option.value === opt.value),
+      ) ?? false
+    );
   });
 
-  const options = linkedOptions.map(opt => {
-    const item = product.items?.find(i => i.options.some(o => o.option.value === opt.value));
-    
+  const options = linkedOptions.map((opt) => {
+    const item = product.items?.find((i) =>
+      i.options.some((o) => o.option.value === opt.value),
+    );
+
     return {
       label: opt.value,
       available: item ? item.stock > 0 : false,
@@ -68,15 +74,19 @@ function buildVariationGroupFromNewApi(product: NewApiProduct): ProductVariation
   return { name: firstVariation.title, options };
 }
 
-export function transformNewApiProduct(raw: NewApiProduct): Product & { isVisible?: boolean } {
+export function transformNewApiProduct(
+  raw: NewApiProduct,
+): Product & { isVisible?: boolean } {
   const variationGroup = buildVariationGroupFromNewApi(raw);
-  
+
   const totalStock = raw.items?.reduce((acc, item) => acc + item.stock, 0) || 0;
 
-  const promoPriceNum = raw.promotionalPrice ? Number(raw.promotionalPrice) : undefined;
+  const promoPriceNum = raw.promotionalPrice
+    ? Number(raw.promotionalPrice)
+    : undefined;
   const priceNum = raw.price ? Number(raw.price) : 0;
 
-  const images = raw.images?.map(img => buildImageUrl(img.url)) || [];
+  const images = raw.images?.map((img) => buildImageUrl(img.url)) || [];
 
   return {
     id: raw.id,
@@ -99,7 +109,9 @@ export function transformNewApiProduct(raw: NewApiProduct): Product & { isVisibl
 
 export function useProducts(categoryId?: string | null) {
   return useQuery({
-    queryKey: categoryId ? ["api-products-category", categoryId] : ["api-products"],
+    queryKey: categoryId
+      ? ["api-products-category", categoryId]
+      : ["api-products"],
     queryFn: async (): Promise<Product[]> => {
       let url = `${import.meta.env.VITE_ADMIN_API}/store/products?limit=9999`;
       if (categoryId) {
@@ -109,15 +121,17 @@ export function useProducts(categoryId?: string | null) {
       const response = await fetch(url, { headers: getApiHeaders() });
       if (!response.ok) throw new Error("Failed to fetch products");
       const data = await response.json();
-      
+
       // Handle the new paginated wrapper or raw array
-      const productList: NewApiProduct[] = Array.isArray(data) ? data : (data.data || []);
+      const productList: NewApiProduct[] = Array.isArray(data)
+        ? data
+        : data.data || [];
 
       const products = productList.map(transformNewApiProduct);
-      
+
       return products.filter((p) => {
         if (p.isVisible === false) return false;
-        
+
         if (!p.variationGroup) {
           // If no variations, check if total stock > 0. But for now, we assume simple products are available if they were returned active.
           return true;
@@ -130,15 +144,17 @@ export function useProducts(categoryId?: string | null) {
   });
 }
 
-
 export function useProduct(id?: string) {
   return useQuery({
     queryKey: ["api-product", id],
     queryFn: async (): Promise<Product | null> => {
       if (!id) return null;
-      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/products/${id}`, {
-        headers: getApiHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_ADMIN_API}/store/products/${id}`,
+        {
+          headers: getApiHeaders(),
+        },
+      );
       if (!response.ok) throw new Error("Failed to fetch product");
       const data = await response.json();
       if (!data) return null;
@@ -154,13 +170,16 @@ export function useCategories() {
   return useQuery({
     queryKey: ["api-categories"],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/categories`, {
-        headers: getApiHeaders(),
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_ADMIN_API}/store/categories`,
+        {
+          headers: getApiHeaders(),
+        },
+      );
       if (!response.ok) throw new Error("Failed to fetch categories");
-      
+
       const data = await response.json();
-      
+
       return data.map((c: any) => ({
         id: c.id,
         nome: c.title,
