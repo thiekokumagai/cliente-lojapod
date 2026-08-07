@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getApiHeaders } from "@/services/api";
 import type { Product, ProductVariationGroup } from "@/data/products";
 
 interface NewApiProduct {
@@ -105,7 +106,7 @@ export function useProducts(categoryId?: string | null) {
         url += `&categoryId=${categoryId}`;
       }
 
-      const response = await fetch(url);
+      const response = await fetch(url, { headers: getApiHeaders() });
       if (!response.ok) throw new Error("Failed to fetch products");
       const data = await response.json();
       
@@ -135,7 +136,9 @@ export function useProduct(id?: string) {
     queryKey: ["api-product", id],
     queryFn: async (): Promise<Product | null> => {
       if (!id) return null;
-      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/products/${id}`);
+      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/products/${id}`, {
+        headers: getApiHeaders(),
+      });
       if (!response.ok) throw new Error("Failed to fetch product");
       const data = await response.json();
       if (!data) return null;
@@ -151,7 +154,9 @@ export function useCategories() {
   return useQuery({
     queryKey: ["api-categories"],
     queryFn: async () => {
-      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/categories`);
+      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/categories`, {
+        headers: getApiHeaders(),
+      });
       if (!response.ok) throw new Error("Failed to fetch categories");
       
       const data = await response.json();

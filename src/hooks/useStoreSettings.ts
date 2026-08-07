@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { getApiHeaders } from "@/services/api";
 
 interface StoreSettings {
   storeName: string;
@@ -70,7 +71,9 @@ export function useStoreSettings() {
   return useQuery({
     queryKey: ["store-settings"],
     queryFn: async (): Promise<StoreSettings> => {
-      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/settings`);
+      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/settings`, {
+        headers: getApiHeaders(),
+      });
       if (!response.ok) throw new Error("Failed to fetch store settings");
       const data = await response.json();
 
