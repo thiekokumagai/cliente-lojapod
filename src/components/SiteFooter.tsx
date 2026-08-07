@@ -7,7 +7,7 @@ const SiteFooter = () => {
   const { data: settings } = useStoreSettings();
   const { isOpen, todayRules } = useBusinessStatus(settings?.businessHours);
 
-  const storeName = settings?.storeName || "Pod & Mais";
+  const storeName = settings?.storeName || "Loja Pod";
   const logo = settings?.logoUrl || logoFallback;
   const instagram = settings?.instagram || "podemais.cg";
   const city = settings?.city || "Campo Grande";

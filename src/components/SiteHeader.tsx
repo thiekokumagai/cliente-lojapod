@@ -79,7 +79,7 @@ const SiteHeader = () => {
             </button>
 
             <Link to="/" className="absolute left-1/2 -translate-x-1/2">
-              <img src={settings?.logoUrl || logoFallback} alt={settings?.storeName || "Pod & Mais"} className="h-10 w-10 object-contain" />
+              <img src={settings?.logoUrl || logoFallback} alt={settings?.storeName || "Loja Pod"} className="h-10 w-10 object-contain" />
             </Link>
 
             <button
@@ -142,7 +142,7 @@ const SiteHeader = () => {
         <div className="mx-auto flex h-20 max-w-7xl w-full items-center justify-between px-8">
           <div className="flex items-center gap-6">
             <Link to="/" className="flex items-center gap-2">
-              <img src={settings?.logoUrl || logoFallback} alt={settings?.storeName || "Pod & Mais"} className="h-20 w-20 object-contain" />
+              <img src={settings?.logoUrl || logoFallback} alt={settings?.storeName || "Loja Pod"} className="h-20 w-20 object-contain" />
             </Link>
           </div>
 

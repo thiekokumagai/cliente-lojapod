@@ -772,7 +772,7 @@ const CartSidebar = () => {
     const finishOrderNumber = finalizedOrder ? finalizedOrder.orderNumber : Date.now().toString().slice(-4);
 
     const lines = [
-      `Olá, meu nome é ${checkoutName || "-"}, esse é o meu pedido realizado através da loja Pod & Mais`,
+      `Olá, meu nome é ${checkoutName || "-"}, esse é o meu pedido realizado através da Loja Pod`,
       `--------`,
       ``,
       itemsFormatted,

@@ -11,7 +11,7 @@ const LinksPage = () => {
     if (settings?.storeName) {
       document.title = `Links | ${settings.storeName}`;
     } else {
-      document.title = 'Links | Pode Mais';
+      document.title = 'Links | Loja Pod';
     }
 
     if (settings?.faviconUrl) {
