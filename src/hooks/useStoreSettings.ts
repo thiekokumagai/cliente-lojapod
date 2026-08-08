@@ -53,6 +53,8 @@ interface StoreSettings {
     isActive: boolean;
     order: number;
   }[];
+  searchSuffix?: string;
+  searchCity?: string;
 }
 
 function buildSettingsImageUrl(path?: string | null) {
@@ -77,9 +79,35 @@ export function useStoreSettings() {
       );
       if (!response.ok) throw new Error("Failed to fetch store settings");
       const data = await response.json();
+      
+      let searchCity = "Campo Grande";
+      let searchSuffix = ", Campo Grande, MS, Brasil";
+
+      const allowAboveMax = data.deliveryRanges?.allowAboveMax;
+
+      if (data.deliveryOriginCep) {
+        try {
+          const cleanCep = data.deliveryOriginCep.replace(/\D/g, "");
+          const viaCepRes = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+          const viaCepData = await viaCepRes.json();
+          if (!viaCepData.erro) {
+            searchCity = viaCepData.localidade;
+            const state = viaCepData.uf;
+            searchSuffix = allowAboveMax ? ", Brasil" : `, ${searchCity}, ${state}, Brasil`;
+          } else if (allowAboveMax) {
+            searchSuffix = ", Brasil";
+          }
+        } catch (e) {
+          if (allowAboveMax) searchSuffix = ", Brasil";
+        }
+      } else if (allowAboveMax) {
+        searchSuffix = ", Brasil";
+      }
 
       return {
         ...data,
+        searchCity,
+        searchSuffix,
         logoUrl: buildSettingsImageUrl(data.logoUrl),
         whiteLogoUrl: buildSettingsImageUrl(data.whiteLogoUrl),
         faviconUrl: buildSettingsImageUrl(data.faviconUrl),

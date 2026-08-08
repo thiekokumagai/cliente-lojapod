@@ -893,7 +893,7 @@ const CartSidebar = () => {
         street: structuredAddress?.mainText || savedAddressDisplay,
         number: structuredAddress?.number || "S/N",
         neighborhood: structuredAddress?.secondaryText?.split(',')[0] || "Local",
-        city: structuredAddress?.city || "Campo Grande",
+        city: structuredAddress?.city || storeSettings?.searchCity || "Campo Grande",
         state: structuredAddress?.state || "MS",
         cep: structuredAddress?.cep ? structuredAddress.cep : "00000-000",
         complement: structuredAddress?.complement || "",

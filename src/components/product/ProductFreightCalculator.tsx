@@ -24,6 +24,8 @@ const formatCep = (value: string) => {
   return digits;
 };
 
+import { useStoreSettings } from "@/hooks/useStoreSettings";
+
 const ProductFreightCalculator = ({
   zipCode,
   addressNumber,
@@ -35,6 +37,7 @@ const ProductFreightCalculator = ({
   const [complement, setComplement] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<FreightResult | null>(null);
+  const { data: storeSettings } = useStoreSettings();
 
   const handleCalculate = async () => {
     const cleanCep = zipCode.replace(/\D/g, "");
@@ -48,7 +51,7 @@ const ProductFreightCalculator = ({
       let destination = cleanCep;
       if (addressNumber) destination += `, ${addressNumber}`;
       if (complement) destination += `, ${complement}`;
-      destination += ", Campo Grande, MS, Brasil";
+      destination += (storeSettings?.searchSuffix || ", Campo Grande, MS, Brasil");
 
       // First resolve CEP to address via ViaCEP
       const viaCepRes = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
