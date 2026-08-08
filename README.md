@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# Cliente - Loja Pod
 
-TODO: Document your project here
+Aplicação de cliente da Loja Pod
