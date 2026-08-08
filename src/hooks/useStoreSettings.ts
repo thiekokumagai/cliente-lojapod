@@ -58,13 +58,11 @@ interface StoreSettings {
 function buildSettingsImageUrl(path?: string | null) {
   if (!path) return "";
   if (path.startsWith("http")) return path;
-
-  // If the path already includes 'settings/', we don't need to add it again
   if (path.startsWith("settings/")) {
     return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || "lojapod"}/${path}`;
   }
 
-  return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || "lojapod"}/settings/${path}`;
+  return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || "lojapod"}/${path}`;
 }
 
 export function useStoreSettings() {
