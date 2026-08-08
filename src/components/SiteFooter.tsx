@@ -1,5 +1,4 @@
 import { Clock, MapPin, CreditCard, BadgeDollarSign, Instagram } from "lucide-react";
-import logoFallback from "@/assets/logo.webp";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useBusinessStatus, getTodayWeekdayName } from "@/hooks/useBusinessStatus";
 
@@ -8,10 +7,9 @@ const SiteFooter = () => {
   const { isOpen, todayRules } = useBusinessStatus(settings?.businessHours);
 
   const storeName = settings?.storeName || "Loja Pod";
-  const logo = settings?.logoUrl || logoFallback;
-  const instagram = settings?.instagram || "podemais.cg";
-  const city = settings?.city || "Campo Grande";
-  const state = settings?.state || "MS";
+  const instagram = settings?.instagram;
+  const city = settings?.city;
+  const state = settings?.state;
 
   const acceptsCard = settings?.payOnDeliveryCardDebit || settings?.payOnDeliveryCardCredit;
   const acceptsPix = settings?.pixEnabled;
@@ -58,7 +56,9 @@ const SiteFooter = () => {
         <div className="mt-10 flex flex-col items-center gap-10 text-center md:grid md:grid-cols-[1fr_minmax(320px,1.4fr)_1fr] md:items-start md:text-left">
           <div className="flex flex-col items-center space-y-4 md:items-start">
             <div className="flex items-center justify-center gap-2 md:justify-start">
-              <img src={logo} alt={storeName} className="h-12 w-12 object-contain" />
+              {settings?.logoUrl && (
+                <img src={settings?.logoUrl} alt={storeName} className="h-12 w-12 object-contain" />
+              )}
               <span className="font-display text-lg font-bold text-foreground">
                 {storeName}
               </span>

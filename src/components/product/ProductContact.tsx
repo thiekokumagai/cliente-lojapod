@@ -8,8 +8,10 @@ interface ProductContactProps {
 
 const ProductContact = ({ isDesktop = false, productName }: ProductContactProps) => {
   const { data: settings } = useStoreSettings();
-  const phone = settings?.phone?.replace(/\D/g, "") || "5567991032937";
+  const phone = settings?.phone?.replace(/\D/g, "");
   
+  if (!phone) return null;
+
   const text = productName 
     ? `Olá, tenho uma dúvida sobre o produto: ${productName}`
     : "Olá, tenho uma dúvida";

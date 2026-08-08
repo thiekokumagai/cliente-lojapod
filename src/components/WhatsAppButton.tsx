@@ -13,7 +13,9 @@ const WhatsAppButton = () => {
   const { data: product } = useProduct(productId);
 
   const { data: settings } = useStoreSettings();
-  const phone = settings?.phone?.replace(/\D/g, "") || "5567991032937"; // fallback to default just in case
+  const phone = settings?.phone?.replace(/\D/g, "");
+
+  if (!phone) return null;
 
   let message = "Olá, estou navegando em sua loja e gostaria de tirar uma dúvida.";
   if (isProductPage && product?.name) {

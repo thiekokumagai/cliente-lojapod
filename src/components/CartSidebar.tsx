@@ -1079,7 +1079,8 @@ const CartSidebar = () => {
   };
 
   const handleSendWhatsApp = () => {
-    const numero = storeSettings?.phone?.replace(/\D/g, "") || "5567991032937";
+    const numero = storeSettings?.phone?.replace(/\D/g, "");
+    if (!numero) return;
     const urlApp = `whatsapp://send?phone=${numero}&text=${checkoutMessage}`;
     const urlWeb = `https://wa.me/${numero}?text=${checkoutMessage}`;
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
@@ -2179,7 +2180,7 @@ const CartSidebar = () => {
                     <Copy className="h-5 w-5" />
                     Copiar PIX
                   </button>
-                ) : (
+                ) : storeSettings?.phone?.replace(/\D/g, "") ? (
                   <button
                     type="button"
                     onClick={handleSendWhatsApp}
@@ -2188,7 +2189,7 @@ const CartSidebar = () => {
                     <MessageCircle className="h-5 w-5" />
                     Enviar via WhatsApp
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
           </div>
