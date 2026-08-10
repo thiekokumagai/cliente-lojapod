@@ -2,10 +2,11 @@ import React, { useEffect } from 'react';
 import { Link2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import StoreNotFound from '@/components/StoreNotFound';
 import { trackCustomEvent } from '@/components/FacebookPixel';
 
 const LinksPage = () => {
-  const { data: settings, isLoading } = useStoreSettings();
+  const { data: settings, isLoading, isError } = useStoreSettings();
 
   useEffect(() => {
     if (settings?.storeName) {
@@ -24,6 +25,10 @@ const LinksPage = () => {
       link.href = settings.faviconUrl;
     }
   }, [settings?.storeName, settings?.faviconUrl]);
+
+  if (isError) {
+    return <StoreNotFound />;
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center py-12 px-4 sm:px-6 relative overflow-hidden font-sans">
@@ -50,7 +55,7 @@ const LinksPage = () => {
             {isLoading ? (
               <div className="h-8 w-48 bg-zinc-800 animate-pulse rounded-md mx-auto"></div>
             ) : (
-              `@${settings?.instagram ? settings.instagram.replace('@', '') : 'podemais.store'}`
+              `@${settings?.instagram ? settings.instagram.replace('@', '') : ''}`
             )}
           </h1>
           <p className="text-zinc-400 text-sm mb-10 text-center px-4">

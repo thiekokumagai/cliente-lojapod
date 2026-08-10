@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 import AddedToCartModal from "@/components/AddedToCartModal";
 import BackToTopButton from "@/components/BackToTopButton";
@@ -7,6 +8,7 @@ import CartSidebar from "@/components/CartSidebar";
 import StoreClosedModal from "@/components/StoreClosedModal";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import StoreNotFound from "@/components/StoreNotFound";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { io } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -16,7 +18,7 @@ import { useQueryClient } from "@tanstack/react-query";
  * Mantém uma única montagem por sessão de rotas (ver SKILL.md — contexto de navegação).
  */
 const StoreChromeLayout = () => {
-  const { data: settings } = useStoreSettings();
+  const { data: settings, isLoading, isError } = useStoreSettings();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -55,6 +57,18 @@ const StoreChromeLayout = () => {
       link.href = settings.faviconUrl;
     }
   }, [settings]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-white">
+        <Loader2 className="h-8 w-8 animate-spin text-red-500" />
+      </div>
+    );
+  }
+
+  if (isError || !settings) {
+    return <StoreNotFound />;
+  }
 
   return (
     <>

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getApiHeaders } from "@/services/api";
+import { getApiHeaders, getSubdomain } from "@/services/api";
 
 interface StoreSettings {
   storeName: string;
@@ -68,8 +68,9 @@ function buildSettingsImageUrl(path?: string | null) {
 }
 
 export function useStoreSettings() {
+  const subdomain = getSubdomain();
   return useQuery({
-    queryKey: ["store-settings"],
+    queryKey: ["store-settings", subdomain],
     queryFn: async (): Promise<StoreSettings> => {
       const response = await fetch(
         `${import.meta.env.VITE_ADMIN_API}/store/settings`,
@@ -77,6 +78,9 @@ export function useStoreSettings() {
           headers: getApiHeaders(),
         },
       );
+      if (response.status === 404) {
+        throw new Error("STORE_NOT_FOUND");
+      }
       if (!response.ok) throw new Error("Failed to fetch store settings");
       const data = await response.json();
       
@@ -118,6 +122,7 @@ export function useStoreSettings() {
         })),
       };
     },
+    retry: false,
     staleTime: 60 * 60 * 1000, // 1 hour
     gcTime: 24 * 60 * 60 * 1000,
   });
