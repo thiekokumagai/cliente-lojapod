@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { api } from "@/services/api";
 import { useCart } from "@/contexts/CartContext";
+import { formatFreightDestinationAddress } from "@/utils/freight-address";
 
 const SESSION_ADDRESS_KEY = "podemais-checkout-address";
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
@@ -34,7 +35,7 @@ const MobileBottomNav = () => {
         const parsedAddress = JSON.parse(storedAddress) as StoredAddress;
         setSavedAddress(parsedAddress);
 
-        const destination = [parsedAddress.fullText, parsedAddress.complement].filter(Boolean).join(", ");
+        const destination = formatFreightDestinationAddress(parsedAddress);
         const response = await api.post<{ freightPrice: number }>("/store/settings/calculate-freight", {
           destination,
         });

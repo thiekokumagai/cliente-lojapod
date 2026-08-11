@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Truck, Loader2 } from "lucide-react";
 import { api } from "@/services/api";
+import { formatFreightDestinationAddress } from "@/utils/freight-address";
 
 interface FreightResult {
   distanceKm: number;
@@ -47,12 +48,6 @@ const ProductFreightCalculator = ({
     setResult(null);
 
     try {
-      // Build destination address from CEP + number + complement
-      let destination = cleanCep;
-      if (addressNumber) destination += `, ${addressNumber}`;
-      if (complement) destination += `, ${complement}`;
-      destination += (storeSettings?.searchSuffix || ", Campo Grande, MS, Brasil");
-
       // First resolve CEP to address via ViaCEP
       const viaCepRes = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
       const viaCepData = await viaCepRes.json();
@@ -63,18 +58,14 @@ const ProductFreightCalculator = ({
         return;
       }
 
-      // Build full address from ViaCEP
-      const parts = [
-        viaCepData.logradouro,
-        addressNumber,
-        complement,
-        viaCepData.bairro,
-        viaCepData.localidade,
-        viaCepData.uf,
-        "Brasil",
-      ].filter(Boolean);
-
-      const fullDestination = parts.join(", ");
+      // Build full address from ViaCEP without complement for freight
+      const fullDestination = formatFreightDestinationAddress({
+        logradouro: viaCepData.logradouro,
+        number: addressNumber,
+        bairro: viaCepData.bairro,
+        cidade: viaCepData.localidade,
+        uf: viaCepData.uf,
+      });
 
       const { data, error } = await api.post<any>("/store/settings/calculate-freight", {
         destination: fullDestination,

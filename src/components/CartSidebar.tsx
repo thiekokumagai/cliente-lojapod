@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
 import { useFreight } from "@/hooks/use-calculator-freight";
+import { formatFreightDestinationAddress } from "@/utils/freight-address";
 import { ordersService } from "@/services/orders";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 
@@ -294,9 +295,7 @@ const CartSidebar = () => {
         const parsed = JSON.parse(storedAddress) as StructuredAddress;
         setStructuredAddress(parsed);
 
-        const fullDest = [parsed.fullText, parsed.complement]
-          .filter(Boolean)
-          .join(", ");
+        const fullDest = formatFreightDestinationAddress(parsed);
         calculate(fullDest).then((result) => {
           if (!result) return;
           if (result.error) {
@@ -475,9 +474,7 @@ const CartSidebar = () => {
       setDeliveryError("");
 
       try {
-        const fullDest = [addr.fullText, addr.complement]
-          .filter(Boolean)
-          .join(", ");
+        const fullDest = formatFreightDestinationAddress(addr);
         const result = await calculate(fullDest);
 
         if (!result) return;
