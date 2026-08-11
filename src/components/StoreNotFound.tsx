@@ -2,6 +2,17 @@ import React from 'react';
 import { SearchX, Globe, ArrowLeft } from 'lucide-react';
 import { getSubdomain } from '@/services/api';
 
+function getAppUrl(): string {
+  if (typeof window === 'undefined') return 'https://app.lojapod.com';
+  const hostname = window.location.hostname;
+  const port = window.location.port ? `:${window.location.port}` : '';
+  const protocol = window.location.protocol;
+  if (hostname.includes('localhost')) {
+    return `${protocol}//app.localhost${port}`;
+  }
+  return `${protocol}//app.lojapod.com`;
+}
+
 export default function StoreNotFound() {
   const subdomain = getSubdomain();
 
@@ -46,16 +57,11 @@ export default function StoreNotFound() {
 
         {/* Actions */}
         <a
-          href="/"
-          onClick={() => {
-            const url = new URL(window.location.href);
-            url.searchParams.delete('subdomain');
-            window.location.href = url.pathname;
-          }}
+          href={getAppUrl()}
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-semibold text-sm transition-all shadow-lg hover:shadow-red-600/25 active:scale-95"
         >
           <ArrowLeft className="w-4 h-4" />
-          Tentar Acessar Loja Principal
+          Voltar para app.lojapod.com
         </a>
       </div>
     </div>
