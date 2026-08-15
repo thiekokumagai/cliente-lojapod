@@ -55,14 +55,6 @@ export default function StoreOffline() {
           </div>
         )}
 
-        {/* Actions */}
-        <a
-          href={getAppUrl()}
-          className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-semibold text-sm transition-all shadow-lg hover:shadow-indigo-600/25 active:scale-95"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          Voltar para app.lojapod.com
-        </a>
       </div>
     </div>
   );
