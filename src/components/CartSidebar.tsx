@@ -1569,7 +1569,7 @@ const CartSidebar = () => {
                     {paymentMethod === "Cartão de Crédito" && (
                       <div className="mt-4 rounded-2xl bg-secondary p-4">
                         <label className="mb-2 block text-sm font-medium text-foreground">No crédito</label>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className={`grid ${creditInstallmentsOptions.filter(i => i.value >= 2).length > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
                           <button
                             type="button"
                             onClick={() => {
@@ -1583,19 +1583,22 @@ const CartSidebar = () => {
                           >
                             À vista
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCreditMode("parcelado");
-                              if (creditInstallments < 2) setCreditInstallments(2);
-                            }}
-                            className={`rounded-2xl border px-3 py-3 text-sm font-medium ${creditMode === "parcelado"
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border bg-background text-foreground"
-                              }`}
-                          >
-                            Parcelado
-                          </button>
+                          
+                          {creditInstallmentsOptions.filter(i => i.value >= 2).length > 0 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setCreditMode("parcelado");
+                                if (creditInstallments < 2) setCreditInstallments(2);
+                              }}
+                              className={`rounded-2xl border px-3 py-3 text-sm font-medium ${creditMode === "parcelado"
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-foreground"
+                                }`}
+                            >
+                              Parcelado
+                            </button>
+                          )}
                         </div>
 
                         {creditMode === "parcelado" && (
