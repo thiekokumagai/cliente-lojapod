@@ -9,6 +9,7 @@ import StoreClosedModal from "@/components/StoreClosedModal";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import StoreNotFound from "@/components/StoreNotFound";
+import StoreOffline from "@/components/StoreOffline";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { io } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -18,7 +19,7 @@ import { useQueryClient } from "@tanstack/react-query";
  * Mantém uma única montagem por sessão de rotas (ver SKILL.md — contexto de navegação).
  */
 const StoreChromeLayout = () => {
-  const { data: settings, isLoading, isError } = useStoreSettings();
+  const { data: settings, isLoading, isError, error } = useStoreSettings();
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -66,7 +67,14 @@ const StoreChromeLayout = () => {
     );
   }
 
-  if (isError || !settings) {
+  if (isError) {
+    if (error instanceof Error && error.message === "STORE_OFFLINE") {
+      return <StoreOffline />;
+    }
+    return <StoreNotFound />;
+  }
+
+  if (!settings) {
     return <StoreNotFound />;
   }
 

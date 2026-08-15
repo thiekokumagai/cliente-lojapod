@@ -81,6 +81,9 @@ export function useStoreSettings() {
       if (response.status === 404) {
         throw new Error("STORE_NOT_FOUND");
       }
+      if (response.status === 403) {
+        throw new Error("STORE_OFFLINE");
+      }
       if (!response.ok) throw new Error("Failed to fetch store settings");
       const data = await response.json();
       
