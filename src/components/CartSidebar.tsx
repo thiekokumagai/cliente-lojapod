@@ -832,7 +832,7 @@ const CartSidebar = () => {
     lines.push(`Número do pedido: ${finishOrderNumber}`);
     
     lines.push(`--------`);
-    lines.push(`Pedido feito na Loja Pod);
+    lines.push(`Pedido feito na Loja Pod`);
 
     return encodeURIComponent(lines.join("\n"));
   }, [
