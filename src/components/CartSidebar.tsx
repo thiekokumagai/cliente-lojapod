@@ -1700,7 +1700,7 @@ const CartSidebar = () => {
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="font-medium text-foreground">{formatPrice(effectiveTotalPrice)}</span>
                       </div>
-                      {paymentMethod === "PIX" && (
+                      {paymentMethod === "PIX" && pixDiscount > 0 && (
                         <div className="flex justify-between text-primary">
                           <span>Desconto Pix</span>
                           <span className="font-medium">-{formatPrice(pixDiscount)}</span>
@@ -1824,7 +1824,7 @@ const CartSidebar = () => {
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="font-medium text-foreground">{formatPrice(effectiveTotalPrice)}</span>
                       </div>
-                      {paymentMethod === "PIX" && (
+                      {paymentMethod === "PIX" && pixDiscount > 0 && (
                         <div className="flex justify-between text-primary">
                           <span>Desconto Pix</span>
                           <span className="font-medium">-{formatPrice(pixDiscount)}</span>
@@ -2121,7 +2121,7 @@ const CartSidebar = () => {
                     <span className="font-semibold">{formatPrice(checkoutDeliveryFee)}</span>
                   </div>
 
-                  {checkoutPaymentMethod === "PIX" && (
+                  {checkoutPaymentMethod === "PIX" && checkoutPixDiscount > 0 && (
                     <div className="mt-1 flex items-center justify-between gap-4">
                       <span>Desconto PIX</span>
                       <span className="font-semibold">-{formatPrice(checkoutPixDiscount)}</span>
