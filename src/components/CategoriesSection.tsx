@@ -2,6 +2,7 @@ import { useRef, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useCategories } from "@/hooks/useProducts";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { cn } from "@/lib/utils";
 
 const CategoriesSection = () => {
@@ -14,9 +15,12 @@ const CategoriesSection = () => {
   } = useCart();
 
   const { data: apiCategories = [], isLoading } = useCategories();
+  const { data: settings } = useStoreSettings();
   const scrollRef = useRef<HTMLDivElement>(null);
+  
+  const banners = settings?.bannerUrls || [];
   const normalizedSearch = searchTerm.trim();
-  const showBanner = !selectedCategory && !normalizedSearch && !selectedNicotineStrength;
+  const hasBanner = banners.length > 0 && !selectedCategory && !normalizedSearch && !selectedNicotineStrength;
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -70,7 +74,7 @@ const CategoriesSection = () => {
       id="categorias"
       className={cn(
         "py-10 md:py-14",
-        !showBanner && "pt-36 md:pt-14"
+        !hasBanner && "pt-36 md:pt-14"
       )}
     >
       <div className="mx-auto max-w-7xl px-4 md:px-8">
