@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
-import { Loader2 } from "lucide-react";
 
 import AddedToCartModal from "@/components/AddedToCartModal";
 import BackToTopButton from "@/components/BackToTopButton";
@@ -59,14 +58,6 @@ const StoreChromeLayout = () => {
     }
   }, [settings]);
 
-  if (isLoading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-zinc-950 text-white">
-        <Loader2 className="h-8 w-8 animate-spin text-red-500" />
-      </div>
-    );
-  }
-
   if (isError) {
     if (error instanceof Error && error.message === "STORE_OFFLINE") {
       return <StoreOffline />;
@@ -74,7 +65,7 @@ const StoreChromeLayout = () => {
     return <StoreNotFound />;
   }
 
-  if (!settings) {
+  if (!settings && !isLoading) {
     return <StoreNotFound />;
   }
 
