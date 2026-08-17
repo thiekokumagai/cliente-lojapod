@@ -29,7 +29,20 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   
   const productImage = product.image || "";
 
-  const availableOptions = product.variationGroup?.options.filter((option) => option.available) ?? [];
+  const allGroups = useMemo(() => {
+    return product.variationGroups && product.variationGroups.length > 0
+      ? product.variationGroups
+      : product.variationGroup
+        ? [product.variationGroup]
+        : [];
+  }, [product.variationGroups, product.variationGroup]);
+
+  const hasVariationGroup = allGroups.length > 0;
+
+  const availableOptions = useMemo(() => {
+    return allGroups.flatMap((g) => g.options).filter((o) => o.available);
+  }, [allGroups]);
+
   const cartItem = items.find(
     (item) => item.product.id === product.id && item.selectedVariation === undefined
   );
@@ -51,7 +64,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   );
 
   const handleBuy = () => {
-    if (product.variationGroup) {
+    if (hasVariationGroup) {
       setSelectedVariation(null);
       setShowVariationModal(true);
       return;
@@ -79,7 +92,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   };
 
   const handleIncrease = () => {
-    if (product.variationGroup) {
+    if (hasVariationGroup) {
       setSelectedVariation(null);
       setShowVariationModal(true);
       return;
@@ -98,111 +111,110 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
 
   return (
     <>
-      <div className="group relative flex h-full flex-col overflow-hidden rounded-2xl bg-card transition-shadow hover:shadow-md">
-        {product.isPromo && product.oldPrice && (
-          <span className="absolute left-3 top-3 z-10 rounded-full bg-primary px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary-foreground">
-            -{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%
-          </span>
-        )}
-        
-        {isBestSeller && !product.isPromo && (
-          <img
-            src={seloMaisVendido}
-            alt="Mais Vendido"
-            className="absolute left-3 top-3 z-10 h-16 w-16 object-contain drop-shadow-sm"
-          />
-        )}
-
-        <Link to={`/produto/${product.id}`} onClick={saveScrollPosition} className="block">
-          <div className="relative overflow-hidden bg-secondary/30 p-4 pb-0">
-            {productImage ? (
-              <img
-                src={productImage}
-                alt={product.name}
-                className="mx-auto aspect-square w-full rounded-sm object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <div className="mx-auto aspect-square w-full animate-pulse rounded-sm bg-secondary" />
-            )}
-          </div>
-        </Link>
-
-        <div className="flex flex-1 flex-col p-4 pt-2">
-          <div className="flex-1">
-            <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-              {product.category}
-            </span>
-            <Link to={`/produto/${product.id}`} onClick={saveScrollPosition} className="block">
-              <h3 className="mt-1 line-clamp-2 text-sm font-medium leading-snug text-foreground">
-                {product.name}
-              </h3>
-            </Link>
-
-            {product.variationGroup && (
-              <div className="mt-3">
-                <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                  {product.variationGroup.name}
-                </p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {product.variationGroup.options.map((option) => (
-                    <span
-                      key={option.label}
-                      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-                        option.available
-                          ? "border-border text-foreground"
-                          : "border-border text-muted-foreground line-through opacity-60"
-                      }`}
-                    >
-                      {option.label}
-                    </span>
-                  ))}
+      <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-card p-4 transition-all hover:shadow-md border border-border">
+        <div>
+          <Link
+            to={`/produto/${product.id}`}
+            onClick={saveScrollPosition}
+            className="block cursor-pointer"
+          >
+            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-subtle">
+              {isBestSeller && (
+                <img
+                  src={seloMaisVendido}
+                  alt="Selo Mais Vendido"
+                  className="absolute left-2 top-2 z-10 h-10 w-10 object-contain drop-shadow-md transition-transform group-hover:scale-105"
+                />
+              )}
+              {productImage ? (
+                <img
+                  src={productImage}
+                  alt={product.name}
+                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-secondary text-muted-foreground">
+                  Sem imagem
                 </div>
-
-                {hasVariationInCart && (
-                  <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-2 text-xs font-medium text-primary">
-                    <CheckCircle2 className="h-4 w-4 shrink-0" />
-                    <span>
-                      Adicionado ao carrinho ({variationQuantityInCart} {variationQuantityInCart === 1 ? "item" : "itens"})
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-4 min-h-[62px]">
-            {product.oldPrice && (
-              <span className="block text-xs text-muted-foreground line-through">
-                {formatPrice(product.oldPrice)}
-              </span>
-            )}
-            <div className="flex items-baseline gap-1.5 flex-wrap">
-              <p className="text-lg font-bold leading-tight text-primary">
-                {formatPrice(product.price)}
-              </p>
-              {product.isPromo && (
-                <span className="text-xs font-semibold text-primary">
-                  no PIX
-                </span>
               )}
             </div>
-          </div>
 
-          {product.variationGroup ? (
-            <button
-              type="button"
-              onClick={handleBuy}
-              disabled={availableOptions.length === 0}
-              className={`mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold ${
-                availableOptions.length === 0
-                  ? "bg-muted text-muted-foreground"
-                  : "bg-primary text-primary-foreground"
-              }`}
-            >
-              <ShoppingCart className="h-4 w-4" />
-              {availableOptions.length === 0 ? "Indisponível" : hasVariationInCart ? "Adicionar mais" : "Comprar"}
-            </button>
+            <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {product.category}
+            </p>
+            <h3 className="mt-1 font-display text-base font-semibold leading-tight text-foreground line-clamp-2">
+              {product.name}
+            </h3>
+          </Link>
+
+          {allGroups.length > 0 && (
+            <div className="mt-3 space-y-2">
+              {allGroups.map((group) => (
+                <div key={group.name}>
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    {group.name}
+                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1.5">
+                    {group.options.map((option) => (
+                      <span
+                        key={option.label}
+                        className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+                          option.available
+                            ? "border-border text-foreground"
+                            : "border-border text-muted-foreground line-through opacity-60"
+                        }`}
+                      >
+                        {option.label}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+
+              {hasVariationInCart && (
+                <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-2 text-xs font-medium text-primary">
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                  <span>
+                    Adicionado ao carrinho ({variationQuantityInCart} {variationQuantityInCart === 1 ? "item" : "itens"})
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 min-h-[62px]">
+          {product.oldPrice && (
+            <span className="block text-xs text-muted-foreground line-through">
+              {formatPrice(product.oldPrice)}
+            </span>
+          )}
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <p className="text-lg font-bold leading-tight text-primary">
+              {formatPrice(product.price)}
+            </p>
+            {product.isPromo && (
+              <span className="text-xs font-semibold text-primary">
+                no PIX
+              </span>
+            )}
+          </div>
+        </div>
+
+        {hasVariationGroup ? (
+          <button
+            type="button"
+            onClick={handleBuy}
+            disabled={availableOptions.length === 0}
+            className={`mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold ${
+              availableOptions.length === 0
+                ? "bg-muted text-muted-foreground"
+                : "bg-primary text-primary-foreground"
+            }`}
+          >
+            <ShoppingCart className="h-4 w-4" />
+            {availableOptions.length === 0 ? "Indisponível" : hasVariationInCart ? "Adicionar mais" : "Comprar"}
+          </button>
           ) : quantityInCart > 0 ? (
             <div className="mt-2 flex h-12 items-center justify-between rounded-xl bg-primary px-4 text-primary-foreground">
               <button
@@ -242,7 +254,6 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
             </button>
           )}
         </div>
-      </div>
 
       {showVariationModal && (
         <ProductVariationModal

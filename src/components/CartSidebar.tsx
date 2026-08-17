@@ -1194,7 +1194,7 @@ const CartSidebar = () => {
                                     <p className="line-clamp-2 text-sm font-semibold text-foreground">{item.product.name}</p>
                                     {item.selectedVariation && (
                                       <p className="mt-1 text-xs text-muted-foreground">
-                                        {item.product.variationGroup?.name}: {item.selectedVariation}
+                                        {item.selectedVariation}
                                       </p>
                                     )}
                                   </div>

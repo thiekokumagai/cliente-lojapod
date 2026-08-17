@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { getSelectedCombinationStock } from "@/utils/variation-stock";
 
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
 
@@ -32,7 +33,7 @@ const ProductPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedImage, setSelectedImage] = useState(0);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
-  const [nicotineStrength, setNicotineStrength] = useState<string | null>(null);
+  const [selections, setSelections] = useState<Record<string, string>>({});
   const [hasJustUpdated, setHasJustUpdated] = useState(false);
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -54,7 +55,38 @@ const ProductPage = () => {
     };
   }, [id]);
 
-  const selectedVariation = nicotineStrength ?? undefined;
+  const variationGroups = useMemo(() => {
+    return product?.variationGroups && product.variationGroups.length > 0
+      ? product.variationGroups
+      : product?.variationGroup
+        ? [product.variationGroup]
+        : [];
+  }, [product]);
+
+  const selectedVariation = useMemo(() => {
+    if (variationGroups.length === 0) return undefined;
+    const parts = variationGroups.map((g) => selections[g.name]).filter(Boolean);
+    return parts.length > 0 ? parts.join(" / ") : undefined;
+  }, [variationGroups, selections]);
+
+  const allSelected = useMemo(() => {
+    if (variationGroups.length === 0) return true;
+    return variationGroups.every((g) => !!selections[g.name]);
+  }, [variationGroups, selections]);
+
+  const combinationStock = useMemo(() => {
+    if (!product) return null;
+    return getSelectedCombinationStock(
+      product,
+      selections,
+      variationGroups.map((g) => g.name)
+    );
+  }, [product, selections, variationGroups]);
+
+  const isCombinationUnavailable = useMemo(() => {
+    return combinationStock !== null && combinationStock <= 0;
+  }, [combinationStock]);
+
   const cartItem = items.find(
     (item) => item.product.id === product?.id && item.selectedVariation === selectedVariation,
   );
@@ -66,6 +98,18 @@ const ProductPage = () => {
       setQuantity(1);
     }
   }, [cartItem?.quantity, selectedVariation, product?.id]);
+
+  const handleSelectOption = (groupName: string, optionLabel: string) => {
+    setSelections((prev) => {
+      const next = { ...prev };
+      if (next[groupName] === optionLabel) {
+        delete next[groupName];
+      } else {
+        next[groupName] = optionLabel;
+      }
+      return next;
+    });
+  };
 
   if (isLoading) {
     return (
@@ -121,20 +165,21 @@ const ProductPage = () => {
     );
   }
 
-  const isNicSalt = product.category === "NicSalt";
-  const nicotineOptions = product.variationGroup?.options ?? [];
-  const availableNicotineOptions = nicotineOptions.filter((option) => option.available);
-  const canAddToCart = product.variationGroup ? nicotineStrength !== null : product.stock !== 0;
-  const isUnavailable = product.variationGroup ? availableNicotineOptions.length === 0 : product.stock === 0;
-  const hasNicotineOptions = nicotineOptions.length > 0;
-  const productDescription = cleanDescription;
+  const canAddToCart = variationGroups.length > 0
+    ? allSelected && !isCombinationUnavailable
+    : product.stock !== 0;
+
+  const isUnavailable = variationGroups.length > 0
+    ? variationGroups.every((g) => g.options.every((o) => !o.available))
+    : product.stock === 0;
 
   const isInCart = !!cartItem;
 
-  const totalPrice = product.price * quantity;
+  const priceVal = product.price || 0;
+  const totalPrice = priceVal * quantity;
   const totalOldPrice = product.oldPrice ? product.oldPrice * quantity : 0;
   const discount = product.isPromo && product.oldPrice 
-    ? Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)
+    ? Math.round(((product.oldPrice - priceVal) / product.oldPrice) * 100)
     : undefined;
 
   const handleNavigateToList = () => {
@@ -148,7 +193,7 @@ const ProductPage = () => {
   };
 
   const handleAddOrUpdateCart = () => {
-    if (!canAddToCart || isUnavailable) return;
+    if (!canAddToCart || isUnavailable || isCombinationUnavailable) return;
 
     if (cartItem) {
       updateQuantity(product.id, quantity, selectedVariation);
@@ -176,31 +221,20 @@ const ProductPage = () => {
   const handleBackToStore = () => navigate("/");
   const handleGoBack = () => navigate(-1);
 
+  const effectiveStock = combinationStock !== null ? combinationStock : product?.stock;
+
   const handleDecreaseQuantity = () => setQuantity((current) => Math.max(1, current - 1));
   const handleIncreaseQuantity = () => setQuantity((current) => {
-    if (product.variationGroup) {
-      if (!selectedVariation) return current + 1;
-      const opt = product.variationGroup.options.find((o) => o.label === selectedVariation);
-      if (opt?.stock !== undefined && current >= opt.stock) return current;
-    } else if (product.stock !== undefined && current >= product.stock) {
-      return current;
-    }
+    if (effectiveStock !== undefined && current >= effectiveStock) return current;
     return current + 1;
   });
 
-  const isAtLimit = (() => {
-    if (product?.variationGroup) {
-      if (!selectedVariation) return false;
-      const opt = product.variationGroup.options.find((o) => o.label === selectedVariation);
-      return opt?.stock !== undefined && quantity >= opt.stock;
-    }
-    return product?.stock !== undefined && quantity >= product.stock;
-  })();
+  const isAtLimit = effectiveStock !== undefined && quantity >= effectiveStock;
 
-  const primaryButtonLabel = isUnavailable
+  const primaryButtonLabel = isUnavailable || isCombinationUnavailable
     ? "Esgotado"
     : !canAddToCart
-      ? "Selecione"
+      ? "Selecione as variações"
       : isInCart
         ? "Atualizar"
         : "Adicionar ao Pedido";
@@ -272,12 +306,11 @@ const ProductPage = () => {
             </div>
 
             <ProductInfo
-              isNicSalt={isNicSalt}
-              productDescription={productDescription}
-              nicotineOptions={nicotineOptions}
-              hasNicotineOptions={hasNicotineOptions}
-              nicotineStrength={nicotineStrength}
-              onSelectNicotine={setNicotineStrength}
+              product={product}
+              productDescription={cleanDescription}
+              variationGroups={variationGroups}
+              selections={selections}
+              onSelectOption={handleSelectOption}
             />
 
             {isInCart && (
@@ -370,13 +403,12 @@ const ProductPage = () => {
               </div>
 
               <ProductInfo
-                isNicSalt={isNicSalt}
-                productDescription={productDescription}
-                nicotineOptions={nicotineOptions}
-                hasNicotineOptions={hasNicotineOptions}
-                nicotineStrength={nicotineStrength}
+                product={product}
+                productDescription={cleanDescription}
+                variationGroups={variationGroups}
+                selections={selections}
                 isDesktop
-                onSelectNicotine={setNicotineStrength}
+                onSelectOption={handleSelectOption}
               />
 
               <div className="mt-6 space-y-3">

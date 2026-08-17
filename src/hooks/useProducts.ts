@@ -42,44 +42,84 @@ function buildCategoryImageUrl(path?: string) {
   return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || "lojapod"}/${path}`;
 }
 
-function buildVariationGroupFromNewApi(
+function buildVariationGroupsFromNewApi(
   product: NewApiProduct,
-): ProductVariationGroup | undefined {
-  if (!product.variations || product.variations.length === 0) return undefined;
+): ProductVariationGroup[] {
+  if (!product.variations || product.variations.length === 0) return [];
 
-  const firstVariation = product.variations[0].variation;
+  const variationGroups: ProductVariationGroup[] = [];
 
-  if (!firstVariation) return undefined;
+  for (const vItem of product.variations) {
+    const variation = vItem?.variation;
+    if (!variation || !variation.options || variation.options.length === 0) continue;
 
-  const linkedOptions = firstVariation.options.filter((opt) => {
-    return (
-      product.items?.some((item) =>
-        item.options.some((o) => o.option.value === opt.value),
-      ) ?? false
-    );
-  });
+    const itemsWithOptions =
+      product.items?.filter((item) => item.options && item.options.length > 0) || [];
 
-  const options = linkedOptions.map((opt) => {
-    const item = product.items?.find((i) =>
-      i.options.some((o) => o.option.value === opt.value),
-    );
+    const hasLinkedItems = itemsWithOptions.length > 0;
 
-    return {
-      label: opt.value,
-      available: item ? item.stock > 0 : false,
-      stock: item ? item.stock : 0,
-    };
-  });
+    let targetOptions = variation.options;
+    if (hasLinkedItems) {
+      const filtered = variation.options.filter((opt) =>
+        itemsWithOptions.some((item) =>
+          item.options.some(
+            (o) => o.option?.value === opt.value || o.option?.id === opt.id
+          )
+        )
+      );
+      if (filtered.length > 0) {
+        targetOptions = filtered;
+      }
+    }
 
-  return { name: firstVariation.title, options };
+    const options = targetOptions.map((opt) => {
+      if (hasLinkedItems) {
+        const matchingItems = itemsWithOptions.filter((item) =>
+          item.options.some(
+            (o) => o.option?.value === opt.value || o.option?.id === opt.id
+          )
+        );
+
+        if (matchingItems.length > 0) {
+          const totalStock = matchingItems.reduce(
+            (sum, item) => sum + (item.stock || 0),
+            0
+          );
+          const available = matchingItems.some((item) => (item.stock || 0) > 0);
+
+          return {
+            label: opt.value,
+            available,
+            stock: totalStock,
+          };
+        }
+      }
+
+      return {
+        label: opt.value,
+        available: true,
+        stock: product.items?.reduce((sum, item) => sum + (item.stock || 0), 0) ?? 999,
+      };
+    });
+
+    if (options.length > 0) {
+      variationGroups.push({
+        name: variation.title || "Variação",
+        options,
+      });
+    }
+  }
+
+  return variationGroups;
 }
 
 export function transformNewApiProduct(
   raw: NewApiProduct,
 ): Product & { isVisible?: boolean } {
-  const variationGroup = buildVariationGroupFromNewApi(raw);
+  const variationGroups = buildVariationGroupsFromNewApi(raw);
+  const variationGroup = variationGroups[0];
 
-  const totalStock = raw.items?.reduce((acc, item) => acc + item.stock, 0) || 0;
+  const totalStock = raw.items?.reduce((acc, item) => acc + (item?.stock || 0), 0) || 0;
 
   const promoPriceNum = raw.promotionalPrice
     ? Number(raw.promotionalPrice)
@@ -100,6 +140,8 @@ export function transformNewApiProduct(
     isPromo: !!promoPriceNum,
     stock: totalStock,
     variationGroup,
+    variationGroups,
+    items: raw.items,
     isVisible: raw.isVisible,
     isBestSeller: raw.isBestSeller,
     categoryId: raw.categoryId,
@@ -132,11 +174,18 @@ export function useProducts(categoryId?: string | null) {
       return products.filter((p) => {
         if (p.isVisible === false) return false;
 
-        if (!p.variationGroup) {
+        const groups =
+          p.variationGroups && p.variationGroups.length > 0
+            ? p.variationGroups
+            : p.variationGroup
+              ? [p.variationGroup]
+              : [];
+
+        if (groups.length === 0) {
           // If no variations, check if total stock > 0. But for now, we assume simple products are available if they were returned active.
           return true;
         }
-        return p.variationGroup.options.some((o) => o.available);
+        return groups.some((g) => g.options.some((o) => o.available));
       });
     },
     staleTime: 5 * 60 * 1000,

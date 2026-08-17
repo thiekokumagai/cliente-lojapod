@@ -14,7 +14,7 @@ import {
 const ITEMS_PER_PAGE = 12;
 
 const AllProductsSection = () => {
-  const { selectedCategory, selectedCategoryId, searchTerm, selectedNicotineStrength } = useCart();
+  const { selectedCategory, selectedCategoryId, searchTerm, selectedNicotineStrength, selectedVariationFilters } = useCart();
   const { data: allProducts = [], isLoading } = useProducts(selectedCategoryId);
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const [visibleCount, setVisibleCount] = useState(() => {
@@ -33,20 +33,42 @@ const AllProductsSection = () => {
   const filteredProducts = allProducts
     .filter((p) => !p.isPromo)
     .filter((product) => {
-      const hasAvailableVariations = product.variationGroup
-        ? product.variationGroup.options.some((option) => option.available)
-        : true;
+      const groups =
+        product.variationGroups && product.variationGroups.length > 0
+          ? product.variationGroups
+          : product.variationGroup
+            ? [product.variationGroup]
+            : [];
+
+      const hasAvailableVariations =
+        groups.length > 0
+          ? groups.some((group) => group.options.some((option) => option.available))
+          : true;
+
       const matchesSearch = normalizedSearch
         ? product.name.toLowerCase().includes(normalizedSearch) ||
           product.description.toLowerCase().includes(normalizedSearch) ||
           product.category.toLowerCase().includes(normalizedSearch)
         : true;
-      const matchesNicotine = selectedNicotineStrength
-        ? product.variationGroup?.options.some(
-            (option) =>
-              option.available && option.label === selectedNicotineStrength
-          ) ?? false
-        : true;
+
+      const activeFilters =
+        selectedVariationFilters.length > 0
+          ? selectedVariationFilters
+          : selectedNicotineStrength
+            ? [selectedNicotineStrength]
+            : [];
+
+      const matchesNicotine =
+        activeFilters.length > 0
+          ? activeFilters.every((filterOption) =>
+              groups.some((group) =>
+                group.options.some(
+                  (option) =>
+                    option.available && option.label === filterOption
+                )
+              )
+            )
+          : true;
 
       return hasAvailableVariations && matchesSearch && matchesNicotine;
     })

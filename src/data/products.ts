@@ -9,6 +9,15 @@ export interface ProductVariationGroup {
   options: ProductVariationOption[];
 }
 
+export interface ProductItemOption {
+  option: { id?: string; value: string };
+}
+
+export interface ProductItem {
+  stock: number;
+  options: ProductItemOption[];
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -21,6 +30,8 @@ export interface Product {
   isPromo?: boolean;
   stock?: number;
   variationGroup?: ProductVariationGroup;
+  variationGroups?: ProductVariationGroup[];
+  items?: ProductItem[];
   isBestSeller?: boolean;
   categoryId?: string;
   createdAt?: string;

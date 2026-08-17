@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from "react";
 import type { Product, SelectedProduct } from "@/data/products";
 import { trackEvent } from "@/components/FacebookPixel";
 import { syncCartAnalytics } from "@/services/analytics";
@@ -42,7 +42,10 @@ interface CartContextType {
   searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectedNicotineStrength: string | null;
-  setSelectedNicotineStrength: (strength: string | null) => void;
+  selectedVariationFilters: string[];
+  setSelectedNicotineStrength: (strength: string | string[] | null) => void;
+  toggleVariationFilter: (option: string, groupOptions?: string[]) => void;
+  clearVariationFilters: (groupOptions?: string[]) => void;
   orders: SavedOrder[];
   addOrder: (order: SavedOrder) => void;
 }
@@ -71,12 +74,48 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [showAddedModal, setShowAddedModal] = useState(false);
   const [selectedCategory, setSelectedCategoryState] = useState<string | null>(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedVariationFilters, setSelectedVariationFilters] = useState<string[]>([]);
+
   const setSelectedCategory = useCallback((category: string | null, categoryId?: string | null) => {
     setSelectedCategoryState(category);
     setSelectedCategoryId(categoryId ?? null);
+    setSelectedVariationFilters([]);
   }, []);
+
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedNicotineStrength, setSelectedNicotineStrength] = useState<string | null>(null);
+
+  const selectedNicotineStrength = useMemo(() => {
+    return selectedVariationFilters.length > 0 ? selectedVariationFilters[0] : null;
+  }, [selectedVariationFilters]);
+
+  const setSelectedNicotineStrength = useCallback((strength: string | string[] | null) => {
+    if (strength === null) {
+      setSelectedVariationFilters([]);
+    } else if (Array.isArray(strength)) {
+      setSelectedVariationFilters(strength);
+    } else {
+      setSelectedVariationFilters([strength]);
+    }
+  }, []);
+
+  const toggleVariationFilter = useCallback((option: string, groupOptions?: string[]) => {
+    setSelectedVariationFilters((prev) => {
+      if (prev.includes(option)) {
+        return prev.filter((o) => o !== option);
+      } else {
+        const filtered = groupOptions ? prev.filter((o) => !groupOptions.includes(o)) : prev;
+        return [...filtered, option];
+      }
+    });
+  }, []);
+
+  const clearVariationFilters = useCallback((groupOptions?: string[]) => {
+    if (!groupOptions || groupOptions.length === 0) {
+      setSelectedVariationFilters([]);
+    } else {
+      setSelectedVariationFilters((prev) => prev.filter((o) => !groupOptions.includes(o)));
+    }
+  }, []);
   const [orders, setOrders] = useState<SavedOrder[]>([]);
   const addedModalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -267,7 +306,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         searchTerm,
         setSearchTerm,
         selectedNicotineStrength,
+        selectedVariationFilters,
         setSelectedNicotineStrength,
+        toggleVariationFilter,
+        clearVariationFilters,
         orders,
         addOrder,
       }}

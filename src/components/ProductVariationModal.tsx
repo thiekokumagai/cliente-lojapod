@@ -2,6 +2,10 @@ import type { Product } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Minus, Plus, ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import {
+  isOptionAvailableGivenSelections,
+  getSelectedCombinationStock,
+} from "@/utils/variation-stock";
 
 interface ProductVariationModalProps {
   product: Product;
@@ -22,22 +26,77 @@ const ProductVariationModal = ({
   const [displayQuantity, setDisplayQuantity] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
 
-  const availableOptions = product.variationGroup?.options.filter((option) => option.available) ?? [];
+  const allGroups = useMemo(() => {
+    return product.variationGroups && product.variationGroups.length > 0
+      ? product.variationGroups
+      : product.variationGroup
+        ? [product.variationGroup]
+        : [];
+  }, [product.variationGroups, product.variationGroup]);
+
+  const allOptions = useMemo(() => {
+    return allGroups.flatMap((g) => g.options);
+  }, [allGroups]);
+
+  const availableOptions = useMemo(() => {
+    return allOptions.filter((option) => option.available);
+  }, [allOptions]);
+
+  const [selections, setSelections] = useState<Record<string, string>>(() => {
+    if (!selectedOption) return {};
+    const parts = selectedOption.split(" / ").map((p) => p.trim());
+    const initial: Record<string, string> = {};
+    parts.forEach((part) => {
+      const group = allGroups.find((g) =>
+        g.options.some((o) => o.label === part)
+      );
+      if (group) {
+        initial[group.name] = part;
+      }
+    });
+    return initial;
+  });
+
+  const combinedVariation = useMemo(() => {
+    return allGroups
+      .map((g) => selections[g.name])
+      .filter(Boolean)
+      .join(" / ");
+  }, [allGroups, selections]);
+
+  const allSelected = useMemo(() => {
+    if (allGroups.length === 0) return false;
+    return allGroups.every((g) => !!selections[g.name]);
+  }, [allGroups, selections]);
+
+  const combinationStock = useMemo(() => {
+    return getSelectedCombinationStock(
+      product,
+      selections,
+      allGroups.map((g) => g.name)
+    );
+  }, [product, selections, allGroups]);
+
+  const isCombinationUnavailable = useMemo(() => {
+    return combinationStock !== null && combinationStock <= 0;
+  }, [combinationStock]);
+
+  const canAddToCart = allSelected && !isCombinationUnavailable;
 
   const quantityInCart = useMemo(() => {
-    if (!selectedOption) return 0;
+    if (!combinedVariation) return 0;
 
     const cartItem = items.find(
       (item) =>
         item.product.id === product.id &&
-        item.selectedVariation === selectedOption
+        item.selectedVariation === combinedVariation
     );
 
     return cartItem?.quantity ?? 0;
-  }, [items, product.id, selectedOption]);
+  }, [items, product.id, combinedVariation]);
 
   useEffect(() => {
-    if (!selectedOption) {
+    if (!combinedVariation || !allSelected) {
       setDisplayQuantity(0);
       setIsLocked(false);
       return;
@@ -51,7 +110,7 @@ const ProductVariationModal = ({
     if (!isLocked) {
       setDisplayQuantity(0);
     }
-  }, [quantityInCart, selectedOption, isLocked]);
+  }, [quantityInCart, combinedVariation, allSelected, isLocked]);
 
   useEffect(() => {
     return () => {
@@ -60,6 +119,27 @@ const ProductVariationModal = ({
       }
     };
   }, []);
+
+  const handleOptionSelect = (groupName: string, optionLabel: string) => {
+    if (displayQuantity > 0) return;
+
+    setSelections((prev) => {
+      const next = { ...prev };
+      if (next[groupName] === optionLabel) {
+        delete next[groupName];
+      } else {
+        next[groupName] = optionLabel;
+      }
+
+      const nextCombined = allGroups
+        .map((g) => next[g.name])
+        .filter(Boolean)
+        .join(" / ");
+
+      onSelect(nextCombined);
+      return next;
+    });
+  };
 
   const startAutoClose = (variation: string) => {
     if (autoCloseTimeoutRef.current) {
@@ -73,46 +153,43 @@ const ProductVariationModal = ({
   };
 
   const handleBuy = () => {
-    if (!selectedOption) return;
+    if (!combinedVariation || !canAddToCart) return;
     setDisplayQuantity(1);
     setIsLocked(true);
-    addToCart({ product, selectedVariation: selectedOption });
-    startAutoClose(selectedOption);
+    addToCart({ product, selectedVariation: combinedVariation });
+    startAutoClose(combinedVariation);
   };
 
   const handleDecrease = () => {
-    if (!selectedOption || displayQuantity === 0) return;
+    if (!combinedVariation || displayQuantity === 0) return;
 
     const nextQuantity = displayQuantity - 1;
     setDisplayQuantity(nextQuantity);
 
     if (nextQuantity <= 0) {
       setIsLocked(false);
-      removeFromCart(product.id, selectedOption);
+      removeFromCart(product.id, combinedVariation);
       return;
     }
 
-    updateQuantity(product.id, nextQuantity, selectedOption);
+    updateQuantity(product.id, nextQuantity, combinedVariation);
   };
 
   const handleIncrease = () => {
-    if (!selectedOption || displayQuantity === 0) return;
-
-    const currentOption = product.variationGroup?.options.find(o => o.label === selectedOption);
-    if (currentOption?.stock !== undefined && displayQuantity >= currentOption.stock) return;
+    if (!combinedVariation || displayQuantity === 0) return;
+    if (combinationStock !== null && displayQuantity >= combinationStock) return;
 
     const nextQuantity = displayQuantity + 1;
     setDisplayQuantity(nextQuantity);
-    updateQuantity(product.id, nextQuantity, selectedOption);
+    updateQuantity(product.id, nextQuantity, combinedVariation);
   };
 
   const isAtLimit = useMemo(() => {
-    if (!selectedOption) return false;
-    const currentOption = product.variationGroup?.options.find(o => o.label === selectedOption);
-    return currentOption?.stock !== undefined && displayQuantity >= currentOption.stock;
-  }, [product.variationGroup, selectedOption, displayQuantity]);
+    if (combinationStock !== null && displayQuantity >= combinationStock) return true;
+    return false;
+  }, [combinationStock, displayQuantity]);
 
-  if (!product.variationGroup) return null;
+  if (allGroups.length === 0) return null;
 
   return (
     <div
@@ -137,31 +214,43 @@ const ProductVariationModal = ({
         </p>
         <h3 className="mt-1 pr-8 text-lg font-bold text-foreground">{product.name}</h3>
 
-        <div className="mt-5">
-          <p className="text-sm font-medium text-foreground">{product.variationGroup.name}</p>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            {product.variationGroup.options.map((option) => {
-              const isSelected = selectedOption === option.label;
+        <div className="mt-5 space-y-4">
+          {allGroups.map((group) => (
+            <div key={group.name}>
+              <p className="text-sm font-medium text-foreground">{group.name}</p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {group.options.map((option) => {
+                  const isSelected = selections[group.name] === option.label;
+                  const isAvailable =
+                    option.available &&
+                    isOptionAvailableGivenSelections(
+                      product,
+                      group.name,
+                      option.label,
+                      selections
+                    );
 
-              return (
-                <button
-                  key={option.label}
-                  type="button"
-                  onClick={() => option.available && displayQuantity === 0 && onSelect(option.label)}
-                  disabled={!option.available || displayQuantity > 0}
-                  className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
-                    option.available
-                      ? isSelected
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-foreground hover:bg-secondary"
-                      : "cursor-not-allowed border-border bg-muted text-muted-foreground line-through opacity-60"
-                  } ${displayQuantity > 0 && !isSelected ? "opacity-60" : ""}`}
-                >
-                  {option.label}
-                </button>
-              );
-            })}
-          </div>
+                  return (
+                    <button
+                      key={option.label}
+                      type="button"
+                      onClick={() => isAvailable && displayQuantity === 0 && handleOptionSelect(group.name, option.label)}
+                      disabled={!isAvailable || displayQuantity > 0}
+                      className={`rounded-xl border px-4 py-3 text-sm font-medium transition-colors ${
+                        isAvailable
+                          ? isSelected
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-foreground hover:bg-secondary"
+                          : "cursor-not-allowed border-border bg-muted text-muted-foreground line-through opacity-60"
+                      } ${displayQuantity > 0 && !isSelected ? "opacity-60" : ""}`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </div>
 
         {availableOptions.length === 0 && (
@@ -205,15 +294,19 @@ const ProductVariationModal = ({
           <button
             type="button"
             onClick={handleBuy}
-            disabled={!selectedOption || availableOptions.length === 0}
+            disabled={!canAddToCart}
             className={`mt-6 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold ${
-              selectedOption && availableOptions.length > 0
+              canAddToCart
                 ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground"
+                : "bg-muted text-muted-foreground cursor-not-allowed"
             }`}
           >
             <ShoppingCart className="h-4 w-4" />
-            Comprar
+            {isCombinationUnavailable
+              ? "Esgotado"
+              : !allSelected
+                ? "Selecione as variações"
+                : "Comprar"}
           </button>
         )}
       </div>
