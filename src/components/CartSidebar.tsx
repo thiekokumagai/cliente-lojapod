@@ -609,7 +609,7 @@ const CartSidebar = () => {
       const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/coupons/validate`, {
         method: "POST",
         headers: { ...getApiHeaders(), "Content-Type": "application/json" },
-        body: JSON.stringify({ title: trimmedCoupon, orderTotal: effectiveTotalPrice }),
+        body: JSON.stringify({ title: trimmedCoupon, orderTotal: effectiveTotalPrice, nonPromoItemsTotal }),
       });
 
       if (!response.ok) {
