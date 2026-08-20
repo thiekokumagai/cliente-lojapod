@@ -898,6 +898,7 @@ const CartSidebar = () => {
         observation: orderNote.trim() || undefined,
         amountProvided: paymentMethod === 'Dinheiro' ? (needsChange === 'sim' ? parseCurrencyInput(changeFor) : finalTotal) : undefined,
         changeAmount: paymentMethod === 'Dinheiro' && needsChange === 'sim' ? Math.max(0, parseCurrencyInput(changeFor) - finalTotal) : undefined,
+        nonPromoItemsTotal: nonPromoItemsTotal,
         items: orderItems.map(item => ({
           productId: item.product.id,
           productName: item.product.name,
