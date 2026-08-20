@@ -246,7 +246,7 @@ const CartSidebar = () => {
   const [couponCode, setCouponCode] = useState("");
   const [savedCouponCode, setSavedCouponCode] = useState("");
   const [isEditingCoupon, setIsEditingCoupon] = useState(false);
-  const [couponData, setCouponData] = useState<{ discountAmount: number; type: string } | null>(null);
+  const [couponData, setCouponData] = useState<{ discountAmount: number; type: string; coupon?: any } | null>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
@@ -406,13 +406,67 @@ const CartSidebar = () => {
     }
   }, [paymentOptions, paymentMethod]);
 
-  const couponDiscountAmount = couponData?.type !== 'FREE_SHIPPING' ? (couponData?.discountAmount || 0) : 0;
-  const totalAfterCoupon = Math.max(0, effectiveTotalPrice - couponDiscountAmount);
-  const effectiveDeliveryFee = couponData?.type === 'FREE_SHIPPING' ? 0 : deliveryFee;
-
   const nonPromoItemsTotal = useMemo(() => {
-    return effectiveItems.reduce((acc, item) => acc + (!item.product.isPromo ? item.product.price * item.quantity : 0), 0);
-  }, [effectiveItems]);
+    return items.reduce((acc, item) => {
+      const isPromo = item.product.isPromo || (item.product.oldPrice !== undefined && item.product.oldPrice > 0);
+      if (isPromo) return acc;
+      
+      const itemPrice = (paymentMethod !== "PIX" && paymentMethod !== null && item.product.oldPrice)
+        ? item.product.oldPrice
+        : item.product.price;
+        
+      return acc + itemPrice * item.quantity;
+    }, 0);
+  }, [items, paymentMethod]);
+
+  const computedCouponDiscount = useMemo(() => {
+    if (!couponData) return 0;
+    const coupon = couponData.coupon;
+    if (!coupon) {
+      return couponData.type !== 'FREE_SHIPPING' ? (couponData.discountAmount || 0) : 0;
+    }
+    const applicableTotal = coupon.applyToPromotionalItems
+      ? effectiveTotalPrice
+      : nonPromoItemsTotal;
+
+    if (applicableTotal <= 0 && coupon.type !== 'FREE_SHIPPING') {
+      return 0;
+    }
+
+    if (coupon.minOrderValue && effectiveTotalPrice < Number(coupon.minOrderValue)) {
+      return 0;
+    }
+
+    if (coupon.type === 'FREE_SHIPPING') {
+      return 0;
+    }
+
+    if (coupon.type === 'VALUE') {
+      return Math.min(Number(coupon.value) || 0, applicableTotal);
+    }
+
+    if (coupon.type === 'PERCENTAGE') {
+      return Math.min((applicableTotal * (Number(coupon.value) || 0)) / 100, applicableTotal);
+    }
+
+    return 0;
+  }, [couponData, effectiveTotalPrice, nonPromoItemsTotal]);
+
+  const isFreeShippingApplicable = useMemo(() => {
+    if (couponData?.type === 'FREE_SHIPPING') {
+      const coupon = couponData.coupon;
+      if (coupon) {
+        if (coupon.minOrderValue && effectiveTotalPrice < Number(coupon.minOrderValue)) return false;
+        if (!coupon.applyToPromotionalItems && nonPromoItemsTotal <= 0) return false;
+      }
+      return true;
+    }
+    return false;
+  }, [couponData, effectiveTotalPrice, nonPromoItemsTotal]);
+
+  const couponDiscountAmount = computedCouponDiscount;
+  const totalAfterCoupon = Math.max(0, effectiveTotalPrice - couponDiscountAmount);
+  const effectiveDeliveryFee = isFreeShippingApplicable ? 0 : deliveryFee;
 
   const pixDiscountBase = Math.min(nonPromoItemsTotal, totalAfterCoupon);
   const pixDiscount = useMemo(() => pixDiscountBase * (pixDiscountPercent / 100), [pixDiscountBase, pixDiscountPercent]);
@@ -613,17 +667,18 @@ const CartSidebar = () => {
       });
 
       if (!response.ok) {
-        throw new Error("Cupom inválido ou expirado.");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || "Cupom inválido ou expirado.");
       }
 
       const data = await response.json();
-      setCouponData({ discountAmount: data.discountAmount, type: data.coupon.type });
+      setCouponData({ discountAmount: data.discountAmount, type: data.coupon.type, coupon: data.coupon });
       setSavedCouponCode(trimmedCoupon);
       setCouponCode(trimmedCoupon);
       setIsEditingCoupon(false);
       toast.success("Cupom aplicado com sucesso!");
-    } catch (error) {
-      toast.error("Erro ao validar o cupom.");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao validar o cupom.");
     } finally {
       setIsValidatingCoupon(false);
     }
@@ -881,8 +936,8 @@ const CartSidebar = () => {
         paymentDiscount: paymentMethod === 'PIX' ? Number(pixDiscount.toFixed(2)) : 0,
         installmentSurcharge: paymentMethod === 'Cartão de Crédito' && creditMode === 'parcelado' ? Number(creditInterestAmount.toFixed(2)) : 0,
         couponTitle: savedCouponCode || undefined,
-        couponDiscount: couponData?.type !== 'FREE_SHIPPING' ? Number(couponData?.discountAmount || 0) : 0,
-        couponFreightDiscount: couponData?.type === 'FREE_SHIPPING' ? Number(deliveryFee.toFixed(2)) : 0,
+        couponDiscount: couponData?.type !== 'FREE_SHIPPING' ? Number(computedCouponDiscount.toFixed(2)) : 0,
+        couponFreightDiscount: isFreeShippingApplicable ? Number(deliveryFee.toFixed(2)) : 0,
         totalOrder: Number(finalTotal.toFixed(2)),
         totalReceived: Number(finalTotal.toFixed(2)),
         paymentType: paymentMethod === 'PIX' ? 'online' : 'entrega',
@@ -898,7 +953,6 @@ const CartSidebar = () => {
         observation: orderNote.trim() || undefined,
         amountProvided: paymentMethod === 'Dinheiro' ? (needsChange === 'sim' ? parseCurrencyInput(changeFor) : finalTotal) : undefined,
         changeAmount: paymentMethod === 'Dinheiro' && needsChange === 'sim' ? Math.max(0, parseCurrencyInput(changeFor) - finalTotal) : undefined,
-        nonPromoItemsTotal: nonPromoItemsTotal,
         items: orderItems.map(item => ({
           productId: item.product.id,
           productName: item.product.name,
