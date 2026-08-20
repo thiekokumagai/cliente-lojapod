@@ -37,7 +37,12 @@ export function useBusinessStatus(businessHours: BusinessHourRule[] | undefined 
         const [openHour, openMin] = interval.open.split(":").map(Number);
         const [closeHour, closeMin] = interval.close.split(":").map(Number);
         const openMinutes = openHour * 60 + openMin;
-        const closeMinutes = closeHour * 60 + closeMin;
+        
+        // Se a hora de fechar for 00:00, consideramos como 24:00 (fim do dia, 1440 minutos)
+        let closeMinutes = closeHour * 60 + closeMin;
+        if (closeHour === 0 && closeMin === 0) {
+          closeMinutes = 1440;
+        }
 
         if (currentMinutes >= openMinutes && currentMinutes <= closeMinutes) {
           isOpen = true;
