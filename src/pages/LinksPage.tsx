@@ -23,6 +23,14 @@ const LinksPage = () => {
         document.getElementsByTagName("head")[0].appendChild(link);
       }
       link.href = settings.faviconUrl;
+
+      let appleLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
+      if (!appleLink) {
+        appleLink = document.createElement("link");
+        appleLink.rel = "apple-touch-icon";
+        document.getElementsByTagName("head")[0].appendChild(appleLink);
+      }
+      appleLink.href = settings.faviconUrl;
     }
   }, [settings?.storeName, settings?.faviconUrl]);
 
