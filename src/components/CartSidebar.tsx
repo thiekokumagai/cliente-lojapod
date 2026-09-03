@@ -200,6 +200,11 @@ const CartSidebar = () => {
     return rule ? rule.value : 0;
   }, [storeSettings]);
 
+  const debitFeePercent = useMemo(() => {
+    const rule = storeSettings?.paymentRules?.find((r) => r.paymentMethod === 'debit' && r.type === 'charge');
+    return (rule && rule.passedToCustomer !== false) ? rule.value : 0;
+  }, [storeSettings]);
+
   const creditInstallmentsOptions = useMemo(() => {
     const rules = storeSettings?.paymentRules?.filter(r => r.paymentMethod === 'credit' && r.type === 'charge') || [];
     const options: { value: number; interest: number }[] = [];
@@ -484,12 +489,23 @@ const CartSidebar = () => {
     return (totalAfterCoupon + effectiveDeliveryFee) * (selectedInstallment.interest / 100);
   }, [paymentMethod, selectedInstallment.interest, totalAfterCoupon, effectiveDeliveryFee]);
 
+  const debitInterestAmount = useMemo(() => {
+    if (paymentMethod !== "Cartão de Débito") return 0;
+    return (totalAfterCoupon + effectiveDeliveryFee) * (debitFeePercent / 100);
+  }, [paymentMethod, debitFeePercent, totalAfterCoupon, effectiveDeliveryFee]);
+
+  const cardSurchargeAmount = useMemo(() => {
+    if (paymentMethod === "Cartão de Crédito") return creditInterestAmount;
+    if (paymentMethod === "Cartão de Débito") return debitInterestAmount;
+    return 0;
+  }, [paymentMethod, creditInterestAmount, debitInterestAmount]);
+
   const discountedProductsTotal = useMemo(() => {
     if (paymentMethod === "PIX") return totalWithPixDiscount;
     return totalAfterCoupon;
   }, [paymentMethod, totalWithPixDiscount, totalAfterCoupon]);
 
-  const finalTotal = discountedProductsTotal + effectiveDeliveryFee + creditInterestAmount;
+  const finalTotal = discountedProductsTotal + effectiveDeliveryFee + cardSurchargeAmount;
   const parsedChangeFor = parseCurrencyInput(changeFor);
   const isChangeEnough = parsedChangeFor >= finalTotal;
   const isNameValid = useMemo(() => {
@@ -850,7 +866,8 @@ const CartSidebar = () => {
       lines.push(`Desconto PIX: ${formatPrice(checkoutPixDiscount)}`);
     }
 
-    if (isCredit && checkoutCreditInterest > 0) {
+    const checkoutCardSurcharge = isCredit ? checkoutCreditInterest : (isDebit ? debitFeePercent : 0);
+    if ((isCredit || isDebit) && checkoutCardSurcharge > 0) {
       const baseForCredit = checkoutSubtotal - (couponData?.discountAmount || 0) + checkoutDeliveryFee;
       const interestAmt = checkoutTotal - baseForCredit;
       if (interestAmt > 0) {
@@ -938,7 +955,7 @@ const CartSidebar = () => {
         itemsTotal: Number(effectiveTotalPrice.toFixed(2)),
         freight: Number(deliveryFee.toFixed(2)),
         paymentDiscount: paymentMethod === 'PIX' ? Number(pixDiscount.toFixed(2)) : 0,
-        installmentSurcharge: paymentMethod === 'Cartão de Crédito' ? Number(creditInterestAmount.toFixed(2)) : 0,
+        installmentSurcharge: (paymentMethod === 'Cartão de Crédito' || paymentMethod === 'Cartão de Débito') ? Number(cardSurchargeAmount.toFixed(2)) : 0,
         couponTitle: savedCouponCode || undefined,
         couponDiscount: couponData?.type !== 'FREE_SHIPPING' ? Number(computedCouponDiscount.toFixed(2)) : 0,
         couponFreightDiscount: isFreeShippingApplicable ? Number(deliveryFee.toFixed(2)) : 0,
@@ -1773,6 +1790,12 @@ const CartSidebar = () => {
                           <span className="font-medium">+{selectedInstallment.interest.toFixed(2).replace(".", ",")}%</span>
                         </div>
                       )}
+                      {paymentMethod === "Cartão de Débito" && debitFeePercent > 0 && (
+                        <div className="flex justify-between text-primary">
+                          <span>Taxa do cartão (débito)</span>
+                          <span className="font-medium">+{debitFeePercent.toFixed(2).replace(".", ",")}%</span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Entrega</span>
                         <span className="font-medium text-foreground">
@@ -1895,6 +1918,12 @@ const CartSidebar = () => {
                         <div className="flex justify-between text-primary">
                           <span>Juros do cartão</span>
                           <span className="font-medium">+{selectedInstallment.interest.toFixed(2).replace(".", ",")}%</span>
+                        </div>
+                      )}
+                      {paymentMethod === "Cartão de Débito" && debitFeePercent > 0 && (
+                        <div className="flex justify-between text-primary">
+                          <span>Taxa do cartão (débito)</span>
+                          <span className="font-medium">+{debitFeePercent.toFixed(2).replace(".", ",")}%</span>
                         </div>
                       )}
                       <div className="flex justify-between">
