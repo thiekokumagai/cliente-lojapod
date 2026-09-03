@@ -10,6 +10,7 @@ import SiteFooter from "@/components/SiteFooter";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreMobilePadding } from "@/hooks/use-store-mobile-padding";
 import { useProducts, useCategories } from "@/hooks/useProducts";
+import { matchesProductSearch } from "@/utils/search";
 
 const Index = () => {
   const {
@@ -83,11 +84,7 @@ const Index = () => {
         ? groups.some((group) => group.options.some((option) => option.available))
         : true;
 
-    const matchesSearch = normalizedSearch
-      ? product.name.toLowerCase().includes(normalizedSearch) ||
-        product.description.toLowerCase().includes(normalizedSearch) ||
-        product.category.toLowerCase().includes(normalizedSearch)
-      : true;
+    const matchesSearch = matchesProductSearch(searchTerm, product);
 
     const activeFilters =
       selectedVariationFilters.length > 0

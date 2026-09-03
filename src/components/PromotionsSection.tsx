@@ -2,6 +2,7 @@ import ProductCard from "./ProductCard";
 import { Flame } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/hooks/useProducts";
+import { matchesProductSearch } from "@/utils/search";
 
 const PromotionsSection = () => {
   const { selectedCategory, searchTerm, selectedNicotineStrength, selectedVariationFilters } = useCart();
@@ -23,11 +24,7 @@ const PromotionsSection = () => {
         ? groups.some((group) => group.options.some((option) => option.available))
         : true;
     const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
-    const matchesSearch = normalizedSearch
-      ? product.name.toLowerCase().includes(normalizedSearch) ||
-        product.description.toLowerCase().includes(normalizedSearch) ||
-        product.category.toLowerCase().includes(normalizedSearch)
-      : true;
+    const matchesSearch = matchesProductSearch(searchTerm, product);
 
     const activeFilters =
       selectedVariationFilters.length > 0

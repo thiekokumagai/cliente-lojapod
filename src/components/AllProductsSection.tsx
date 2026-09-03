@@ -3,6 +3,7 @@ import ProductCard from "./ProductCard";
 import { Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/hooks/useProducts";
+import { matchesProductSearch } from "@/utils/search";
 import {
   Select,
   SelectContent,
@@ -45,11 +46,7 @@ const AllProductsSection = () => {
           ? groups.some((group) => group.options.some((option) => option.available))
           : true;
 
-      const matchesSearch = normalizedSearch
-        ? product.name.toLowerCase().includes(normalizedSearch) ||
-          product.description.toLowerCase().includes(normalizedSearch) ||
-          product.category.toLowerCase().includes(normalizedSearch)
-        : true;
+      const matchesSearch = matchesProductSearch(searchTerm, product);
 
       const activeFilters =
         selectedVariationFilters.length > 0
