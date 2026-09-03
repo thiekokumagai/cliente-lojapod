@@ -202,23 +202,27 @@ const CartSidebar = () => {
 
   const creditInstallmentsOptions = useMemo(() => {
     const rules = storeSettings?.paymentRules?.filter(r => r.paymentMethod === 'credit' && r.type === 'charge') || [];
-    const options = [{ value: 1, interest: 0 }];
+    const options: { value: number; interest: number }[] = [];
     
-    if (rules.length === 0) return options;
+    if (rules.length > 0) {
+      rules.sort((a, b) => (a.parcelaMin || 0) - (b.parcelaMin || 0));
 
-    rules.sort((a, b) => (a.parcelaMin || 0) - (b.parcelaMin || 0));
+      rules.forEach(rule => {
+         const min = rule.parcelaMin !== undefined && rule.parcelaMin !== null && rule.parcelaMin > 0 ? rule.parcelaMin : 1;
+         const max = rule.parcelaMax !== undefined && rule.parcelaMax !== null && rule.parcelaMax > 0 ? rule.parcelaMax : min;
+         const interest = rule.passedToCustomer !== false ? rule.value : 0; 
+         
+         for (let i = min; i <= max; i++) {
+             if (!options.find(o => o.value === i)) {
+                 options.push({ value: i, interest: interest });
+             }
+         }
+      });
+    }
 
-    rules.forEach(rule => {
-       const min = rule.parcelaMin || 2;
-       const max = rule.parcelaMax || min;
-       const interest = rule.passedToCustomer !== false ? rule.value : 0; 
-       
-       for (let i = min; i <= max; i++) {
-           if (!options.find(o => o.value === i)) {
-               options.push({ value: i, interest: interest });
-           }
-       }
-    });
+    if (!options.find(o => o.value === 1)) {
+      options.push({ value: 1, interest: 0 });
+    }
 
     return options.sort((a, b) => a.value - b.value);
   }, [storeSettings]);
@@ -476,9 +480,9 @@ const CartSidebar = () => {
     creditInstallmentsOptions.find((installment) => installment.value === effectiveCreditInstallments) ?? creditInstallmentsOptions[0];
 
   const creditInterestAmount = useMemo(() => {
-    if (paymentMethod !== "Cartão de Crédito" || creditMode !== "parcelado") return 0;
+    if (paymentMethod !== "Cartão de Crédito") return 0;
     return (totalAfterCoupon + effectiveDeliveryFee) * (selectedInstallment.interest / 100);
-  }, [paymentMethod, creditMode, selectedInstallment.interest, totalAfterCoupon, effectiveDeliveryFee]);
+  }, [paymentMethod, selectedInstallment.interest, totalAfterCoupon, effectiveDeliveryFee]);
 
   const discountedProductsTotal = useMemo(() => {
     if (paymentMethod === "PIX") return totalWithPixDiscount;
@@ -846,11 +850,11 @@ const CartSidebar = () => {
       lines.push(`Desconto PIX: ${formatPrice(checkoutPixDiscount)}`);
     }
 
-    if (isCredit && checkoutCreditMode === "parcelado" && checkoutCreditInterest > 0) {
+    if (isCredit && checkoutCreditInterest > 0) {
       const baseForCredit = checkoutSubtotal - (couponData?.discountAmount || 0) + checkoutDeliveryFee;
       const interestAmt = checkoutTotal - baseForCredit;
       if (interestAmt > 0) {
-        lines.push(`Acréscimo parcelamento: ${formatPrice(interestAmt)}`);
+        lines.push(`Acréscimo cartão: ${formatPrice(interestAmt)}`);
       }
     }
 
@@ -934,7 +938,7 @@ const CartSidebar = () => {
         itemsTotal: Number(effectiveTotalPrice.toFixed(2)),
         freight: Number(deliveryFee.toFixed(2)),
         paymentDiscount: paymentMethod === 'PIX' ? Number(pixDiscount.toFixed(2)) : 0,
-        installmentSurcharge: paymentMethod === 'Cartão de Crédito' && creditMode === 'parcelado' ? Number(creditInterestAmount.toFixed(2)) : 0,
+        installmentSurcharge: paymentMethod === 'Cartão de Crédito' ? Number(creditInterestAmount.toFixed(2)) : 0,
         couponTitle: savedCouponCode || undefined,
         couponDiscount: couponData?.type !== 'FREE_SHIPPING' ? Number(computedCouponDiscount.toFixed(2)) : 0,
         couponFreightDiscount: isFreeShippingApplicable ? Number(deliveryFee.toFixed(2)) : 0,
@@ -942,7 +946,7 @@ const CartSidebar = () => {
         totalReceived: Number(finalTotal.toFixed(2)),
         paymentType: paymentMethod === 'PIX' ? 'online' : 'entrega',
         paymentMethod: paymentMethod === 'PIX' ? 'pix' : paymentMethod === 'Cartão de Crédito' ? 'credit' : paymentMethod === 'Cartão de Débito' ? 'debit' : paymentMethod === 'Dinheiro' ? 'cash' : paymentMethod,
-        installments: paymentMethod === 'Cartão de Crédito' && creditMode === 'parcelado' ? effectiveCreditInstallments : 1,
+        installments: paymentMethod === 'Cartão de Crédito' ? effectiveCreditInstallments : 1,
         street: structuredAddress?.mainText || savedAddressDisplay,
         number: structuredAddress?.number || "S/N",
         neighborhood: structuredAddress?.secondaryText?.split(',')[0] || "Local",
@@ -1763,9 +1767,9 @@ const CartSidebar = () => {
                         </div>
                       )}
 
-                      {paymentMethod === "Cartão de Crédito" && creditMode === "parcelado" && selectedInstallment.interest > 0 && (
+                      {paymentMethod === "Cartão de Crédito" && selectedInstallment.interest > 0 && (
                         <div className="flex justify-between text-primary">
-                          <span>Juros do parcelamento</span>
+                          <span>Juros do cartão</span>
                           <span className="font-medium">+{selectedInstallment.interest.toFixed(2).replace(".", ",")}%</span>
                         </div>
                       )}
@@ -1887,9 +1891,9 @@ const CartSidebar = () => {
                         </div>
                       )}
 
-                      {paymentMethod === "Cartão de Crédito" && creditMode === "parcelado" && selectedInstallment.interest > 0 && (
+                      {paymentMethod === "Cartão de Crédito" && selectedInstallment.interest > 0 && (
                         <div className="flex justify-between text-primary">
-                          <span>Juros do parcelamento</span>
+                          <span>Juros do cartão</span>
                           <span className="font-medium">+{selectedInstallment.interest.toFixed(2).replace(".", ",")}%</span>
                         </div>
                       )}
