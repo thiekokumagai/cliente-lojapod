@@ -1358,6 +1358,7 @@ const CartSidebar = () => {
                           <input
                             type="tel"
                             inputMode="numeric"
+                            pattern="[0-9]*"
                             autoComplete="tel"
                             value={phone}
                             onChange={(e) => handlePhoneChange(e.target.value)}
