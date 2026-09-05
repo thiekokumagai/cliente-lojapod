@@ -1744,6 +1744,7 @@ const CartSidebar = () => {
                           <div>
                             <label className="mb-2 block text-sm font-medium text-foreground">Troco para quanto?</label>
                             <input
+                              type="tel"
                               value={changeFor}
                               onChange={(e) => setChangeFor(formatCurrencyInput(e.target.value))}
                               inputMode="numeric"

@@ -134,7 +134,7 @@ export function transformNewApiProduct(
     image: buildImageUrl(raw.imageUrl),
     images: images.length > 0 ? images : undefined,
     category: raw.category?.title || raw.categoryId,
-    description: raw.descriptionFormated || raw.description || "",
+    description: raw.description || raw.descriptionFormated || "",
     price: promoPriceNum || priceNum,
     oldPrice: promoPriceNum ? priceNum : undefined,
     isPromo: !!promoPriceNum,
