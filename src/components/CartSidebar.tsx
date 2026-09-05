@@ -261,7 +261,26 @@ const CartSidebar = () => {
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalizedOrder, setFinalizedOrder] = useState<FinalizedOrder | null>(null);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const previousTotalItems = useRef(totalItems);
+
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        setIsKeyboardOpen(true);
+      }
+    };
+    const handleFocusOut = () => {
+      setIsKeyboardOpen(false);
+    };
+    window.addEventListener('focusin', handleFocusIn);
+    window.addEventListener('focusout', handleFocusOut);
+    return () => {
+      window.removeEventListener('focusin', handleFocusIn);
+      window.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
 
   const effectiveItems = useMemo(() => {
     if (paymentMethod === "PIX" || paymentMethod === null) {
@@ -1970,7 +1989,7 @@ const CartSidebar = () => {
               )}
             </div>
 
-            <div className="border-t border-border bg-card p-4">
+            <div className={`border-t border-border bg-card p-4 ${isKeyboardOpen && step === "delivery" ? "hidden md:block" : ""}`}>
               {step === "cart" &&
                 (items.length > 0 ? (
                   <div>
