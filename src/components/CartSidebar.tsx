@@ -1356,10 +1356,10 @@ const CartSidebar = () => {
                         <div>
                           <label className="mb-2 block text-sm font-medium text-foreground">Telefone</label>
                           <input
-                            type="tel"
+                            type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
-                            autoComplete="tel"
+                            autoComplete="off"
                             value={phone}
                             onChange={(e) => handlePhoneChange(e.target.value)}
                             placeholder="(67) 99999-9999"
@@ -1745,7 +1745,7 @@ const CartSidebar = () => {
                           <div>
                             <label className="mb-2 block text-sm font-medium text-foreground">Troco para quanto?</label>
                             <input
-                              type="tel"
+                              type="text"
                               value={changeFor}
                               onChange={(e) => setChangeFor(formatCurrencyInput(e.target.value))}
                               inputMode="numeric"
