@@ -11,6 +11,8 @@ interface StoreSettings {
   phone: string;
   instagram?: string;
   pixelId?: string;
+  isTemporarilyClosed?: boolean;
+  closedNoticeMessage?: string | null;
   cep: string;
   street: string;
   number: string;

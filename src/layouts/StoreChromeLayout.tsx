@@ -5,6 +5,7 @@ import AddedToCartModal from "@/components/AddedToCartModal";
 import BackToTopButton from "@/components/BackToTopButton";
 import CartSidebar from "@/components/CartSidebar";
 import StoreClosedModal from "@/components/StoreClosedModal";
+import StoreTemporarilyClosedOverlay from "@/components/StoreTemporarilyClosedOverlay";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import StoreNotFound from "@/components/StoreNotFound";
@@ -83,6 +84,7 @@ const StoreChromeLayout = () => {
       <CartSidebar />
       <AddedToCartModal />
       <StoreClosedModal />
+      <StoreTemporarilyClosedOverlay />
       <MobileBottomNav />
       <WhatsAppButton />
       <BackToTopButton />
