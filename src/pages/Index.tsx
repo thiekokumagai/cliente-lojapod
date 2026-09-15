@@ -125,18 +125,18 @@ const Index = () => {
         if (targetScroll > 0) {
           isRestoring = true;
           const doScroll = () => {
-            window.scrollTo({ top: targetScroll, behavior: "instant" });
+            window.scrollTo(0, targetScroll);
           };
 
-          // Perform immediate restore and staggered frames to handle DOM rendering on mobile
+          // Immediate restore
+          doScroll();
           requestAnimationFrame(doScroll);
           
-          const delays = [50, 150, 300, 500];
+          const delays = [10, 30, 80, 150, 300, 500];
           delays.forEach(delay => {
             timeouts.push(setTimeout(doScroll, delay));
           });
 
-          // Allow scroll listener to resume saving after restoration completes
           timerId = setTimeout(() => {
             isRestoring = false;
           }, 600);

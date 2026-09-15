@@ -218,8 +218,20 @@ const ProductPage = () => {
     setQuantity(1);
   };
 
-  const handleBackToStore = () => navigate("/");
-  const handleGoBack = () => navigate(-1);
+  const handleBackToStore = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
+  const handleGoBack = () => {
+    if (window.history.length > 2) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
 
   const effectiveStock = combinationStock !== null ? combinationStock : product?.stock;
 
