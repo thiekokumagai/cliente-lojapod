@@ -29,7 +29,6 @@ import { useFreight } from "@/hooks/use-calculator-freight";
 import { formatFreightDestinationAddress } from "@/utils/freight-address";
 import { ordersService } from "@/services/orders";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
-import { useKeyboardHeight } from "@/hooks/use-keyboard-height";
 
 
 import AddressSearch, { type StructuredAddress } from "@/components/checkout/AddressSearch";
@@ -262,7 +261,9 @@ const CartSidebar = () => {
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalizedOrder, setFinalizedOrder] = useState<FinalizedOrder | null>(null);
-  const keyboardHeight = useKeyboardHeight();
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [isCashModalOpen, setIsCashModalOpen] = useState(false);
   const previousTotalItems = useRef(totalItems);
 
   const effectiveItems = useMemo(() => {
@@ -1458,18 +1459,24 @@ const CartSidebar = () => {
                     )}
                   </div>
 
-                  <div className="rounded-3xl bg-card p-4 shadow-sm">
-                    <div className="mb-4">
-                      <label className="mb-2 block text-sm font-medium text-foreground">Observação do pedido</label>
-                      <textarea
-                        value={orderNote}
-                        onChange={(e) => setOrderNote(e.target.value)}
-                        placeholder="Ex: tocar interfone, entregar na portaria, sem pressa..."
-                        rows={3}
-                        className="w-full resize-none rounded-2xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground outline-none focus:outline-none md:text-sm"
-                      />
-                    </div>
+                  <div className="rounded-3xl bg-card shadow-sm">
+                    <button
+                      type="button"
+                      onClick={() => setIsNoteModalOpen(true)}
+                      className="flex w-full items-center justify-between px-4 py-4 text-left"
+                    >
+                      <div className="flex-1 pr-3">
+                        <p className="text-sm font-medium text-foreground">Observação do pedido</p>
+                        {orderNote.trim() ? (
+                          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{orderNote.trim()}</p>
+                        ) : (
+                          <p className="mt-0.5 text-xs text-muted-foreground">Tocar interfone, portaria, sem pressa...</p>
+                        )}
+                      </div>
+                      <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" />
+                    </button>
 
+                    <div className="border-t border-border/50 px-4 pb-4 pt-3">
                     {isCalculatingFee ? (
                       <div className="flex items-center gap-2 text-sm text-foreground">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -1491,7 +1498,9 @@ const CartSidebar = () => {
                         )}
                       </>
                     )}
+                    </div>
                   </div>
+
                 </div>
               )}
 
@@ -1517,71 +1526,33 @@ const CartSidebar = () => {
                       </div>
                     )}
 
-                    {isEditingCoupon ? (
-                      <div className="mb-4 rounded-2xl border border-border bg-background p-4">
-                        <label className="mb-2 block text-sm font-medium text-foreground">Cupom</label>
-                        <input
-                          value={couponCode}
-                          onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                          placeholder="Digite seu cupom"
-                          className="h-12 w-full rounded-2xl border border-border bg-background px-4 text-base text-foreground placeholder:text-muted-foreground outline-none focus:outline-none md:text-sm"
-                        />
-                        <div className="mt-3 flex gap-2">
-                          <button
-                            type="button"
-                            onClick={handleSaveCoupon}
-                            disabled={!couponCode.trim() || isValidatingCoupon}
-                            className={`flex-1 rounded-2xl py-3 text-sm font-semibold ${couponCode.trim() && !isValidatingCoupon ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                              }`}
-                          >
-                            {isValidatingCoupon ? "Validando..." : "Salvar cupom"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (savedCouponCode) {
-                                setCouponCode(savedCouponCode);
-                                setIsEditingCoupon(false);
-                                return;
-                              }
-                              setCouponCode("");
-                              setIsEditingCoupon(false);
-                            }}
-                            className="rounded-2xl border border-border px-4 py-3 text-sm font-medium text-foreground"
-                          >
-                            Cancelar
-                          </button>
+                    {savedCouponCode ? (
+                      <div className="mb-4 flex items-center justify-between rounded-2xl border border-border bg-background px-4 py-3">
+                        <div className="flex items-center gap-2 text-sm text-foreground">
+                          <Ticket className="h-4 w-4 text-primary" />
+                          <span className="font-semibold">{savedCouponCode} aplicado</span>
                         </div>
-                      </div>
-                    ) : savedCouponCode ? (
-                      <div className="mb-4 rounded-2xl border border-border bg-background p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-center gap-2 text-sm text-foreground">
-                            <Ticket className="h-4 w-4 text-primary" />
-                            <span>{savedCouponCode}</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="button"
-                              onClick={() => setIsEditingCoupon(true)}
-                              className="inline-flex items-center gap-1 text-sm font-medium text-primary"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={handleRemoveCoupon}
-                              className="inline-flex items-center gap-1 text-sm font-medium text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
-                          </div>
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setIsCouponModalOpen(true)}
+                            className="inline-flex items-center gap-1 text-sm font-medium text-primary"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRemoveCoupon}
+                            className="inline-flex items-center gap-1 text-sm font-medium text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
                         </div>
                       </div>
                     ) : (
                       <button
                         type="button"
-                        onClick={() => setIsEditingCoupon(true)}
+                        onClick={() => setIsCouponModalOpen(true)}
                         className="mb-4 flex w-full items-center justify-between rounded-2xl border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-secondary/60"
                       >
                         <div className="flex items-center gap-3">
@@ -1596,6 +1567,7 @@ const CartSidebar = () => {
                         <ChevronRight className="h-4 w-4 text-muted-foreground" />
                       </button>
                     )}
+
 
                     <div className="space-y-3">
                       {paymentOptions.map((option) => {
@@ -1716,54 +1688,25 @@ const CartSidebar = () => {
                     )}
 
                     {paymentMethod === "Dinheiro" && (
-                      <div className="mt-4 space-y-3 rounded-2xl bg-secondary p-4">
+                      <button
+                        type="button"
+                        onClick={() => setIsCashModalOpen(true)}
+                        className="mt-4 flex w-full items-center justify-between rounded-2xl border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-secondary/60"
+                      >
                         <div>
-                          <label className="mb-2 block text-sm font-medium text-foreground">Precisa de troco?</label>
-                          <div className="grid grid-cols-2 gap-2">
-                            <button
-                              type="button"
-                              onClick={() => setNeedsChange("sim")}
-                              className={`rounded-2xl border px-3 py-3 text-sm font-medium ${needsChange === "sim"
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-foreground"
-                                }`}
-                            >
-                              Sim
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setNeedsChange("não")}
-                              className={`rounded-2xl border px-3 py-3 text-sm font-medium ${needsChange === "não"
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-foreground"
-                                }`}
-                            >
-                              Não
-                            </button>
-                          </div>
+                          <p className="text-sm font-medium text-foreground">Troco</p>
+                          {needsChange === "sim" && changeFor.trim() ? (
+                            <p className="mt-0.5 text-xs text-muted-foreground">Para R$ {changeFor}</p>
+                          ) : needsChange === "não" ? (
+                            <p className="mt-0.5 text-xs text-muted-foreground">Não preciso de troco</p>
+                          ) : (
+                            <p className="mt-0.5 text-xs text-muted-foreground">Vai precisar de troco?</p>
+                          )}
                         </div>
-
-                        {needsChange === "sim" && (
-                          <div>
-                            <label className="mb-2 block text-sm font-medium text-foreground">Troco para quanto?</label>
-                            <input
-                              type="text"
-                              value={changeFor}
-                              onChange={(e) => setChangeFor(formatCurrencyInput(e.target.value))}
-                              inputMode="numeric"
-                              pattern="[0-9]*"
-                              placeholder="Ex: 100,00"
-                              className="h-12 w-full rounded-2xl border border-border bg-background px-4 text-base text-foreground placeholder:text-muted-foreground outline-none focus:outline-none md:text-sm"
-                            />
-                            {!isChangeEnough && changeFor.trim().length > 0 && (
-                              <p className="mt-2 text-sm text-destructive">
-                                O valor do troco deve ser maior ou igual a {formatPrice(finalTotal)}.
-                              </p>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                      </button>
                     )}
+
                   </div>
 
                   <div className="rounded-3xl bg-card p-4 text-sm shadow-sm">
@@ -1972,7 +1915,7 @@ const CartSidebar = () => {
               )}
             </div>
 
-            <div className={`border-t border-border bg-card p-4 ${keyboardHeight > 0 && step === "delivery" ? "hidden md:block" : ""}`}>
+            <div className="border-t border-border bg-card p-4">
               {step === "cart" &&
                 (items.length > 0 ? (
                   <div>
@@ -2045,7 +1988,143 @@ const CartSidebar = () => {
         </div>
       )}
 
+      {isNoteModalOpen && (
+        <div className="fixed inset-0 z-[95] flex flex-col justify-end bg-black/60 p-0 md:items-center md:justify-center md:p-4" onClick={() => setIsNoteModalOpen(false)}>
+          <div
+            className="relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center border-b border-border px-4 py-4">
+              <h3 className="text-base font-semibold text-foreground">Observação do pedido</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <textarea
+                value={orderNote}
+                onChange={(e) => setOrderNote(e.target.value)}
+                placeholder="Ex: tocar interfone, entregar na portaria, sem pressa..."
+                rows={4}
+                autoFocus
+                className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
+              />
+            </div>
+            <div className="border-t border-border bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+              <button type="button" onClick={() => setIsNoteModalOpen(false)} className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground">
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCouponModalOpen && (
+        <div className="fixed inset-0 z-[95] bg-black/40 backdrop-blur-sm md:flex md:justify-end">
+          <div className="h-full w-full bg-background md:relative md:mr-0 md:w-full md:max-w-md md:shadow-2xl">
+            <div className="mx-auto flex h-full w-full max-w-md flex-col">
+              <div className="flex items-center gap-3 border-b border-border px-4 py-4">
+                <button type="button" onClick={() => setIsCouponModalOpen(false)} className="rounded-full p-1 text-muted-foreground" aria-label="Voltar">
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <h3 className="text-base font-semibold text-foreground">Cupom de desconto</h3>
+              </div>
+              <div className="flex-1 overflow-y-auto bg-[#f7f7f7] p-4">
+                <label className="mb-2 block text-sm font-medium text-foreground">Código do cupom</label>
+                <input
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Digite seu cupom"
+                  autoFocus
+                  className="h-14 w-full rounded-xl border border-border bg-background px-4 text-base outline-none focus:border-primary"
+                />
+                {savedCouponCode && (
+                  <div className="mt-4 rounded-xl border border-border bg-background p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-foreground">
+                        <Ticket className="h-4 w-4 text-primary" />
+                        <span className="font-semibold">{savedCouponCode} aplicado</span>
+                      </div>
+                      <button type="button" onClick={handleRemoveCoupon} className="text-sm font-medium text-destructive">
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="border-t border-border bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+                <button
+                  type="button"
+                  onClick={() => { handleSaveCoupon(); setIsCouponModalOpen(false); }}
+                  disabled={!couponCode.trim() || isValidatingCoupon}
+                  className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-50"
+                >
+                  {isValidatingCoupon ? "Validando..." : "Aplicar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCashModalOpen && (
+        <div className="fixed inset-0 z-[95] flex flex-col justify-end bg-black/60 p-0 md:items-center md:justify-center md:p-4" onClick={() => setIsCashModalOpen(false)}>
+          <div
+            className="relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center border-b border-border px-4 py-4">
+              <h3 className="text-base font-semibold text-foreground">Vai precisar de troco?</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <p className="mb-4 text-sm text-muted-foreground">Digite o valor que vai pagar em dinheiro</p>
+              <div className="relative mb-6">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={changeFor}
+                  onChange={(e) => {
+                    setNeedsChange("sim");
+                    setChangeFor(formatCurrencyInput(e.target.value));
+                  }}
+                  className="h-14 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-lg font-semibold outline-none focus:border-primary"
+                  placeholder="0,00"
+                  autoFocus
+                />
+              </div>
+              {!isChangeEnough && changeFor.trim().length > 0 && (
+                <p className="mb-4 text-sm text-destructive">
+                  O valor do troco deve ser maior ou igual a {formatPrice(finalTotal)}.
+                </p>
+              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setNeedsChange("sim");
+                  setIsCashModalOpen(false);
+                }}
+                disabled={!changeFor.trim() || !isChangeEnough}
+                className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-50"
+              >
+                Confirmar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNeedsChange("não");
+                  setChangeFor("");
+                  setIsCashModalOpen(false);
+                }}
+                className="mt-4 flex w-full items-center justify-center text-sm font-semibold text-primary"
+              >
+                Não preciso de troco
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {isAddressModalOpen && (
+
         <div className="fixed inset-0 z-[95] bg-black/40 backdrop-blur-sm md:flex md:justify-end">
           <div className="h-full w-full bg-background md:relative md:mr-0 md:w-full md:max-w-md md:shadow-2xl">
             <div className="mx-auto flex h-full w-full max-w-md flex-col">
