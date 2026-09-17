@@ -239,6 +239,11 @@ const CartSidebar = () => {
   const [savedAddresses, setSavedAddresses] = useState<StructuredAddress[]>([]);
   const [editingAddress, setEditingAddress] = useState<StructuredAddress | null>(null);
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
+  const [isCashModalOpen, setIsCashModalOpen] = useState(false);
+  const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
   const [isShowingSavedAddresses, setIsShowingSavedAddresses] = useState(false);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [deliveryDistanceKm, setDeliveryDistanceKm] = useState<number | null>(null);
@@ -261,9 +266,6 @@ const CartSidebar = () => {
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalizedOrder, setFinalizedOrder] = useState<FinalizedOrder | null>(null);
-  const [isNoteModalOpen, setIsNoteModalOpen] = useState(false);
-  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
-  const [isCashModalOpen, setIsCashModalOpen] = useState(false);
   const previousTotalItems = useRef(totalItems);
 
   const effectiveItems = useMemo(() => {
@@ -1183,8 +1185,8 @@ const CartSidebar = () => {
     <>
       {isCartOpen && (
         <div className="fixed inset-0 z-[90] flex justify-end">
-          <div className="absolute inset-0 bg-foreground/40 backdrop-blur-sm" onClick={closeCart} />
-          <div className="relative flex h-full w-full max-w-md flex-col bg-[#f7f7f7] shadow-2xl">
+          <div className="absolute inset-0 bg-foreground/40" onClick={closeCart} />
+          <div className="relative flex h-[100dvh] w-full max-w-md flex-col bg-[#f7f7f7] shadow-2xl md:h-full">
             <div className="flex items-center justify-between bg-primary px-5 py-4 text-primary-foreground">
               <div className="flex items-center gap-2">
                 {step !== "cart" && (
@@ -1215,7 +1217,7 @@ const CartSidebar = () => {
               </div>
             )}
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {step === "cart" && (
                 <div className="space-y-4 p-4">
                   <div className="rounded-3xl bg-card p-4 shadow-sm">
@@ -1342,67 +1344,42 @@ const CartSidebar = () => {
                       </div>
                     </div>
 
-                    {isEditingContact ? (
-                      <div className="space-y-3">
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-foreground">Nome</label>
-                          <input
-                            value={name}
-                            onChange={(e) => handleNameChange(e.target.value)}
-                            placeholder="Nome e sobrenome"
-                            className="h-12 w-full rounded-2xl border border-border bg-background px-4 text-base text-foreground placeholder:text-muted-foreground outline-none focus:outline-none md:text-sm"
-                          />
-                          {name.trim().length > 0 && !isNameValid && (
-                            <p className="mt-1 text-xs text-destructive">Digite seu nome e sobrenome (ex: João Silva)</p>
+                    <div className="rounded-2xl border border-border bg-background p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-2">
+                          {name || phone ? (
+                            <>
+                              <div className="flex items-center gap-2 text-sm text-foreground">
+                                <User className="h-4 w-4 text-primary" />
+                                {name || "Nome não informado"}
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-foreground">
+                                <Phone className="h-4 w-4 text-primary" />
+                                {phone || "Telefone não informado"}
+                              </div>
+                            </>
+                          ) : (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              Adicione quem vai receber o pedido
+                            </div>
                           )}
-                        </div>
-                        <div>
-                          <label className="mb-2 block text-sm font-medium text-foreground">Telefone</label>
-                          <input
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            autoComplete="off"
-                            value={phone}
-                            onChange={(e) => handlePhoneChange(e.target.value)}
-                            placeholder="(67) 99999-9999"
-                            className="h-12 w-full rounded-2xl border border-border bg-background px-4 text-base text-foreground placeholder:text-muted-foreground outline-none focus:outline-none md:text-sm"
-                          />
                         </div>
                         <button
                           type="button"
-                          onClick={handleSaveContact}
-                          disabled={!isContactValid}
-                          className={`w-full rounded-2xl py-3 text-sm font-semibold ${isContactValid ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                            }`}
+                          onClick={() => setIsContactModalOpen(true)}
+                          className="inline-flex items-center gap-1 text-sm font-medium text-primary"
                         >
-                          Salvar contato
+                          {name || phone ? (
+                            <>
+                              <Pencil className="h-4 w-4" />
+                              Editar
+                            </>
+                          ) : (
+                            "Adicionar"
+                          )}
                         </button>
                       </div>
-                    ) : (
-                      <div className="rounded-2xl border border-border bg-background p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2 text-sm text-foreground">
-                              <User className="h-4 w-4 text-primary" />
-                              {name}
-                            </div>
-                            <div className="flex items-center gap-2 text-sm text-foreground">
-                              <Phone className="h-4 w-4 text-primary" />
-                              {phone}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => setIsEditingContact(true)}
-                            className="inline-flex items-center gap-1 text-sm font-medium text-primary"
-                          >
-                            <Pencil className="h-4 w-4" />
-                            Editar
-                          </button>
-                        </div>
-                      </div>
-                    )}
+                    </div>
                   </div>
 
                   <div className="rounded-3xl bg-card p-4 shadow-sm">
@@ -1459,24 +1436,21 @@ const CartSidebar = () => {
                     )}
                   </div>
 
-                  <div className="rounded-3xl bg-card shadow-sm">
-                    <button
-                      type="button"
-                      onClick={() => setIsNoteModalOpen(true)}
-                      className="flex w-full items-center justify-between px-4 py-4 text-left"
-                    >
-                      <div className="flex-1 pr-3">
-                        <p className="text-sm font-medium text-foreground">Observação do pedido</p>
-                        {orderNote.trim() ? (
-                          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{orderNote.trim()}</p>
-                        ) : (
-                          <p className="mt-0.5 text-xs text-muted-foreground">Tocar interfone, portaria, sem pressa...</p>
-                        )}
+                  <div className="rounded-3xl bg-card p-4 shadow-sm">
+                    <div className="mb-4 flex items-center justify-between rounded-2xl border border-border bg-background p-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">Observação do pedido</h3>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{orderNote || "Ex: tocar interfone, sem cebola..."}</p>
                       </div>
-                      <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setIsNoteModalOpen(true)}
+                        className="text-sm font-semibold text-primary"
+                      >
+                        {orderNote ? "Editar" : "Adicionar"}
+                      </button>
+                    </div>
 
-                    <div className="border-t border-border/50 px-4 pb-4 pt-3">
                     {isCalculatingFee ? (
                       <div className="flex items-center gap-2 text-sm text-foreground">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -1498,9 +1472,7 @@ const CartSidebar = () => {
                         )}
                       </>
                     )}
-                    </div>
                   </div>
-
                 </div>
               )}
 
@@ -1526,48 +1498,22 @@ const CartSidebar = () => {
                       </div>
                     )}
 
-                    {savedCouponCode ? (
-                      <div className="mb-4 flex items-center justify-between rounded-2xl border border-border bg-background px-4 py-3">
-                        <div className="flex items-center gap-2 text-sm text-foreground">
-                          <Ticket className="h-4 w-4 text-primary" />
-                          <span className="font-semibold">{savedCouponCode} aplicado</span>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setIsCouponModalOpen(true)}
-                            className="inline-flex items-center gap-1 text-sm font-medium text-primary"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleRemoveCoupon}
-                            className="inline-flex items-center gap-1 text-sm font-medium text-destructive"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsCouponModalOpen(true)}
+                      className="mb-4 flex w-full items-center justify-between rounded-2xl border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-secondary/60"
+                    >
+                      <div className="flex items-center gap-3">
+                        <span className={`flex h-9 w-9 items-center justify-center rounded-xl ${savedCouponCode ? "bg-primary/10 text-primary" : "bg-secondary text-muted-foreground"}`}>
+                          <Ticket className="h-4 w-4" />
+                        </span>
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{savedCouponCode ? "Cupom aplicado" : "Adicionar cupom"}</p>
+                          <p className="text-xs text-muted-foreground">{savedCouponCode ? savedCouponCode : "Se você tiver um código promocional"}</p>
                         </div>
                       </div>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => setIsCouponModalOpen(true)}
-                        className="mb-4 flex w-full items-center justify-between rounded-2xl border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-secondary/60"
-                      >
-                        <div className="flex items-center gap-3">
-                          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary text-muted-foreground">
-                            <Ticket className="h-4 w-4" />
-                          </span>
-                          <div>
-                            <p className="text-sm font-medium text-foreground">Adicionar cupom</p>
-                            <p className="text-xs text-muted-foreground">Se você tiver um código promocional</p>
-                          </div>
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    )}
-
+                      <span className="text-sm font-semibold text-primary">{savedCouponCode ? "Editar" : "Adicionar"}</span>
+                    </button>
 
                     <div className="space-y-3">
                       {paymentOptions.map((option) => {
@@ -1577,12 +1523,16 @@ const CartSidebar = () => {
                         return (
                           <button
                             key={option.value}
-                            type="button"
                             onClick={() => {
                               setPaymentMethod(option.value);
                               if (option.value === "Cartão de Crédito") {
                                 setCreditMode("avista");
                                 setCreditInstallments(1);
+                                setIsCreditModalOpen(true);
+                              } else if (option.value === "Dinheiro") {
+                                setNeedsChange("não");
+                                setChangeFor("");
+                                setIsCashModalOpen(true);
                               }
                             }}
                             className={`flex w-full items-center justify-between rounded-2xl border px-4 py-4 text-left transition-colors ${isSelected ? "border-primary bg-primary/5" : "border-border bg-background"
@@ -1617,95 +1567,6 @@ const CartSidebar = () => {
                         );
                       })}
                     </div>
-
-                    {paymentMethod === "Cartão de Crédito" && (
-                      <div className="mt-4 rounded-2xl bg-secondary p-4">
-                        <label className="mb-2 block text-sm font-medium text-foreground">No crédito</label>
-                        <div className={`grid ${creditInstallmentsOptions.filter(i => i.value >= 2).length > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-2`}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setCreditMode("avista");
-                              setCreditInstallments(1);
-                            }}
-                            className={`rounded-2xl border px-3 py-3 text-sm font-medium ${creditMode === "avista"
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border bg-background text-foreground"
-                              }`}
-                          >
-                            À vista
-                          </button>
-                          
-                          {creditInstallmentsOptions.filter(i => i.value >= 2).length > 0 && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setCreditMode("parcelado");
-                                if (creditInstallments < 2) setCreditInstallments(2);
-                              }}
-                              className={`rounded-2xl border px-3 py-3 text-sm font-medium ${creditMode === "parcelado"
-                                ? "border-primary bg-primary text-primary-foreground"
-                                : "border-border bg-background text-foreground"
-                                }`}
-                            >
-                              Parcelado
-                            </button>
-                          )}
-                        </div>
-
-                        {creditMode === "parcelado" && (
-                          <div className="mt-4 space-y-2">
-                            {creditInstallmentsOptions.filter((installment) => installment.value >= 2).map((installment) => {
-                              const totalInstallmentPrice = (effectiveTotalPrice + deliveryFee) * (1 + installment.interest / 100);
-                              const perInstallment = totalInstallmentPrice / installment.value;
-                              const isSelected = creditInstallments === installment.value;
-
-                              return (
-                                <button
-                                  key={installment.value}
-                                  type="button"
-                                  onClick={() => setCreditInstallments(installment.value)}
-                                  className={`flex w-full items-center justify-between rounded-2xl border px-4 py-3 text-left ${isSelected ? "border-primary bg-background" : "border-border bg-background/70"
-                                    }`}
-                                >
-                                  <div>
-                                    <p className="text-sm font-semibold text-foreground">
-                                      {installment.value}x de {formatPrice(perInstallment)}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                      + {installment.interest.toFixed(2).replace(".", ",")}%
-                                    </p>
-                                  </div>
-                                  <span className="text-sm font-medium text-foreground">
-                                    {formatPrice(totalInstallmentPrice)}
-                                  </span>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {paymentMethod === "Dinheiro" && (
-                      <button
-                        type="button"
-                        onClick={() => setIsCashModalOpen(true)}
-                        className="mt-4 flex w-full items-center justify-between rounded-2xl border border-border bg-background px-4 py-3 text-left transition-colors hover:bg-secondary/60"
-                      >
-                        <div>
-                          <p className="text-sm font-medium text-foreground">Troco</p>
-                          {needsChange === "sim" && changeFor.trim() ? (
-                            <p className="mt-0.5 text-xs text-muted-foreground">Para R$ {changeFor}</p>
-                          ) : needsChange === "não" ? (
-                            <p className="mt-0.5 text-xs text-muted-foreground">Não preciso de troco</p>
-                          ) : (
-                            <p className="mt-0.5 text-xs text-muted-foreground">Vai precisar de troco?</p>
-                          )}
-                        </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                      </button>
-                    )}
 
                   </div>
 
@@ -1988,146 +1849,10 @@ const CartSidebar = () => {
         </div>
       )}
 
-      {isNoteModalOpen && (
-        <div className="fixed inset-0 z-[95] flex flex-col justify-end bg-black/60 p-0 md:items-center md:justify-center md:p-4" onClick={() => setIsNoteModalOpen(false)}>
-          <div
-            className="relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center border-b border-border px-4 py-4">
-              <h3 className="text-base font-semibold text-foreground">Observação do pedido</h3>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <textarea
-                value={orderNote}
-                onChange={(e) => setOrderNote(e.target.value)}
-                placeholder="Ex: tocar interfone, entregar na portaria, sem pressa..."
-                rows={4}
-                autoFocus
-                className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
-              />
-            </div>
-            <div className="border-t border-border bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
-              <button type="button" onClick={() => setIsNoteModalOpen(false)} className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground">
-                Confirmar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isCouponModalOpen && (
-        <div className="fixed inset-0 z-[95] bg-black/40 backdrop-blur-sm md:flex md:justify-end">
-          <div className="h-full w-full bg-background md:relative md:mr-0 md:w-full md:max-w-md md:shadow-2xl">
-            <div className="mx-auto flex h-full w-full max-w-md flex-col">
-              <div className="flex items-center gap-3 border-b border-border px-4 py-4">
-                <button type="button" onClick={() => setIsCouponModalOpen(false)} className="rounded-full p-1 text-muted-foreground" aria-label="Voltar">
-                  <ChevronLeft className="h-5 w-5" />
-                </button>
-                <h3 className="text-base font-semibold text-foreground">Cupom de desconto</h3>
-              </div>
-              <div className="flex-1 overflow-y-auto bg-[#f7f7f7] p-4">
-                <label className="mb-2 block text-sm font-medium text-foreground">Código do cupom</label>
-                <input
-                  value={couponCode}
-                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
-                  placeholder="Digite seu cupom"
-                  autoFocus
-                  className="h-14 w-full rounded-xl border border-border bg-background px-4 text-base outline-none focus:border-primary"
-                />
-                {savedCouponCode && (
-                  <div className="mt-4 rounded-xl border border-border bg-background p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 text-sm text-foreground">
-                        <Ticket className="h-4 w-4 text-primary" />
-                        <span className="font-semibold">{savedCouponCode} aplicado</span>
-                      </div>
-                      <button type="button" onClick={handleRemoveCoupon} className="text-sm font-medium text-destructive">
-                        Remover
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="border-t border-border bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
-                <button
-                  type="button"
-                  onClick={() => { handleSaveCoupon(); setIsCouponModalOpen(false); }}
-                  disabled={!couponCode.trim() || isValidatingCoupon}
-                  className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-50"
-                >
-                  {isValidatingCoupon ? "Validando..." : "Aplicar"}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isCashModalOpen && (
-        <div className="fixed inset-0 z-[95] flex flex-col justify-end bg-black/60 p-0 md:items-center md:justify-center md:p-4" onClick={() => setIsCashModalOpen(false)}>
-          <div
-            className="relative flex max-h-[90vh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center border-b border-border px-4 py-4">
-              <h3 className="text-base font-semibold text-foreground">Vai precisar de troco?</h3>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4">
-              <p className="mb-4 text-sm text-muted-foreground">Digite o valor que vai pagar em dinheiro</p>
-              <div className="relative mb-6">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  value={changeFor}
-                  onChange={(e) => {
-                    setNeedsChange("sim");
-                    setChangeFor(formatCurrencyInput(e.target.value));
-                  }}
-                  className="h-14 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-lg font-semibold outline-none focus:border-primary"
-                  placeholder="0,00"
-                  autoFocus
-                />
-              </div>
-              {!isChangeEnough && changeFor.trim().length > 0 && (
-                <p className="mb-4 text-sm text-destructive">
-                  O valor do troco deve ser maior ou igual a {formatPrice(finalTotal)}.
-                </p>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  setNeedsChange("sim");
-                  setIsCashModalOpen(false);
-                }}
-                disabled={!changeFor.trim() || !isChangeEnough}
-                className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-50"
-              >
-                Confirmar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setNeedsChange("não");
-                  setChangeFor("");
-                  setIsCashModalOpen(false);
-                }}
-                className="mt-4 flex w-full items-center justify-center text-sm font-semibold text-primary"
-              >
-                Não preciso de troco
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {isAddressModalOpen && (
-
-        <div className="fixed inset-0 z-[95] bg-black/40 backdrop-blur-sm md:flex md:justify-end">
-          <div className="h-full w-full bg-background md:relative md:mr-0 md:w-full md:max-w-md md:shadow-2xl">
-            <div className="mx-auto flex h-full w-full max-w-md flex-col">
+        <div className="fixed inset-0 z-[95] bg-black/40 md:flex md:justify-end">
+          <div className="h-[100dvh] w-full bg-background md:relative md:mr-0 md:h-full md:w-full md:max-w-md md:shadow-2xl">
+            <div className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-md flex-col md:h-full">
               {isShowingSavedAddresses ? (
                 <>
                   <div className="flex items-center gap-3 border-b border-border px-4 py-4">
@@ -2144,7 +1869,7 @@ const CartSidebar = () => {
                     </button>
                     <h3 className="text-base font-semibold text-foreground">Endereços</h3>
                   </div>
-                  <div className="flex-1 overflow-y-auto bg-[#f7f7f7] p-4">
+                  <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f7f7] p-4 overscroll-contain">
                     <button
                       type="button"
                       onClick={() => {
@@ -2207,7 +1932,7 @@ const CartSidebar = () => {
           }}
         >
           <div className="flex h-full w-full items-center justify-center p-0 sm:p-0">
-            <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background sm:h-full sm:max-h-[90vh] sm:max-w-md sm:rounded-[32px] sm:shadow-2xl">
+            <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background sm:h-full sm:max-h-[90dvh] sm:max-w-md sm:rounded-[32px] sm:shadow-2xl">
               <div className="flex-1 overflow-y-auto px-6 pb-6 pt-8 sm:px-8">
                 <div className="mx-auto max-w-[320px] text-center">
                   <h3 className="text-[22px] font-bold leading-tight text-[#686868]">
@@ -2367,6 +2092,240 @@ const CartSidebar = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {isContactModalOpen && (
+        <div className="fixed inset-0 z-[95] bg-black/40 md:flex md:justify-end">
+          <div className="h-[100dvh] w-full bg-background md:relative md:mr-0 md:h-full md:w-full md:max-w-md md:shadow-2xl">
+            <div className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-md flex-col md:h-full">
+              <div className="flex items-center gap-3 border-b border-border px-4 py-4">
+                <button type="button" onClick={() => setIsContactModalOpen(false)} className="rounded-full p-1 text-muted-foreground" aria-label="Voltar">
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <h3 className="text-base font-semibold text-foreground">Seus dados</h3>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f7f7] p-4 overscroll-contain">
+                <div className="space-y-4">
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Nome completo</label>
+                    <input value={name} onChange={(e) => handleNameChange(e.target.value)} placeholder="Ex: João da Silva" className="h-14 w-full rounded-xl border border-border bg-background px-4 text-base outline-none focus:border-primary" />
+                    {name.trim().length > 0 && !isNameValid && (
+                      <p className="mt-1 text-xs text-destructive">Digite seu nome e sobrenome</p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-sm font-medium text-foreground">Telefone com DDD</label>
+                    <input type="text" inputMode="numeric" pattern="[0-9]*" autoComplete="tel" value={phone} onChange={(e) => handlePhoneChange(e.target.value)} placeholder="(00) 00000-0000" className="h-14 w-full rounded-xl border border-border bg-background px-4 text-base outline-none focus:border-primary" />
+                  </div>
+                </div>
+              </div>
+              <div className="border-t border-border bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+                <button type="button" onClick={() => { handleSaveContact(); setIsContactModalOpen(false); }} disabled={!isContactValid} className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-50">
+                  Confirmar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isNoteModalOpen && (
+        <div className="fixed inset-0 z-[95] flex flex-col justify-end bg-black/60 p-0 md:items-center md:justify-center md:p-4" onClick={() => setIsNoteModalOpen(false)}>
+          <div
+            className="relative flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-3 border-b border-border px-4 py-4">
+              <button type="button" onClick={() => setIsNoteModalOpen(false)} className="rounded-full p-1 text-muted-foreground" aria-label="Voltar">
+                <X className="h-5 w-5" />
+              </button>
+              <h3 className="text-base font-semibold text-foreground">Observação do pedido</h3>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 overscroll-contain">
+              <textarea
+                value={orderNote}
+                onChange={(e) => setOrderNote(e.target.value)}
+                placeholder="Ex: tocar interfone, entregar na portaria, sem pressa..."
+                rows={4}
+                className="w-full resize-none rounded-xl border border-border bg-background px-4 py-3 text-base text-foreground placeholder:text-muted-foreground outline-none focus:border-primary"
+              />
+            </div>
+            <div className="border-t border-border bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+              <button type="button" onClick={() => setIsNoteModalOpen(false)} className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground">
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {isCouponModalOpen && (
+        <div className="fixed inset-0 z-[95] bg-black/40 md:flex md:justify-end">
+          <div className="h-[100dvh] w-full bg-background md:relative md:mr-0 md:h-full md:w-full md:max-w-md md:shadow-2xl">
+            <div className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-md flex-col md:h-full">
+              <div className="flex items-center gap-3 border-b border-border px-4 py-4">
+                <button type="button" onClick={() => setIsCouponModalOpen(false)} className="rounded-full p-1 text-muted-foreground" aria-label="Voltar">
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+                <h3 className="text-base font-semibold text-foreground">Cupom de desconto</h3>
+              </div>
+              <div className="min-h-0 flex-1 overflow-y-auto bg-[#f7f7f7] p-4 overscroll-contain">
+                <label className="mb-2 block text-sm font-medium text-foreground">Código do cupom</label>
+                <input
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  placeholder="Digite seu cupom"
+                  className="h-14 w-full rounded-xl border border-border bg-background px-4 text-base outline-none focus:border-primary"
+                />
+                
+                {savedCouponCode && (
+                  <div className="mt-4 rounded-xl border border-border bg-background p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2 text-sm text-foreground">
+                        <Ticket className="h-4 w-4 text-primary" />
+                        <span className="font-semibold">{savedCouponCode} aplicado</span>
+                      </div>
+                      <button type="button" onClick={handleRemoveCoupon} className="text-sm font-medium text-destructive">
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="border-t border-border bg-background p-4 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+                <button type="button" onClick={() => { handleSaveCoupon(); setIsCouponModalOpen(false); }} disabled={!couponCode.trim() || isValidatingCoupon} className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-50">
+                  {isValidatingCoupon ? "Validando..." : "Aplicar"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isCashModalOpen && (
+        <div className="fixed inset-0 z-[95] flex flex-col justify-end bg-black/60 p-0 md:items-center md:justify-center md:p-4" onClick={() => setIsCashModalOpen(false)}>
+          <div
+            className="relative flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center border-b border-border px-4 py-4">
+              <h3 className="text-base font-semibold text-foreground">Vai precisar de troco?</h3>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 overscroll-contain">
+              <p className="mb-4 text-sm text-muted-foreground">Digite o valor que vai pagar em dinheiro</p>
+              <div className="relative mb-6">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={changeFor}
+                  onChange={(e) => {
+                    setNeedsChange("sim");
+                    setChangeFor(formatCurrencyInput(e.target.value));
+                  }}
+                  className="h-14 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-lg font-semibold outline-none focus:border-primary"
+                  placeholder="0,00"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setNeedsChange("sim");
+                  setIsCashModalOpen(false);
+                }}
+                disabled={!changeFor.trim() || parseCurrencyInput(changeFor) < finalTotal}
+                className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-50"
+              >
+                Confirmar
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setNeedsChange("não");
+                  setChangeFor("");
+                  setIsCashModalOpen(false);
+                }}
+                className="mt-4 flex w-full items-center justify-center text-sm font-semibold text-primary"
+              >
+                Não preciso de troco
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+
+      {isCreditModalOpen && (
+        <div className="fixed inset-0 z-[95] flex flex-col justify-end bg-black/60 p-0 md:items-center md:justify-center md:p-4" onClick={() => setIsCreditModalOpen(false)}>
+          <div className="relative flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center border-b border-border px-4 py-4">
+              <h3 className="text-base font-semibold text-foreground">Pagamento no Crédito</h3>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 overscroll-contain">
+              <div className={`grid ${creditInstallmentsOptions.filter(i => i.value >= 2).length > 0 ? 'grid-cols-2' : 'grid-cols-1'} gap-2 mb-4`}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCreditMode("avista");
+                    setCreditInstallments(1);
+                    setIsCreditModalOpen(false);
+                  }}
+                  className={`rounded-xl border px-3 py-4 text-sm font-semibold ${creditMode === "avista" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-secondary"}`}
+                >
+                  À vista
+                </button>
+                {creditInstallmentsOptions.filter(i => i.value >= 2).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreditMode("parcelado");
+                      if (creditInstallments < 2) setCreditInstallments(2);
+                    }}
+                    className={`rounded-xl border px-3 py-4 text-sm font-semibold ${creditMode === "parcelado" ? "border-primary bg-primary/10 text-primary" : "border-border bg-background text-foreground hover:bg-secondary"}`}
+                  >
+                    Parcelado
+                  </button>
+                )}
+              </div>
+
+              {creditMode === "parcelado" && (
+                <div className="space-y-2 pb-[calc(env(safe-area-inset-bottom)+16px)]">
+                  {creditInstallmentsOptions.filter((installment) => installment.value >= 2).map((installment) => {
+                    const totalInstallmentPrice = (effectiveTotalPrice + deliveryFee) * (1 + installment.interest / 100);
+                    const perInstallment = totalInstallmentPrice / installment.value;
+                    const isSelected = creditInstallments === installment.value;
+
+                    return (
+                      <button
+                        key={installment.value}
+                        type="button"
+                        onClick={() => {
+                          setCreditInstallments(installment.value);
+                          setIsCreditModalOpen(false);
+                        }}
+                        className={`flex w-full items-center justify-between rounded-xl border px-4 py-4 text-left transition-colors ${isSelected ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-secondary/60"}`}
+                      >
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">
+                            {installment.value}x de {formatPrice(perInstallment)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            + {installment.interest.toFixed(2).replace(".", ",")}%
+                          </p>
+                        </div>
+                        <span className="text-sm font-semibold text-primary">
+                          {formatPrice(totalInstallmentPrice)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

@@ -1,44 +1,61 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 
 /**
- * Retorna a altura do teclado virtual no mobile em pixels.
- * Usa a Visual Viewport API com requestAnimationFrame para seguir
- * a animação nativa do teclado frame a frame, sem adicionar transições
- * CSS próprias que causariam dupla animação e travamentos.
+ * Mantém a altura do teclado virtual em uma variável CSS sem causar
+ * re-render do React durante a animação do VisualViewport.
+ *
+ * Variável disponível: --keyboard-height
  */
-export function useKeyboardHeight(): number {
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const rafRef = useRef<number | null>(null);
-
+export function useKeyboardHeight(): void {
   useEffect(() => {
-    const vv = window.visualViewport;
-    if (!vv) return;
+    const viewport = window.visualViewport;
+    const root = document.documentElement;
+
+    if (!viewport) {
+      root.style.setProperty("--keyboard-height", "0px");
+      return;
+    }
+
+    let rafId: number | null = null;
+    let lastHeight = -1;
 
     const update = () => {
-      // Cancela frame anterior se ainda pendente
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
+      if (rafId !== null) cancelAnimationFrame(rafId);
 
-      rafRef.current = requestAnimationFrame(() => {
-        const diff = window.innerHeight - vv.height - vv.offsetTop;
-        setKeyboardHeight(Math.max(0, diff));
-        rafRef.current = null;
+      rafId = requestAnimationFrame(() => {
+        const height = Math.max(
+          0,
+          Math.round(window.innerHeight - viewport.height - viewport.offsetTop),
+        );
+
+        if (Math.abs(height - lastHeight) >= 2) {
+          lastHeight = height;
+          root.style.setProperty("--keyboard-height", `${height}px`);
+        }
+
+        rafId = null;
       });
     };
 
-    vv.addEventListener("resize", update);
-    vv.addEventListener("scroll", update);
+    const reset = () => {
+      lastHeight = 0;
+      root.style.setProperty("--keyboard-height", "0px");
+      requestAnimationFrame(update);
+    };
+
+    viewport.addEventListener("resize", update);
+    viewport.addEventListener("scroll", update);
+    window.addEventListener("orientationchange", reset);
+
     update();
 
     return () => {
-      vv.removeEventListener("resize", update);
-      vv.removeEventListener("scroll", update);
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
+      viewport.removeEventListener("resize", update);
+      viewport.removeEventListener("scroll", update);
+      window.removeEventListener("orientationchange", reset);
+
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      root.style.removeProperty("--keyboard-height");
     };
   }, []);
-
-  return keyboardHeight;
 }
