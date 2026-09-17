@@ -10,6 +10,7 @@ import Index from "./pages/Index.tsx";
 import ProductPage from "./pages/ProductPage.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import LinksPage from "./pages/LinksPage.tsx";
+import ExchangePolicyPage from "./pages/ExchangePolicyPage.tsx";
 
 import FacebookPixel from "@/components/FacebookPixel";
 import { initAnalytics } from "@/services/analytics";
@@ -91,6 +92,7 @@ const App = () => {
             <Route path="/links" element={<LinksPage />} />
             <Route element={<StoreChromeLayout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/politica-de-trocas" element={<ExchangePolicyPage />} />
               <Route path="/:slug" element={<Index />} />
               <Route path="/produto/:id" element={<ProductPage />} />
             </Route>

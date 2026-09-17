@@ -13,6 +13,8 @@ interface StoreSettings {
   pixelId?: string;
   isTemporarilyClosed?: boolean;
   closedNoticeMessage?: string | null;
+  enableExchangePolicy?: boolean;
+  exchangePolicy?: string | null;
   cep: string;
   street: string;
   number: string;

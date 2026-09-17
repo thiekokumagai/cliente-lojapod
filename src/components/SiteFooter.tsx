@@ -1,4 +1,5 @@
 import { Clock, MapPin, CreditCard, BadgeDollarSign, Instagram } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useBusinessStatus, getTodayWeekdayName } from "@/hooks/useBusinessStatus";
 
@@ -115,9 +116,19 @@ const SiteFooter = () => {
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 border-t border-border pt-8 text-center">
-          <p className="text-xs text-muted-foreground">
-            © {new Date().getFullYear()} {storeName}. Todos os direitos reservados.
-          </p>
+          <div className="flex flex-col md:flex-row items-center gap-4 text-xs text-muted-foreground">
+            <p>
+              © {new Date().getFullYear()} {storeName}. Todos os direitos reservados.
+            </p>
+            {settings?.enableExchangePolicy && (
+              <>
+                <span className="hidden md:inline">•</span>
+                <Link to="/politica-de-trocas" className="hover:text-primary transition-colors underline underline-offset-2">
+                  Política de Trocas e Devoluções
+                </Link>
+              </>
+            )}
+          </div>
           {instagram && (
             <a
               href={`https://instagram.com/${instagram.replace('@', '')}`}
