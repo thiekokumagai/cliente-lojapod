@@ -173,12 +173,8 @@ const ProductDetailsModal = ({
     });
   };
   const startAutoClose = (variation?: string) => {
-    clearTimeout(autoCloseTimeoutRef.current!);
-
-    autoCloseTimeoutRef.current = setTimeout(() => {
-      triggerAddedModal({ product, selectedVariation: variation });
-      handleClose();
-    }, 2000);
+    triggerAddedModal({ product, selectedVariation: variation });
+    handleClose();
   };
 
   const handleBuy = () => {

@@ -29,7 +29,7 @@ const Index = () => {
   const { data: apiCategories = [] } = useCategories();
   const [searchParams, setSearchParams] = useSearchParams();
   const modalProductId = searchParams.get("modal");
-  const { data: modalProduct } = useProduct(modalProductId || undefined);
+  const modalProduct = allProducts.find((p) => p.id === modalProductId);
   const { slug } = useParams();
   const navigate = useNavigate();
 

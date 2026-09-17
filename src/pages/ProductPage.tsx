@@ -191,13 +191,7 @@ const ProductPage = () => {
     : undefined;
 
   const handleNavigateToList = () => {
-    if (redirectTimeoutRef.current) {
-      clearTimeout(redirectTimeoutRef.current);
-    }
-
-    redirectTimeoutRef.current = setTimeout(() => {
-      navigate("/");
-    }, 1200);
+    navigate("/");
   };
 
   const handleAddOrUpdateCart = () => {

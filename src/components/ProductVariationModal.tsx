@@ -142,14 +142,8 @@ const ProductVariationModal = ({
   };
 
   const startAutoClose = (variation: string) => {
-    if (autoCloseTimeoutRef.current) {
-      clearTimeout(autoCloseTimeoutRef.current);
-    }
-
-    autoCloseTimeoutRef.current = setTimeout(() => {
-      triggerAddedModal({ product, selectedVariation: variation });
-      onClose();
-    }, 2000);
+    triggerAddedModal({ product, selectedVariation: variation });
+    onClose();
   };
 
   const handleBuy = () => {
