@@ -39,7 +39,7 @@ const HeroBanner = () => {
                     alt={`Banner da loja ${i + 1}`}
                     className="w-full h-auto block rounded-xl"
                     loading={i === 0 ? "eager" : "lazy"}
-                    fetchPriority={i === 0 ? "high" : "auto"}
+                    fetchpriority={i === 0 ? "high" : "auto"}
                     decoding="async"
                   />
                 </div>

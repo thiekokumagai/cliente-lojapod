@@ -8,8 +8,9 @@ import PromotionsSection from "@/components/PromotionsSection";
 import AllProductsSection from "@/components/AllProductsSection";
 import SiteFooter from "@/components/SiteFooter";
 import { useCart } from "@/contexts/CartContext";
+import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { useStoreMobilePadding } from "@/hooks/use-store-mobile-padding";
-import { useProducts, useCategories } from "@/hooks/useProducts";
+import { useProducts, useCategories, useProduct } from "@/hooks/useProducts";
 import { matchesProductSearch } from "@/utils/search";
 
 const Index = () => {
@@ -27,6 +28,8 @@ const Index = () => {
   const { data: allProducts = [], isLoading } = useProducts(selectedCategoryId);
   const { data: apiCategories = [] } = useCategories();
   const [searchParams, setSearchParams] = useSearchParams();
+  const modalProductId = searchParams.get("modal");
+  const { data: modalProduct } = useProduct(modalProductId || undefined);
   const { slug } = useParams();
   const navigate = useNavigate();
 
@@ -185,6 +188,17 @@ const Index = () => {
       <PromotionsSection />
       <AllProductsSection />
       <SiteFooter />
+      
+      {modalProductId && modalProduct && (
+        <ProductDetailsModal
+          product={modalProduct}
+          onClose={() => {
+            searchParams.delete("modal");
+            setSearchParams(searchParams, { replace: true });
+            window.history.pushState({}, '', '/');
+          }}
+        />
+      )}
     </div>
   );
 };

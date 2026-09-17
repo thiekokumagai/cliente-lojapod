@@ -51,7 +51,7 @@ const LinksPage = () => {
             {isLoading ? (
               <div className="w-full h-full animate-pulse bg-zinc-800"></div>
             ) : settings?.whiteLogoUrl || settings?.logoUrl ? (
-              <img src={settings.whiteLogoUrl || settings.logoUrl!} alt="Logo" className="w-full h-full object-cover" loading="eager" fetchPriority="high" />
+              <img src={settings.whiteLogoUrl || settings.logoUrl!} alt="Logo" className="w-full h-full object-cover" loading="eager" fetchpriority="high" />
             ) : (
               <div className="w-full h-full flex items-center justify-center font-bold text-3xl bg-gradient-to-tr from-red-600 to-orange-500 text-white">
                 PM
@@ -98,7 +98,7 @@ const LinksPage = () => {
                       alt={link.title || `Banner ${idx + 1}`}
                       className="w-full h-auto object-contain"
                       loading={idx === 0 ? "eager" : "lazy"}
-                      fetchPriority={idx === 0 ? "high" : "auto"}
+                      fetchpriority={idx === 0 ? "high" : "auto"}
                       decoding="async"
                     />
                   );

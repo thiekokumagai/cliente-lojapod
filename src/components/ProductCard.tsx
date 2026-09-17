@@ -4,6 +4,8 @@ import { CheckCircle2, Minus, Plus, ShoppingCart } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import ProductVariationModal from "@/components/ProductVariationModal";
+import ProductDetailsModal from "@/components/ProductDetailsModal";
+import { useIsMobile } from "@/hooks/use-mobile";
 import seloMaisVendido from "@/assets/seloMaisVendido.png";
 
 
@@ -23,11 +25,19 @@ const saveScrollPosition = () => {
 };
 
 const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
+  const isMobile = useIsMobile();
   const { items, addToCart, updateQuantity, removeFromCart } = useCart();
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [showVariationModal, setShowVariationModal] = useState(false);
-  
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
   const productImage = product.image || "";
+
+  const discountPercentage = useMemo(() => {
+    if (product.isPromo && product.oldPrice && product.price < product.oldPrice) {
+      return Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
+    }
+    return 0;
+  }, [product.isPromo, product.oldPrice, product.price]);
 
   const allGroups = useMemo(() => {
     return product.variationGroups && product.variationGroups.length > 0
@@ -109,43 +119,67 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
 
   const isAtLimit = cartItem && product.stock !== undefined ? cartItem.quantity >= product.stock : false;
 
+  const cardContent = (
+    <>
+      <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-subtle">
+        {isBestSeller && (
+          <img
+            src={seloMaisVendido}
+            alt="Selo Mais Vendido"
+            className="absolute left-2 top-2 z-10 h-10 w-10 object-contain drop-shadow-md transition-transform group-hover:scale-105"
+          />
+        )}
+        {discountPercentage > 0 && (
+          <span className="absolute right-2 top-2 z-10 rounded-full bg-[#DE2839] px-2 py-0.5 text-[10px] font-bold text-white shadow-md">
+            -{discountPercentage}%
+          </span>
+        )}
+        {productImage ? (
+          <img
+            src={productImage}
+            alt={product.name}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-secondary text-muted-foreground">
+            Sem imagem
+          </div>
+        )}
+      </div>
+
+      <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+        {product.category}
+      </p>
+      <h3 className="mt-1 font-display text-base font-semibold leading-tight text-foreground line-clamp-2">
+        {product.name}
+      </h3>
+    </>
+  );
+
   return (
     <>
       <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-card p-4 transition-all hover:shadow-md border border-border">
         <div>
-          <Link
-            to={`/produto/${product.id}`}
-            onClick={saveScrollPosition}
-            className="block cursor-pointer"
-          >
-            <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-subtle">
-              {isBestSeller && (
-                <img
-                  src={seloMaisVendido}
-                  alt="Selo Mais Vendido"
-                  className="absolute left-2 top-2 z-10 h-10 w-10 object-contain drop-shadow-md transition-transform group-hover:scale-105"
-                />
-              )}
-              {productImage ? (
-                <img
-                  src={productImage}
-                  alt={product.name}
-                  className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-secondary text-muted-foreground">
-                  Sem imagem
-                </div>
-              )}
-            </div>
-
-            <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              {product.category}
-            </p>
-            <h3 className="mt-1 font-display text-base font-semibold leading-tight text-foreground line-clamp-2">
-              {product.name}
-            </h3>
-          </Link>
+          {isMobile ? (
+            <button
+              type="button"
+              onClick={() => {
+                window.history.pushState({}, '', `/produto/${product.id}`);
+                setShowDetailsModal(true);
+              }}
+              className="block cursor-pointer text-left w-full"
+            >
+              {cardContent}
+            </button>
+          ) : (
+            <Link
+              to={`/produto/${product.id}`}
+              onClick={saveScrollPosition}
+              className="block cursor-pointer text-left w-full"
+            >
+              {cardContent}
+            </Link>
+          )}
 
           {allGroups.length > 0 && (
             <div className="mt-3 space-y-2">
@@ -262,6 +296,15 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
           onSelect={setSelectedVariation}
           onClose={() => setShowVariationModal(false)}
           onConfirm={handleConfirmVariation}
+        />
+      )}
+      {showDetailsModal && (
+        <ProductDetailsModal
+          product={product}
+          onClose={() => {
+            window.history.pushState({}, '', '/');
+            setShowDetailsModal(false);
+          }}
         />
       )}
     </>

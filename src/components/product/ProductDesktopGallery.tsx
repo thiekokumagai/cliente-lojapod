@@ -1,5 +1,6 @@
 import { Play } from "lucide-react";
 import ProductShareMenu from "./ProductShareMenu";
+import seloMaisVendido from "@/assets/seloMaisVendido.png";
 
 interface ProductDesktopGalleryProps {
   productName: string;
@@ -54,20 +55,11 @@ const ProductDesktopGallery = ({
         )}
 
         {isBestSeller && (
-          <div 
-            className="absolute right-12 top-1 z-10 flex h-[64px] w-[64px] items-center justify-center drop-shadow-md" 
-            style={{ transform: 'rotate(-8deg)' }}
-          >
-            <div className="absolute inset-1 bg-[#DE2839]" style={{ transform: 'rotate(0deg)' }}></div>
-            <div className="absolute inset-1 bg-[#DE2839]" style={{ transform: 'rotate(22.5deg)' }}></div>
-            <div className="absolute inset-1 bg-[#DE2839]" style={{ transform: 'rotate(45deg)' }}></div>
-            <div className="absolute inset-1 bg-[#DE2839]" style={{ transform: 'rotate(67.5deg)' }}></div>
-            
-            <div className="relative z-10 flex flex-col items-center justify-center leading-[0.95] text-white font-black tracking-[-0.03em]">
-              <span className="text-[17px]">BEST</span>
-              <span className="text-[13px]">SELLER</span>
-            </div>
-          </div>
+          <img
+            src={seloMaisVendido}
+            alt="Selo Mais Vendido"
+            className="absolute right-12 top-4 z-10 h-16 w-16 object-contain drop-shadow-md"
+          />
         )}
 
         <button

@@ -7,6 +7,7 @@ import ProductContact from "@/components/product/ProductContact";
 import ProductDesktopGallery from "@/components/product/ProductDesktopGallery";
 import ProductInfo from "@/components/product/ProductInfo";
 import ProductMobileGallery from "@/components/product/ProductMobileGallery";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useProduct } from "@/hooks/useProducts";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreMobilePadding } from "@/hooks/use-store-mobile-padding";
@@ -28,6 +29,7 @@ const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}
 const ProductPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const { items, addToCart, updateQuantity, removeFromCart, triggerAddedModal, totalItems, setSelectedCategory } = useCart();
   const mobileBottom = useStoreMobilePadding("product");
   const [quantity, setQuantity] = useState(1);
@@ -42,6 +44,12 @@ const ProductPage = () => {
     if (product?.images && product.images.length > 0) return product.images;
     return product?.image ? [product.image] : [];
   }, [product]);
+
+  useEffect(() => {
+    if (isMobile) {
+      navigate(`/?modal=${id}`, { replace: true });
+    }
+  }, [isMobile, id, navigate]);
 
   const description = product?.description || product?.descriptionFormated || "";
   const cleanDescription = description.trim();
