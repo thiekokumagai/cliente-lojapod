@@ -29,6 +29,17 @@ const ProductDetailsModal = ({
 }: ProductDetailsModalProps) => {
   const [isClosing, setIsClosing] = useState(false);
 
+  useEffect(() => {
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
+  }, []);
+
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(onClose, 300); // Wait for animation
@@ -251,91 +262,83 @@ const ProductDetailsModal = ({
       onClick={handleClose}
     >
       <div
-        className={`relative flex h-[96vh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl transition-transform duration-300 ${
+        className={`relative flex h-[96vh] h-[96dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl transition-transform duration-300 ${
           isClosing ? "translate-y-full" : "translate-y-0"
         }`}
         onClick={(event) => event.stopPropagation()}
       >
-        {gallery.length > 0 ? (
-          <div className="relative aspect-square w-full shrink-0 bg-[#f5f5f5]">
-            <div className="flex h-full w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-              {gallery.map((img, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => {
-                    setSelectedImageIndex(i);
-                    setIsImageModalOpen(true);
-                  }}
-                  className="h-full w-full shrink-0 snap-center focus:outline-none"
-                >
-                  <img
-                    src={img}
-                    alt={`${product.name} - Imagem ${i + 1}`}
-                    className="h-full w-full object-contain"
-                  />
-                </button>
-              ))}
-            </div>
-            
-            {Boolean(product.isBestSeller) && (
-              <img
-                src={seloMaisVendido}
-                alt="Selo Mais Vendido"
-                className="absolute right-16 top-4 z-10 h-10 w-10 object-contain drop-shadow-md"
-              />
-            )}
-            
-            {discountPercentage > 0 && (
-              <span className="absolute left-16 top-5 z-10 rounded-full bg-[#DE2839] px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-md">
-                -{discountPercentage}%
-              </span>
-            )}
-            {gallery.length > 1 && (
-              <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
-                Deslize para ver {gallery.length} fotos
+        <button
+          type="button"
+          onClick={handleClose}
+          aria-label="Fechar"
+          className="absolute left-4 top-4 z-30 flex h-9 w-9 items-center justify-center rounded-full bg-white text-primary shadow-md transition-all hover:bg-white/90 active:scale-95"
+        >
+          <X className="h-5 w-5" />
+        </button>
+
+        <div className="flex-1 overflow-y-auto overscroll-contain pb-28">
+          {gallery.length > 0 && (
+            <div className="relative aspect-square w-full shrink-0 bg-[#f5f5f5]">
+              <div className="flex h-full w-full snap-x snap-mandatory overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                {gallery.map((img, i) => (
+                  <button
+                    key={i}
+                    type="button"
+                    onClick={() => {
+                      setSelectedImageIndex(i);
+                      setIsImageModalOpen(true);
+                    }}
+                    className="h-full w-full shrink-0 snap-center focus:outline-none"
+                  >
+                    <img
+                      src={img}
+                      alt={`${product.name} - Imagem ${i + 1}`}
+                      className="h-full w-full object-contain"
+                    />
+                  </button>
+                ))}
               </div>
-            )}
+              
+              {Boolean(product.isBestSeller) && (
+                <img
+                  src={seloMaisVendido}
+                  alt="Selo Mais Vendido"
+                  className="absolute right-16 top-4 z-10 h-10 w-10 object-contain drop-shadow-md"
+                />
+              )}
+              
+              {discountPercentage > 0 && (
+                <span className="absolute left-16 top-5 z-10 rounded-full bg-[#DE2839] px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-md">
+                  -{discountPercentage}%
+                </span>
+              )}
+              {gallery.length > 1 && (
+                <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
+                  Deslize para ver {gallery.length} fotos
+                </div>
+              )}
 
-            <button
-              type="button"
-              onClick={handleClose}
-              aria-label="Voltar"
-              className="absolute left-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white text-primary shadow-sm"
-            >
-              <X className="h-5 w-5" />
-            </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedImageIndex(0);
+                  setIsImageModalOpen(true);
+                }}
+                aria-label="Ampliar imagem"
+                className="absolute right-0 top-0 flex h-14 w-14 items-center justify-center rounded-bl-[28px] bg-black/20 text-white backdrop-blur-sm"
+              >
+                <Search className="h-5 w-5" />
+              </button>
 
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedImageIndex(0);
-                setIsImageModalOpen(true);
-              }}
-              aria-label="Ampliar imagem"
-              className="absolute right-0 top-0 flex h-14 w-14 items-center justify-center rounded-bl-[28px] bg-black/20 text-white backdrop-blur-sm"
-            >
-              <Search className="h-5 w-5" />
-            </button>
+              <ProductShareMenu
+                productName={product.name}
+                triggerClassName="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#e10600] border border-gray-200 shadow-lg transition-transform active:scale-95"
+              />
+            </div>
+          )}
 
-            <ProductShareMenu
-              productName={product.name}
-              triggerClassName="absolute bottom-3 right-3 flex h-12 w-12 items-center justify-center rounded-full bg-white text-[#e10600] border border-gray-200 shadow-lg transition-transform active:scale-95"
-            />
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={handleClose}
-            className="absolute left-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground hover:bg-muted/80"
-            aria-label="Fechar"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        )}
-
-        <div className="flex-1 overflow-y-auto p-5 pb-16">
-          <h3 className="text-xl font-bold text-foreground">{product.name}</h3>
+          <div className={`p-5 ${gallery.length === 0 ? "pt-16" : ""}`}>
+            <h3 className="text-xl font-bold text-foreground">{product.name}</h3>
           {product.description && (
             <div 
               className="mt-2 text-sm text-muted-foreground"
@@ -440,10 +443,11 @@ const ProductDetailsModal = ({
           <div className="mt-8 -mx-5 border-t border-border/50 bg-background pb-8 block md:hidden">
             <SiteFooter />
           </div>
+          </div>
         </div>
 
         {/* Fixed Bottom Bar */}
-        <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-4 border-t border-border bg-background p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+        <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-4 border-t border-border bg-background p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
           <div className="flex h-12 flex-1 items-center justify-between rounded-xl border border-border px-4">
             <button
               type="button"
@@ -493,6 +497,8 @@ const ProductDetailsModal = ({
           selectedIndex={selectedImageIndex}
           onSelect={setSelectedImageIndex}
           onClose={() => setIsImageModalOpen(false)}
+          title={product.name}
+          description={product.description}
         />
       )}
     </div>

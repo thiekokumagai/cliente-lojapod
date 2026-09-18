@@ -45,7 +45,7 @@ const SiteFooter = () => {
   );
 
   return (
-    <footer id="contato" className="border-t border-border bg-secondary/50">
+    <footer id="contato" className="border-t border-border">
       <div className="mx-auto max-w-7xl px-4 py-12 md:px-8 md:py-16">
         <div className="rounded-2xl bg-background px-5 py-5 text-center shadow-sm md:hidden">
           <h3 className="text-lg font-semibold text-foreground">Formas de pagamento aceitas</h3>

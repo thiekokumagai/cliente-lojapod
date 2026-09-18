@@ -356,6 +356,20 @@ const CartSidebar = () => {
   }, [isCartOpen, isFinishModalOpen]);
 
   useEffect(() => {
+    if (!isCartOpen) return;
+
+    const originalBodyOverflow = document.body.style.overflow;
+    const originalHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = originalBodyOverflow;
+      document.documentElement.style.overflow = originalHtmlOverflow;
+    };
+  }, [isCartOpen]);
+
+  useEffect(() => {
     if (previousTotalItems.current > 0 && totalItems === 0) {
       setStep("cart");
     }

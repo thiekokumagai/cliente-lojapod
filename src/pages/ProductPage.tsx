@@ -490,6 +490,8 @@ const ProductPage = () => {
           selectedIndex={selectedImage}
           onSelect={setSelectedImage}
           onClose={() => setIsImageModalOpen(false)}
+          title={product?.name}
+          description={product?.description}
         />
       )}
     </div>
