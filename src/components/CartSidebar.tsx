@@ -1200,7 +1200,7 @@ const CartSidebar = () => {
       {isCartOpen && (
         <div className="fixed inset-0 z-[90] flex justify-end">
           <div className="absolute inset-0 bg-foreground/40" onClick={closeCart} />
-          <div className="relative flex h-[100dvh] w-full max-w-md flex-col bg-[#f7f7f7] shadow-2xl md:h-full">
+          <div className="relative flex h-full w-full max-w-md flex-col bg-[#f7f7f7] shadow-2xl md:h-full">
             <div className="flex items-center justify-between bg-primary px-5 py-4 text-primary-foreground">
               <div className="flex items-center gap-2">
                 {step !== "cart" && (
@@ -1865,8 +1865,8 @@ const CartSidebar = () => {
 
       {isAddressModalOpen && (
         <div className="fixed inset-0 z-[95] bg-black/40 md:flex md:justify-end">
-          <div className="h-[100dvh] w-full bg-background md:relative md:mr-0 md:h-full md:w-full md:max-w-md md:shadow-2xl">
-            <div className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-md flex-col md:h-full">
+          <div className="h-full w-full bg-background md:relative md:mr-0 md:h-full md:w-full md:max-w-md md:shadow-2xl">
+            <div className="mx-auto flex h-full min-h-0 w-full max-w-md flex-col md:h-full">
               {isShowingSavedAddresses ? (
                 <>
                   <div className="flex items-center gap-3 border-b border-border px-4 py-4">
@@ -1937,7 +1937,7 @@ const CartSidebar = () => {
       >
         <DialogContent
           showCloseButton={false}
-          className="z-[120] h-[100dvh] w-screen max-w-none rounded-none border-0 bg-[#5d5d5d]/85 p-0 shadow-none sm:h-auto sm:w-full sm:max-w-md sm:rounded-[32px] sm:border sm:border-border sm:bg-background sm:p-0 sm:shadow-2xl"
+          className="z-[120] h-full w-screen max-w-none rounded-none border-0 bg-[#5d5d5d]/85 p-0 shadow-none sm:h-auto sm:w-full sm:max-w-md sm:rounded-[32px] sm:border sm:border-border sm:bg-background sm:p-0 sm:shadow-2xl"
           onPointerDownOutside={(event) => {
             if (paymentMethod === "PIX" && !hasCopiedPix) event.preventDefault();
           }}
@@ -1946,7 +1946,7 @@ const CartSidebar = () => {
           }}
         >
           <div className="flex h-full w-full items-center justify-center p-0 sm:p-0">
-            <div className="flex h-[100dvh] w-full flex-col overflow-hidden bg-background sm:h-full sm:max-h-[90dvh] sm:max-w-md sm:rounded-[32px] sm:shadow-2xl">
+            <div className="flex h-full w-full flex-col overflow-hidden bg-background sm:h-full sm:max-h-[90dvh] sm:max-w-md sm:rounded-[32px] sm:shadow-2xl">
               <div className="flex-1 overflow-y-auto px-6 pb-6 pt-8 sm:px-8">
                 <div className="mx-auto max-w-[320px] text-center">
                   <h3 className="text-[22px] font-bold leading-tight text-[#686868]">
@@ -2109,8 +2109,8 @@ const CartSidebar = () => {
 
       {isContactModalOpen && (
         <div className="fixed inset-0 z-[95] bg-black/40 md:flex md:justify-end">
-          <div className="h-[100dvh] w-full bg-background md:relative md:mr-0 md:h-full md:w-full md:max-w-md md:shadow-2xl">
-            <div className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-md flex-col md:h-full">
+          <div className="h-full w-full bg-background md:relative md:mr-0 md:h-full md:w-full md:max-w-md md:shadow-2xl">
+            <div className="mx-auto flex h-full min-h-0 w-full max-w-md flex-col md:h-full">
               <div className="flex items-center gap-3 border-b border-border px-4 py-4">
                 <button type="button" onClick={() => setIsContactModalOpen(false)} className="rounded-full p-1 text-muted-foreground" aria-label="Voltar">
                   <ChevronLeft className="h-5 w-5" />
@@ -2175,8 +2175,8 @@ const CartSidebar = () => {
 
       {isCouponModalOpen && (
         <div className="fixed inset-0 z-[95] bg-black/40 md:flex md:justify-end">
-          <div className="h-[100dvh] w-full bg-background md:relative md:mr-0 md:h-full md:w-full md:max-w-md md:shadow-2xl">
-            <div className="mx-auto flex h-[100dvh] min-h-0 w-full max-w-md flex-col md:h-full">
+          <div className="h-full w-full bg-background md:relative md:mr-0 md:h-full md:w-full md:max-w-md md:shadow-2xl">
+            <div className="mx-auto flex h-full min-h-0 w-full max-w-md flex-col md:h-full">
               <div className="flex items-center gap-3 border-b border-border px-4 py-4">
                 <button type="button" onClick={() => setIsCouponModalOpen(false)} className="rounded-full p-1 text-muted-foreground" aria-label="Voltar">
                   <ChevronLeft className="h-5 w-5" />
