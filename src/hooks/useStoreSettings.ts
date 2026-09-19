@@ -39,6 +39,11 @@ interface StoreSettings {
     parcelaMax?: number;
     passedToCustomer?: boolean;
   }[];
+  freeShippingEnabled?: boolean;
+  freeShippingMinValue?: number;
+  storePickupEnabled?: boolean;
+  deliveryType?: string;
+  deliveryFixedFee?: number;
   deliveryOriginCep?: string;
   deliveryOriginNumber?: string;
   deliveryRanges?: {

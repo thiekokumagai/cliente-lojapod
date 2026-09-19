@@ -22,6 +22,7 @@ import {
   MessageCircle,
   Clock,
   Info,
+  Truck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
@@ -245,7 +246,7 @@ const CartSidebar = () => {
   const [isCashModalOpen, setIsCashModalOpen] = useState(false);
   const [isCreditModalOpen, setIsCreditModalOpen] = useState(false);
   const [isShowingSavedAddresses, setIsShowingSavedAddresses] = useState(false);
-  const [deliveryFee, setDeliveryFee] = useState(0);
+  const [deliveryFee, setDeliveryFee] = useState<number | null>(0);
   const [deliveryDistanceKm, setDeliveryDistanceKm] = useState<number | null>(null);
   const [deliveryEstimatedTime, setDeliveryEstimatedTime] = useState<string | null>(null);
   const [deliveryError, setDeliveryError] = useState<string>("");
@@ -266,6 +267,7 @@ const CartSidebar = () => {
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalizedOrder, setFinalizedOrder] = useState<FinalizedOrder | null>(null);
+  const [deliveryModality, setDeliveryModality] = useState<"DELIVERY" | "STORE_PICKUP">("DELIVERY");
   const previousTotalItems = useRef(totalItems);
 
   const effectiveItems = useMemo(() => {
@@ -310,7 +312,7 @@ const CartSidebar = () => {
         setStructuredAddress(parsed);
 
         const fullDest = formatFreightDestinationAddress(parsed);
-        calculate(fullDest).then((result) => {
+        calculate(fullDest, effectiveTotalPrice).then((result) => {
           if (!result) return;
           if (result.error) {
             setDeliveryFee(0);
@@ -319,17 +321,11 @@ const CartSidebar = () => {
             setDeliveryError(result.error || "");
             return;
           }
-          if ('freightPrice' in result && typeof result.freightPrice === "number") {
-            setDeliveryFee(result.freightPrice);
-            setDeliveryDistanceKm(result.distanceKm ?? null);
-            setDeliveryEstimatedTime((result as any).estimatedTimeStr || null);
-            setDeliveryError("");
-          } else {
-            setDeliveryFee(0);
-            setDeliveryDistanceKm(result.distanceKm ?? null);
-            setDeliveryEstimatedTime(null);
-            setDeliveryError(result.error || "");
-          }
+          
+          setDeliveryFee(result.freightPrice);
+          setDeliveryDistanceKm(result.distanceKm ?? null);
+          setDeliveryEstimatedTime((result as any).estimatedTimeStr || null);
+          setDeliveryError("");
         });
       } catch {
       }
@@ -480,7 +476,30 @@ const CartSidebar = () => {
     return 0;
   }, [couponData, effectiveTotalPrice, nonPromoItemsTotal]);
 
-  const isFreeShippingApplicable = useMemo(() => {
+  const isFreeShippingBySettings = useMemo(() => {
+    if (!storeSettings?.freeShippingEnabled) return false;
+    const minValue = Number(storeSettings.freeShippingMinValue);
+    if (isNaN(minValue) || minValue <= 0) return false;
+    return effectiveTotalPrice >= minValue;
+  }, [storeSettings?.freeShippingEnabled, storeSettings?.freeShippingMinValue, effectiveTotalPrice]);
+  const freeShippingSettings = useMemo(() => {
+    if (!storeSettings?.freeShippingEnabled) return null;
+    const minVal = Number(storeSettings.freeShippingMinValue);
+    if (isNaN(minVal) || minVal <= 0) return null;
+
+    const remaining = Math.max(0, minVal - effectiveTotalPrice);
+    const progress = Math.min(100, Math.round((effectiveTotalPrice / minVal) * 100));
+    const achieved = effectiveTotalPrice >= minVal;
+
+    return {
+      minVal,
+      remaining,
+      progress,
+      achieved,
+    };
+  }, [storeSettings?.freeShippingEnabled, storeSettings?.freeShippingMinValue, effectiveTotalPrice]);
+
+  const isFreeShippingByCoupon = useMemo(() => {
     if (couponData?.type === 'FREE_SHIPPING') {
       const coupon = couponData.coupon;
       if (coupon) {
@@ -492,9 +511,18 @@ const CartSidebar = () => {
     return false;
   }, [couponData, effectiveTotalPrice, nonPromoItemsTotal]);
 
+  const isFreeShippingApplicable = isFreeShippingByCoupon || isFreeShippingBySettings;
+
   const couponDiscountAmount = computedCouponDiscount;
   const totalAfterCoupon = Math.max(0, effectiveTotalPrice - couponDiscountAmount);
-  const effectiveDeliveryFee = isFreeShippingApplicable ? 0 : deliveryFee;
+  const effectiveDeliveryFee = deliveryModality === "STORE_PICKUP" ? 0 : (isFreeShippingApplicable ? 0 : (deliveryFee || 0));
+
+  const getDeliveryFeeDisplay = () => {
+    if (deliveryModality === "STORE_PICKUP") return "Retirada na loja";
+    if (isFreeShippingApplicable || deliveryFee === 0) return <span className="text-primary font-bold">Grátis</span>;
+    if (deliveryFee === null) return "A combinar";
+    return formatPrice(deliveryFee);
+  };
 
   const pixDiscountBase = Math.min(nonPromoItemsTotal, totalAfterCoupon);
   const pixDiscount = useMemo(() => pixDiscountBase * (pixDiscountPercent / 100), [pixDiscountBase, pixDiscountPercent]);
@@ -532,8 +560,11 @@ const CartSidebar = () => {
     return words.length >= 2 && words.filter((w) => w.length >= 2).length >= 2;
   }, [name]);
   const isContactValid = isNameValid && phone.replace(/\D/g, "").length >= 10;
-  const isAddressValid = structuredAddress !== null;
-  const hasValidDeliveryFee = deliveryFee >= 0 && !deliveryError;
+  const isAddressValid = deliveryModality === "STORE_PICKUP" || structuredAddress !== null;
+  const hasValidDeliveryFee =
+    deliveryModality === "STORE_PICKUP" ||
+    isFreeShippingApplicable ||
+    (!deliveryError && (deliveryFee === null || deliveryFee >= 0));
 
   const savedAddressDisplay = useMemo(() => {
     if (!structuredAddress) return "";
@@ -568,37 +599,25 @@ const CartSidebar = () => {
 
       try {
         const fullDest = formatFreightDestinationAddress(addr);
-        const result = await calculate(fullDest);
+        const result = await calculate(fullDest, effectiveTotalPrice);
 
-        if (!result) return;
         if (result.error) {
           setDeliveryFee(0);
           setDeliveryDistanceKm(result.distanceKm ?? null);
           setDeliveryEstimatedTime(null);
           setDeliveryError(result.error);
-          return;
-        }
-        if ('freightPrice' in result && result.freightPrice !== undefined) {
-          setDeliveryFee(result.freightPrice || 0);
-          setDeliveryDistanceKm(result.distanceKm ?? null);
-          setDeliveryEstimatedTime((result as any).estimatedTimeStr || null);
-          setDeliveryError("");
-          return;
-        }
-
-        setDeliveryFee(0);
-        setDeliveryDistanceKm(result.distanceKm ?? null);
-        setDeliveryEstimatedTime(null);
-        setDeliveryError("Não foi possível calcular a entrega.");
-
-        if (result.error) {
           toast.info(result.error);
+          return;
         }
+        setDeliveryFee(result.freightPrice);
+        setDeliveryDistanceKm(result.distanceKm ?? null);
+        setDeliveryEstimatedTime((result as any).estimatedTimeStr || null);
+        setDeliveryError("");
       } catch {
         setDeliveryFee(0);
         setDeliveryDistanceKm(null);
+        setDeliveryEstimatedTime(null);
         setDeliveryError("Não foi possível calcular a entrega.");
-        toast.info("Não foi possível calcular a entrega.");
       } finally {
         setIsCalculatingFee(false);
       }
@@ -764,14 +783,21 @@ const CartSidebar = () => {
       return;
     }
 
-    if (!isAddressValid) {
-      toast.info("Selecione um endereço de entrega para continuar.");
-      return;
-    }
+    if (deliveryModality !== "STORE_PICKUP") {
+      if (!isAddressValid) {
+        toast.info("Selecione um endereço de entrega para continuar.");
+        return;
+      }
 
-    if (!hasValidDeliveryFee) {
-      toast.info(deliveryError || "A entrega precisa ser calculada antes de continuar.");
-      return;
+      if (isCalculatingFee) {
+        toast.info("Aguarde o cálculo da entrega para continuar.");
+        return;
+      }
+
+      if (!hasValidDeliveryFee) {
+        toast.info(deliveryError || "A entrega precisa ser calculada antes de continuar.");
+        return;
+      }
     }
 
     setPaymentMethod(null);
@@ -815,6 +841,7 @@ const CartSidebar = () => {
   const checkoutName = finalizedOrder?.customerName ?? name;
   const checkoutPhone = finalizedOrder?.customerPhone ?? phone;
   const checkoutAddress = finalizedOrder?.customerAddress ?? savedAddressDisplay;
+  const checkoutDeliveryModality = finalizedOrder?.deliveryModality ?? deliveryModality;
   const checkoutOrderNote = finalizedOrder?.orderNote ?? orderNote;
   const checkoutSubtotal = finalizedOrder?.subtotal ?? effectiveTotalPrice;
   const checkoutDeliveryFee = finalizedOrder?.deliveryFee ?? deliveryFee;
@@ -862,7 +889,6 @@ const CartSidebar = () => {
         : `Presencial (Máquina de cartão)`;
         
     const finishOrderNumber = finalizedOrder ? finalizedOrder.orderNumber : Date.now().toString().slice(-4);
-
     const lines = [
       `Olá, meu nome é ${checkoutName || "-"}, esse é o meu pedido realizado através da Loja Pod`,
       `--------`,
@@ -873,7 +899,7 @@ const CartSidebar = () => {
       `Quantidade de itens: ${checkoutItems.reduce((acc, item) => acc + item.quantity, 0)} `,
       `Total dos itens: ${formatPrice(checkoutSubtotal)}`,
       `--------`,
-      `Valor da entrega: ${formatPrice(checkoutDeliveryFee)}`
+      checkoutDeliveryModality === "STORE_PICKUP" ? `Entrega: Retirada na loja` : `Valor da entrega: ${isFreeShippingApplicable || checkoutDeliveryFee === 0 ? "Grátis" : (checkoutDeliveryFee === null ? "A combinar" : formatPrice(checkoutDeliveryFee))}`
     ];
 
     if (checkoutSavedCouponCode) {
@@ -887,7 +913,7 @@ const CartSidebar = () => {
 
     const checkoutCardSurcharge = isCredit ? checkoutCreditInterest : (isDebit ? debitFeePercent : 0);
     if ((isCredit || isDebit) && checkoutCardSurcharge > 0) {
-      const baseForCredit = checkoutSubtotal - (couponData?.discountAmount || 0) + checkoutDeliveryFee;
+      const baseForCredit = checkoutSubtotal - (couponData?.discountAmount || 0) + (checkoutDeliveryFee || 0);
       const interestAmt = checkoutTotal - baseForCredit;
       if (interestAmt > 0) {
         lines.push(`Acréscimo cartão: ${formatPrice(interestAmt)}`);
@@ -915,14 +941,13 @@ const CartSidebar = () => {
 
     lines.push(`Pagamento: ${pagamentoType}`);
     
-    lines.push(`--------`);
-    lines.push(`Para entregar em: ${checkoutAddress || "-"}`);
+    lines.push(`Para entregar em: ${checkoutDeliveryModality === "STORE_PICKUP" ? "Retirada na loja" : (checkoutAddress || "-")}`);
     
     if (checkoutNote && checkoutNote.trim() !== "") {
        lines.push(`Observação do Pedido: ${checkoutNote.trim()}`);
     }
     lines.push(`Contato: ${checkoutPhone || "-"}`);
-    if (checkoutEstimatedTime) {
+    if (checkoutDeliveryModality !== "STORE_PICKUP" && checkoutEstimatedTime) {
       lines.push(`Estimativa de entrega: ${checkoutEstimatedTime}`);
     }
     lines.push(`Número do pedido: ${finishOrderNumber}`);
@@ -954,7 +979,8 @@ const CartSidebar = () => {
   ]);
 
   const finalizeOrder = async () => {
-    if (!isContactValid || !isAddressValid || !isPaymentValid || effectiveItems.length === 0 || !paymentMethod || !hasValidDeliveryFee) {
+    const isDeliveryValid = deliveryModality === "STORE_PICKUP" || (isAddressValid && hasValidDeliveryFee);
+    if (!isContactValid || !isDeliveryValid || !isPaymentValid || effectiveItems.length === 0 || !paymentMethod) {
       toast.info("Preencha todas as etapas obrigatórias para finalizar.");
       return;
     }
@@ -972,23 +998,24 @@ const CartSidebar = () => {
         customerName: name.trim(),
         customerPhone: phone.trim(),
         itemsTotal: Number(effectiveTotalPrice.toFixed(2)),
-        freight: Number(deliveryFee.toFixed(2)),
+        freight: deliveryModality === "STORE_PICKUP" || isFreeShippingApplicable ? 0 : (deliveryFee === null ? -1 : Number(deliveryFee.toFixed(2))),
         paymentDiscount: paymentMethod === 'PIX' ? Number(pixDiscount.toFixed(2)) : 0,
         installmentSurcharge: (paymentMethod === 'Cartão de Crédito' || paymentMethod === 'Cartão de Débito') ? Number(cardSurchargeAmount.toFixed(2)) : 0,
         couponTitle: savedCouponCode || undefined,
         couponDiscount: couponData?.type !== 'FREE_SHIPPING' ? Number(computedCouponDiscount.toFixed(2)) : 0,
-        couponFreightDiscount: isFreeShippingApplicable ? Number(deliveryFee.toFixed(2)) : 0,
+        couponFreightDiscount: isFreeShippingByCoupon ? (deliveryFee === null ? 0 : Number(deliveryFee.toFixed(2))) : 0,
         totalOrder: Number(finalTotal.toFixed(2)),
         totalReceived: Number(finalTotal.toFixed(2)),
         paymentType: paymentMethod === 'PIX' ? 'online' : 'entrega',
         paymentMethod: paymentMethod === 'PIX' ? 'pix' : paymentMethod === 'Cartão de Crédito' ? 'credit' : paymentMethod === 'Cartão de Débito' ? 'debit' : paymentMethod === 'Dinheiro' ? 'cash' : paymentMethod,
         installments: paymentMethod === 'Cartão de Crédito' ? effectiveCreditInstallments : 1,
-        street: structuredAddress?.mainText || savedAddressDisplay,
-        number: structuredAddress?.number || "S/N",
-        neighborhood: structuredAddress?.secondaryText?.split(',')[0] || "Local",
-        city: structuredAddress?.city || storeSettings?.searchCity || "Campo Grande",
-        state: structuredAddress?.state || "MS",
-        cep: structuredAddress?.cep ? structuredAddress.cep : "00000-000",
+        deliveryModality: deliveryModality,
+        street: deliveryModality === "STORE_PICKUP" ? (storeSettings?.street || "Retirada na loja") : (structuredAddress?.mainText || savedAddressDisplay),
+        number: deliveryModality === "STORE_PICKUP" ? (storeSettings?.number || "S/N") : (structuredAddress?.number || "S/N"),
+        neighborhood: deliveryModality === "STORE_PICKUP" ? (storeSettings?.neighborhood || "Centro") : (structuredAddress?.secondaryText?.split(',')[0] || "Local"),
+        city: deliveryModality === "STORE_PICKUP" ? (storeSettings?.city || storeSettings?.searchCity || "Campo Grande") : (structuredAddress?.city || storeSettings?.searchCity || "Campo Grande"),
+        state: deliveryModality === "STORE_PICKUP" ? (storeSettings?.state || "MS") : (structuredAddress?.state || "MS"),
+        cep: deliveryModality === "STORE_PICKUP" ? (storeSettings?.cep || "00000-000") : (structuredAddress?.cep ? structuredAddress.cep : "00000-000"),
         complement: structuredAddress?.complement || "",
         observation: orderNote.trim() || undefined,
         amountProvided: paymentMethod === 'Dinheiro' ? (needsChange === 'sim' ? parseCurrencyInput(changeFor) : finalTotal) : undefined,
@@ -1006,31 +1033,30 @@ const CartSidebar = () => {
       const orderId = result.id;
       const orderNumber = result.orderNumber;
       const createdAt = new Date().toISOString();
-
       addOrder({
         id: orderId,
         createdAt,
         customerName: name.trim(),
         customerPhone: phone.trim(),
-        customerAddress: savedAddressDisplay,
+        customerAddress: deliveryModality === "STORE_PICKUP" ? "Retirada na loja" : savedAddressDisplay,
         paymentMethod,
-        deliveryFee,
+        deliveryFee: deliveryModality === "STORE_PICKUP" || isFreeShippingApplicable ? 0 : deliveryFee,
         subtotal: effectiveTotalPrice,
         total: finalTotal,
         items: orderItems,
       });
-
       setFinalizedOrder({
         id: orderId,
         orderNumber,
         createdAt,
         customerName: name.trim(),
         customerPhone: phone.trim(),
-        customerAddress: savedAddressDisplay,
+        customerAddress: deliveryModality === "STORE_PICKUP" ? "Retirada na loja" : savedAddressDisplay,
         orderNote,
         paymentMethod,
         paymentLabel,
-        deliveryFee,
+        deliveryModality,
+        deliveryFee: deliveryModality === "STORE_PICKUP" || isFreeShippingApplicable ? 0 : deliveryFee,
         subtotal: effectiveTotalPrice,
         total: finalTotal,
         pixDiscount,
@@ -1040,7 +1066,7 @@ const CartSidebar = () => {
         savedCouponCode,
         needsChange,
         changeFor,
-        estimatedTimeStr: deliveryEstimatedTime,
+        estimatedTimeStr: deliveryModality === "STORE_PICKUP" ? null : deliveryEstimatedTime,
         items: orderItems,
       });
 
@@ -1191,7 +1217,10 @@ const CartSidebar = () => {
     }
   };
 
-  const canContinueDelivery = isContactValid && isAddressValid && !isEditingContact && hasValidDeliveryFee;
+  const isDeliveryReady =
+    deliveryModality === "STORE_PICKUP" ||
+    (isAddressValid && hasValidDeliveryFee && !isCalculatingFee);
+  const canContinueDelivery = isContactValid && isDeliveryReady && !isEditingContact;
   const finishOrderNumber = finalizedOrder ? finalizedOrder.orderNumber : Date.now().toString().slice(-4);
   const finishDate = finalizedOrder ? new Date(finalizedOrder.createdAt) : new Date();
 
@@ -1234,6 +1263,41 @@ const CartSidebar = () => {
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {step === "cart" && (
                 <div className="space-y-4 p-4">
+                  {/* Barra de Progresso de Frete Grátis */}
+                  {freeShippingSettings && items.length > 0 && (
+                    <div className={`rounded-2xl p-3.5 border transition-all ${
+                      freeShippingSettings.achieved
+                        ? "bg-emerald-50/80 border-emerald-200/70 text-emerald-800"
+                        : "bg-primary/5 border-primary/20 text-foreground"
+                    }`}>
+                      <div className="flex items-center justify-between gap-2 mb-2 text-xs sm:text-sm">
+                        <div className="flex items-center gap-2 font-medium">
+                          <Truck className={`h-4 w-4 shrink-0 ${freeShippingSettings.achieved ? "text-emerald-600" : "text-primary"}`} />
+                          <span>
+                            {freeShippingSettings.achieved ? (
+                              <span className="font-bold text-emerald-700">Parabéns! Você ganhou Frete Grátis! 🎉</span>
+                            ) : (
+                              <>
+                                Faltam apenas <strong className="font-bold text-primary">{formatPrice(freeShippingSettings.remaining)}</strong> para <strong className="font-bold">Frete Grátis</strong>
+                              </>
+                            )}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold shrink-0 opacity-80">
+                          {freeShippingSettings.achieved ? "100%" : `${freeShippingSettings.progress}%`}
+                        </span>
+                      </div>
+
+                      <div className="h-2 w-full rounded-full bg-muted/60 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ease-out ${
+                            freeShippingSettings.achieved ? "bg-emerald-500" : "bg-primary"
+                          }`}
+                          style={{ width: `${freeShippingSettings.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                   <div className="rounded-3xl bg-card p-4 shadow-sm">
                     <div className="mb-4 flex items-center justify-between">
                       <div className="flex items-center gap-3">
@@ -1344,7 +1408,6 @@ const CartSidebar = () => {
                   </div>
                 </div>
               )}
-
               {step === "delivery" && (
                 <div className="space-y-4 p-4">
                   <div className="rounded-3xl bg-card p-4 shadow-sm">
@@ -1395,8 +1458,104 @@ const CartSidebar = () => {
                       </div>
                     </div>
                   </div>
+                  {storeSettings?.storePickupEnabled && (
+                    <div className="rounded-3xl bg-card p-4 shadow-sm flex flex-col gap-3">
+                      <h3 className="text-sm font-semibold text-foreground text-center">Como deseja receber o seu pedido?</h3>
+                      <div className="flex w-full gap-2 p-1 bg-muted/30 rounded-xl">
+                        <button
+                          type="button"
+                          className={`flex-1 py-3 px-2 rounded-lg text-sm font-medium transition-all ${
+                            deliveryModality === "DELIVERY"
+                              ? "bg-primary text-primary-foreground shadow"
+                              : "text-muted-foreground hover:bg-muted/50"
+                          }`}
+                          onClick={() => setDeliveryModality("DELIVERY")}
+                        >
+                          Entrega
+                        </button>
+                        <button
+                          type="button"
+                          className={`flex-1 py-3 px-2 rounded-lg text-sm font-medium transition-all ${
+                            deliveryModality === "STORE_PICKUP"
+                              ? "bg-primary text-primary-foreground shadow"
+                              : "text-muted-foreground hover:bg-muted/50"
+                          }`}
+                          onClick={() => setDeliveryModality("STORE_PICKUP")}
+                        >
+                          Retirar na loja
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
-                  <div className="rounded-3xl bg-card p-4 shadow-sm">
+                  {deliveryModality === "STORE_PICKUP" && storeSettings && (
+                    <div className="rounded-3xl bg-card p-4 shadow-sm space-y-3">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                          <MapPin className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-sm font-semibold text-foreground">Retirar na loja</h3>
+                          <p className="text-xs text-muted-foreground">Venha buscar no nosso endereço</p>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-border bg-background p-4 flex flex-col gap-3">
+                        <p className="text-sm text-foreground leading-relaxed">
+                          {storeSettings.street}, {storeSettings.number}
+                          {storeSettings.complement ? ` - ${storeSettings.complement}` : ""}
+                          <br />
+                          {storeSettings.neighborhood} - {storeSettings.city} / {storeSettings.state}
+                          <br />
+                          CEP: {storeSettings.cep}
+                        </p>
+                        <a
+                          href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${storeSettings.street}, ${storeSettings.number} - ${storeSettings.neighborhood}, ${storeSettings.city} - ${storeSettings.state}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary/10 text-primary py-2.5 text-sm font-semibold hover:bg-primary/20 transition-colors"
+                        >
+                          <MapPin className="h-4 w-4" />
+                          Abrir no Google Maps
+                        </a>
+                      </div>
+                    </div>
+                  )}
+                  {deliveryModality === "DELIVERY" && (
+                    <>
+                      {freeShippingSettings && (
+                    <div className={`rounded-2xl p-3 border transition-all ${
+                      freeShippingSettings.achieved
+                        ? "bg-emerald-50/80 border-emerald-200/70 text-emerald-800"
+                        : "bg-primary/5 border-primary/20 text-foreground"
+                    }`}>
+                      <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+                        <div className="flex items-center gap-2 font-medium">
+                          <Truck className={`h-4 w-4 shrink-0 ${freeShippingSettings.achieved ? "text-emerald-600" : "text-primary"}`} />
+                          <span>
+                            {freeShippingSettings.achieved ? (
+                              <span className="font-bold text-emerald-700">Você atingiu o Frete Grátis! 🎉</span>
+                            ) : (
+                              <>
+                                Faltam <strong className="font-bold text-primary">{formatPrice(freeShippingSettings.remaining)}</strong> para <strong className="font-bold">Frete Grátis</strong>
+                              </>
+                            )}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold shrink-0 opacity-80">
+                          {freeShippingSettings.achieved ? "100%" : `${freeShippingSettings.progress}%`}
+                        </span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-muted/60 overflow-hidden mt-2">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ease-out ${
+                            freeShippingSettings.achieved ? "bg-emerald-500" : "bg-primary"
+                          }`}
+                          style={{ width: `${freeShippingSettings.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                      )}
+                    <div className="rounded-3xl bg-card p-4 shadow-sm">
                     {structuredAddress ? (
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex gap-3">
@@ -1449,6 +1608,8 @@ const CartSidebar = () => {
                       </button>
                     )}
                   </div>
+                    </>
+                  )}
 
                   <div className="rounded-3xl bg-card p-4 shadow-sm">
                     <div className="mb-4 flex items-center justify-between rounded-2xl border border-border bg-background p-4">
@@ -1465,31 +1626,39 @@ const CartSidebar = () => {
                       </button>
                     </div>
 
-                    {isCalculatingFee ? (
-                      <div className="flex items-center gap-2 text-sm text-foreground">
-                        <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                        <span>Calculando total com entrega...</span>
-                      </div>
-                    ) : deliveryError ? (
-                      <p className="text-sm font-semibold text-destructive">{deliveryError}</p>
-                    ) : (
-                      <>
-                        <div className="flex items-center justify-between text-base">
-                          <span className="font-medium text-muted-foreground">Total com entrega</span>
-                          <span className="text-lg font-bold text-primary">{formatPrice(effectiveTotalPrice + deliveryFee)}</span>
+                    {deliveryModality === "DELIVERY" ? (
+                      isCalculatingFee ? (
+                        <div className="flex items-center gap-2 text-sm text-foreground">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span>Calculando total com entrega...</span>
                         </div>
-                        {deliveryEstimatedTime && (
-                          <div className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-primary">
-                            <Clock className="h-4 w-4" />
-                            <span className="text-sm font-medium">Estimativa de entrega: {deliveryEstimatedTime}</span>
+                      ) : deliveryError ? (
+                        <p className="text-sm font-semibold text-destructive">{deliveryError}</p>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between text-base">
+                            <span className="font-medium text-muted-foreground">
+                              {deliveryFee === null ? "Total (taxa a combinar)" : "Total com entrega"}
+                            </span>
+                            <span className="text-lg font-bold text-primary">{formatPrice(effectiveTotalPrice + effectiveDeliveryFee)}</span>
                           </div>
-                        )}
-                      </>
+                          {deliveryEstimatedTime && (
+                            <div className="mt-3 flex items-center justify-center gap-2 rounded-xl bg-primary/10 px-3 py-2 text-primary">
+                              <Clock className="h-4 w-4" />
+                              <span className="text-sm font-medium">Estimativa de entrega: {deliveryEstimatedTime}</span>
+                            </div>
+                          )}
+                        </>
+                      )
+                    ) : (
+                      <div className="flex items-center justify-between text-base">
+                        <span className="font-medium text-muted-foreground">Total a pagar</span>
+                        <span className="text-lg font-bold text-primary">{formatPrice(effectiveTotalPrice)}</span>
+                      </div>
                     )}
                   </div>
                 </div>
               )}
-
               {step === "payment" && (
                 <div className="space-y-4 p-4">
                   <div className="rounded-3xl bg-card p-4 shadow-sm">
@@ -1621,11 +1790,7 @@ const CartSidebar = () => {
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Entrega</span>
                         <span className="font-medium text-foreground">
-                          {couponData?.type === 'FREE_SHIPPING' ? (
-                            <span className="text-primary font-bold">Grátis</span>
-                          ) : (
-                            formatPrice(deliveryFee)
-                          )}
+                          {getDeliveryFeeDisplay()}
                         </span>
                       </div>
                       <div className="border-t border-border pt-3">
@@ -1647,7 +1812,9 @@ const CartSidebar = () => {
               {step === "confirmation" && (
                 <div className="space-y-4 p-4">
                   <div className="rounded-3xl bg-card p-4 shadow-sm">
-                    <h3 className="mb-3 text-sm font-semibold text-foreground">Entrega</h3>
+                    <h3 className="mb-3 text-sm font-semibold text-foreground">
+                      {deliveryModality === "STORE_PICKUP" ? "Retirada" : "Entrega"}
+                    </h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2 text-foreground">
                         <User className="h-4 w-4 text-primary" />
@@ -1658,8 +1825,20 @@ const CartSidebar = () => {
                         <span>{phone}</span>
                       </div>
                       <div className="flex items-start gap-2 text-foreground">
-                        <MapPin className="mt-0.5 h-4 w-4 text-primary" />
-                        <span>{savedAddressDisplay || "-"}</span>
+                        <MapPin className="mt-0.5 h-4 w-4 text-primary shrink-0" />
+                        {deliveryModality === "STORE_PICKUP" ? (
+                          <div>
+                            <span className="font-semibold text-foreground">Retirada na loja</span>
+                            {storeSettings && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                {storeSettings.street}, {storeSettings.number}
+                                {storeSettings.complement ? ` - ${storeSettings.complement}` : ""} - {storeSettings.neighborhood}
+                              </p>
+                            )}
+                          </div>
+                        ) : (
+                          <span>{savedAddressDisplay || "-"}</span>
+                        )}
                       </div>
                       {orderNote.trim() && (
                         <div className="flex items-start gap-2 text-foreground">
@@ -1751,14 +1930,10 @@ const CartSidebar = () => {
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Entrega</span>
                         <span className="font-medium text-foreground">
-                          {couponData?.type === 'FREE_SHIPPING' ? (
-                            <span className="text-primary font-bold">Grátis</span>
-                          ) : (
-                            formatPrice(deliveryFee)
-                          )}
+                          {getDeliveryFeeDisplay()}
                         </span>
                       </div>
-                      {deliveryEstimatedTime && (
+                      {deliveryModality !== "STORE_PICKUP" && deliveryEstimatedTime && (
                         <div className="flex justify-between text-primary mt-1 font-medium">
                           <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" /> Estimativa de entrega</span>
                           <span>{deliveryEstimatedTime}</span>
@@ -1964,10 +2139,22 @@ const CartSidebar = () => {
                   <p className="text-[16px] text-[#666666]">
                     Contato: <span className="font-semibold">{checkoutPhone}</span>
                   </p>
-                  <p className="mt-1 text-[16px] text-[#666666] leading-[1.35]">
-                    Endereço: <span className="font-semibold">{checkoutAddress}</span>
-                  </p>
-                  {checkoutEstimatedTime && (
+                  {checkoutDeliveryModality === "STORE_PICKUP" ? (
+                    <div className="mt-1 text-[16px] text-[#666666] leading-[1.35]">
+                      <span className="font-semibold text-foreground">Retirada na loja</span>
+                      {storeSettings && (
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {storeSettings.street}, {storeSettings.number}
+                          {storeSettings.complement ? ` - ${storeSettings.complement}` : ""} - {storeSettings.neighborhood}
+                        </p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-[16px] text-[#666666] leading-[1.35]">
+                      Endereço: <span className="font-semibold">{checkoutAddress}</span>
+                    </p>
+                  )}
+                  {checkoutDeliveryModality !== "STORE_PICKUP" && checkoutEstimatedTime && (
                     <p className="mt-1 text-[16px] leading-[1.35] flex items-center gap-1.5 text-primary">
                       <Clock className="h-4 w-4" />
                       Estimativa de entrega: <span className="font-semibold">{checkoutEstimatedTime}</span>
@@ -2021,7 +2208,7 @@ const CartSidebar = () => {
                   </div>
                 )}
 
-                <div className="mt-6 border-t border-[#e6e6e6] pt-5 text-[15px] text-[#666666]">
+                <div className="mt-5 border-t border-[#e6e6e6] pt-5 text-[15px] text-[#666666]">
                   <div className="flex items-center justify-between gap-4">
                     <span>Total dos itens ({checkoutItems.length})</span>
                     <span className="font-semibold">{formatPrice(checkoutSubtotal)}</span>
@@ -2029,7 +2216,9 @@ const CartSidebar = () => {
 
                   <div className="mt-1 flex items-center justify-between gap-4">
                     <span>Frete</span>
-                    <span className="font-semibold">{formatPrice(checkoutDeliveryFee)}</span>
+                    <span className="font-semibold text-foreground">
+                      {checkoutDeliveryFee === null ? "A combinar" : (checkoutDeliveryFee === 0 || couponData?.type === 'FREE_SHIPPING' ? "Grátis" : formatPrice(checkoutDeliveryFee))}
+                    </span>
                   </div>
 
                   {checkoutPaymentMethod === "PIX" && checkoutPixDiscount > 0 && (

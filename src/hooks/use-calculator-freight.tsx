@@ -86,7 +86,7 @@ export function useFreight() {
     const [distanceKm, setDistanceKm] = useState<number | null>(null);
     const [price, setPrice] = useState<number | null>(null);
 
-    const calculate = useCallback(async (destination: string) => {
+    const calculate = useCallback(async (destination: string, cartTotal?: number) => {
         try {
             setLoading(true);
             setError(null);
@@ -109,10 +109,36 @@ export function useFreight() {
             const ranges = storeSettings?.deliveryRanges?.ranges || [];
             const allowAboveMax = !!storeSettings?.deliveryRanges?.allowAboveMax;
 
-            const validationError = validateDistance(km, ranges, allowAboveMax);
-            if (validationError) return validationError;
+            // Verifica tipo de entrega e frete grátis
+            let freightPrice: number | null = null;
+            let deliveryError = null;
             
-            const freightPrice = getFreightPrice(km, ranges);
+            if (storeSettings?.deliveryType === "NO_FEE") {
+                freightPrice = 0;
+            } else if (storeSettings?.deliveryType === "FIXED_FEE") {
+                freightPrice = storeSettings?.deliveryFixedFee ? Number(storeSettings.deliveryFixedFee) : 0;
+            } else if (storeSettings?.deliveryType === "TO_COMBINE") {
+                freightPrice = null; // Taxa a combinar
+            } else {
+                // Por distância (DISTANCE ou fallback)
+                const validationError = validateDistance(km, ranges, allowAboveMax);
+                if (validationError) {
+                    deliveryError = validationError;
+                } else {
+                    freightPrice = getFreightPrice(km, ranges);
+                }
+            }
+            
+            // Regra de Frete Grátis
+            const freeShippingMin = storeSettings?.freeShippingMinValue ? Number(storeSettings.freeShippingMinValue) : null;
+            if (storeSettings?.freeShippingEnabled && freeShippingMin !== null && !isNaN(freeShippingMin) && freeShippingMin > 0) {
+                if (cartTotal && cartTotal >= freeShippingMin) {
+                    freightPrice = 0;
+                    deliveryError = null;
+                }
+            }
+            
+            if (deliveryError && freightPrice !== 0) return deliveryError;
 
             // Parse duration to get minutes
             let durationMins = 0;
