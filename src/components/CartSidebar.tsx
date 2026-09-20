@@ -2120,9 +2120,9 @@ const CartSidebar = () => {
             if (paymentMethod === "PIX" && !hasCopiedPix) event.preventDefault();
           }}
         >
-          <div className="flex h-full w-full items-center justify-center p-0 sm:p-0">
-            <div className="flex h-full w-full flex-col overflow-hidden bg-background sm:h-full sm:max-h-[90dvh] sm:max-w-md sm:rounded-[32px] sm:shadow-2xl">
-              <div className="flex-1 overflow-y-auto px-6 pb-6 pt-8 sm:px-8">
+          <div className="flex h-full w-full flex-col sm:items-center sm:justify-center p-0 sm:p-0">
+            <div className="flex h-full w-full flex-col overflow-hidden bg-background sm:h-auto sm:max-h-[90dvh] sm:max-w-md sm:rounded-[32px] sm:shadow-2xl">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pb-6 pt-8 sm:px-8">
                 <div className="mx-auto max-w-[320px] text-center">
                   <h3 className="text-[22px] font-bold leading-tight text-[#686868]">
                     Agora é só enviar seu pedido via WhatsApp
