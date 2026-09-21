@@ -1351,6 +1351,11 @@ const CartSidebar = () => {
                               <div className="flex flex-1 flex-col justify-between gap-2">
                                 <div className="flex items-start justify-between gap-2">
                                   <div>
+                                    {item.product.category && (
+                                      <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-primary">
+                                        {item.product.category}
+                                      </span>
+                                    )}
                                     <p className="line-clamp-2 text-sm font-semibold text-foreground">{item.product.name}</p>
                                     {item.selectedVariation && (
                                       <p className="mt-1 text-xs text-muted-foreground">
@@ -1860,6 +1865,11 @@ const CartSidebar = () => {
                           <div className="flex items-start gap-2 flex-1">
                             <span className="text-muted-foreground whitespace-nowrap">{item.quantity}x</span>
                             <div className="flex flex-col">
+                              {item.product.category && (
+                                <span className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
+                                  {item.product.category}
+                                </span>
+                              )}
                               <span className="text-foreground">{item.product.name}</span>
                               {item.selectedVariation && (
                                 <span className="text-xs text-muted-foreground">{item.selectedVariation}</span>
@@ -2186,6 +2196,11 @@ const CartSidebar = () => {
                         />
 
                         <div className="min-w-0 flex-1">
+                          {item.product.category && (
+                            <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-primary">
+                              {item.product.category}
+                            </span>
+                          )}
                           <div className="flex items-start justify-between gap-3">
                             <p className="line-clamp-1 text-[15px] text-[#666666]">{item.product.name}</p>
                             <span className="shrink-0 text-[15px] font-semibold text-[#666666]">

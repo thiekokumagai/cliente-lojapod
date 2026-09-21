@@ -338,6 +338,11 @@ const ProductDetailsModal = ({
           )}
 
           <div className={`p-5 ${gallery.length === 0 ? "pt-16" : ""}`}>
+            {product.category && (
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-primary">
+                {product.category}
+              </span>
+            )}
             <h3 className="text-xl font-bold text-foreground">{product.name}</h3>
           {product.description && (
             <div 

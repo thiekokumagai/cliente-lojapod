@@ -273,6 +273,11 @@ const ProductPage = () => {
           />
 
           <div className="-mt-6 rounded-t-[28px] bg-background px-5 pb-8 pt-7">
+            {product.category && (
+              <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-primary">
+                {product.category}
+              </span>
+            )}
             <h1 className="font-display text-[24px] font-medium leading-tight text-fg-secondary">
               {product.name}
             </h1>
@@ -370,6 +375,11 @@ const ProductPage = () => {
             />
 
             <div className="max-w-[420px] pt-16">
+              {product.category && (
+                <span className="mb-2 block text-sm font-semibold uppercase tracking-wider text-primary">
+                  {product.category}
+                </span>
+              )}
               <h1 className="font-display text-[27px] font-semibold leading-[1.15] text-fg-secondary">
                 {product.name}
               </h1>
