@@ -1,25 +1,37 @@
 const API_URL = import.meta.env.VITE_ADMIN_API || "http://localhost:3000/api";
 
+/**
+ * Retorna o identificador da loja baseado no hostname atual.
+ * - Em subdomínio (loja1.lojapod.com): retorna "loja1"
+ * - Em domínio próprio (minhaloja.com.br): retorna o hostname completo
+ * - Parâmetro ?subdomain=xxx na URL tem prioridade
+ */
 export function getSubdomain(): string {
   if (typeof window === 'undefined') return 'demo';
-  const hostname = window.location.hostname;
-  const parts = hostname.split('.');
+  const hostname = window.location.hostname.toLowerCase();
 
+  // Parâmetro de URL tem prioridade
   const urlParams = new URLSearchParams(window.location.search);
-  const paramSubdomain = urlParams.get('subdomain');
+  const paramSubdomain = urlParams.get('subdomain') || urlParams.get('domain');
   if (paramSubdomain) return paramSubdomain.toLowerCase();
 
-  if (parts.length > 1 && parts[0] !== 'www' && parts[0] !== 'localhost') {
-    return parts[0].toLowerCase();
-  }
+  // localhost → demo
+  if (hostname === 'localhost' || hostname === '127.0.0.1') return 'demo';
 
-  return 'demo';
+  return hostname;
 }
 
+/**
+ * Retorna headers para todas as requisições ao backend.
+ * X-Store-Domain: hostname completo (resolve customDomain)
+ * X-Store-Subdomain: igual ao X-Store-Domain (compatibilidade)
+ */
 export function getApiHeaders(additionalHeaders: Record<string, string> = {}): Record<string, string> {
+  const domain = getSubdomain();
   return {
     "Content-Type": "application/json",
-    "X-Store-Subdomain": getSubdomain(),
+    "X-Store-Domain": domain,
+    "X-Store-Subdomain": domain,
     ...additionalHeaders,
   };
 }
