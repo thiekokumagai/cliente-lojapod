@@ -18,6 +18,14 @@ export function getSubdomain(): string {
   // localhost → demo
   if (hostname === 'localhost' || hostname === '127.0.0.1') return 'demo';
 
+  // Se for subdomínio nativo (.lojapod.com, ex: sopod.lojapod.com)
+  if (hostname.endsWith('.lojapod.com')) {
+    const parts = hostname.split('.');
+    if (parts.length >= 3 && parts[0] !== 'app' && parts[0] !== 'admin' && parts[0] !== 'api') {
+      return parts[0]; // Retorna 'sopod'
+    }
+  }
+
   return hostname;
 }
 
