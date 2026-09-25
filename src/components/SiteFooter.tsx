@@ -7,7 +7,7 @@ const SiteFooter = () => {
   const { data: settings } = useStoreSettings();
   const { isOpen, todayRules } = useBusinessStatus(settings?.businessHours);
 
-  const storeName = settings?.storeName || "Loja Pod";
+  const storeName = settings?.storeName || "";
   const instagram = settings?.instagram;
   const city = settings?.city;
   const state = settings?.state;

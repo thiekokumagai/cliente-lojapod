@@ -12,7 +12,7 @@ const LinksPage = () => {
     if (settings?.storeName) {
       document.title = `Links | ${settings.storeName}`;
     } else {
-      document.title = 'Links | Loja Pod';
+      document.title = 'Links';
     }
 
     if (settings?.faviconUrl) {

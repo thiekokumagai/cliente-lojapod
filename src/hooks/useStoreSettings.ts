@@ -11,6 +11,9 @@ interface StoreSettings {
   phone: string;
   instagram?: string;
   pixelId?: string;
+  facebookPixelEnabled?: boolean;
+  facebookConversionsToken?: string;
+  facebookConversionsApiEnabled?: boolean;
   isTemporarilyClosed?: boolean;
   closedNoticeMessage?: string | null;
   enableExchangePolicy?: boolean;

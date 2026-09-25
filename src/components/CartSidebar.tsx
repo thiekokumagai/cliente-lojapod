@@ -890,7 +890,7 @@ const CartSidebar = () => {
         
     const finishOrderNumber = finalizedOrder ? finalizedOrder.orderNumber : Date.now().toString().slice(-4);
     const lines = [
-      `Olá, meu nome é ${checkoutName || "-"}, esse é o meu pedido realizado através da Loja Pod`,
+      `Olá, meu nome é ${checkoutName || "-"}, esse é o meu pedido realizado através do site`,
       `--------`,
       ``,
       itemsFormatted,
@@ -953,7 +953,7 @@ const CartSidebar = () => {
     lines.push(`Número do pedido: ${finishOrderNumber}`);
     
     lines.push(`--------`);
-    lines.push(`Pedido feito na ${storeSettings?.storeName || "Loja Pod"}`);
+    lines.push(`Pedido feito na ${storeSettings?.storeName || ""}`);
 
     return encodeURIComponent(lines.join("\n"));
   }, [

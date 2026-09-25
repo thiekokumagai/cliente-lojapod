@@ -1,3 +1,3 @@
-# Cliente - Loja Pod
+# Cliente -
 
-Aplicação de cliente da Loja Pod
+Aplicação de cliente da

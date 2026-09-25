@@ -84,11 +84,11 @@ const FacebookPixel = () => {
   }, [location.search]);
 
   useEffect(() => {
-    if (settings?.pixelId) {
+    if (settings?.facebookPixelEnabled && settings?.pixelId) {
       initFacebookPixel(settings.pixelId);
       trackEvent('PageView');
     }
-  }, [settings?.pixelId]);
+  }, [settings?.facebookPixelEnabled, settings?.pixelId]);
 
   useEffect(() => {
     // Para rotas subsequentes, só rastreia se o pixel já estiver inicializado
