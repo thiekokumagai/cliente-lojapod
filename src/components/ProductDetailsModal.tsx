@@ -1,5 +1,6 @@
 import type { Product } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Minus, Plus, ShoppingCart, X, Search } from "lucide-react";
 import ProductImageModal from "@/components/ProductImageModal";
 import ProductShareMenu from "@/components/product/ProductShareMenu";
@@ -254,7 +255,7 @@ const ProductDetailsModal = ({
   }, [allGroups, selections]);
 
 
-  return (
+  return createPortal(
     <div
       className={`fixed inset-0 z-[100] flex flex-col justify-end bg-black/60 p-0 md:items-center md:justify-center md:p-4 transition-opacity duration-300 ${
         isClosing ? "opacity-0" : "opacity-100"
@@ -506,7 +507,8 @@ const ProductDetailsModal = ({
           description={product.description}
         />
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
 export default ProductDetailsModal;

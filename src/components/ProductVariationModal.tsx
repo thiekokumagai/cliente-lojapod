@@ -1,5 +1,6 @@
 import type { Product } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Minus, Plus, ShoppingCart, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import {
@@ -185,7 +186,7 @@ const ProductVariationModal = ({
 
   if (allGroups.length === 0) return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center bg-foreground/40 p-4 backdrop-blur-sm"
       onClick={onClose}
@@ -304,7 +305,8 @@ const ProductVariationModal = ({
           </button>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
