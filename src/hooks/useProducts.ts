@@ -27,6 +27,7 @@ interface NewApiProduct {
   }[];
   images?: { url: string }[];
   isBestSeller?: boolean;
+  isFeatured?: boolean;
   createdAt?: string;
 }
 
@@ -144,6 +145,7 @@ export function transformNewApiProduct(
     items: raw.items,
     isVisible: raw.isVisible,
     isBestSeller: raw.isBestSeller,
+    isFeatured: raw.isFeatured,
     categoryId: raw.categoryId,
     createdAt: raw.createdAt,
   };

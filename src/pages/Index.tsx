@@ -5,6 +5,7 @@ import HeroBanner from "@/components/HeroBanner";
 import CategoriesSection from "@/components/CategoriesSection";
 import NicotineFilter from "@/components/NicotineFilter";
 import PromotionsSection from "@/components/PromotionsSection";
+import FeaturedSection from "@/components/FeaturedSection";
 import AllProductsSection from "@/components/AllProductsSection";
 import SiteFooter from "@/components/SiteFooter";
 import { useCart } from "@/contexts/CartContext";
@@ -185,6 +186,7 @@ const Index = () => {
           </div>
         </section>
       )}
+      <FeaturedSection />
       <PromotionsSection />
       <AllProductsSection />
       <SiteFooter />

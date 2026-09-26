@@ -28,6 +28,7 @@ export interface Product {
   price: number;
   oldPrice?: number;
   isPromo?: boolean;
+  isFeatured?: boolean;
   stock?: number;
   variationGroup?: ProductVariationGroup;
   variationGroups?: ProductVariationGroup[];
