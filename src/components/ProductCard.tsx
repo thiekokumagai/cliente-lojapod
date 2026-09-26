@@ -158,7 +158,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
 
   return (
     <>
-      <div className="group relative flex flex-col justify-between overflow-hidden rounded-2xl bg-card p-4 transition-all hover:shadow-md border border-border">
+      <div className="group relative flex flex-col justify-between w-full h-full overflow-hidden rounded-2xl bg-card p-4 transition-all hover:shadow-md border border-border">
         <div>
           {isMobile ? (
             <button

@@ -3,14 +3,23 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/hooks/useProducts";
 import { matchesProductSearch } from "@/utils/search";
-import { useEffect, useRef, useState } from "react";
+import useEmblaCarousel from "embla-carousel-react";
+import { useCallback, useEffect, useState } from "react";
 
 const FeaturedSection = () => {
   const { selectedCategory, searchTerm, selectedNicotineStrength, selectedVariationFilters } = useCart();
   const { data: allProducts = [] } = useProducts();
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
   const normalizedSearch = searchTerm.trim().toLowerCase();
+
+  const [emblaRef, emblaApi] = useEmblaCarousel({
+    align: "start",
+    loop: true,
+    dragFree: false,
+    containScroll: "trimSnaps",
+  });
+
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
   // Produtos destacados que passam nos filtros ativos
   const featuredProducts = allProducts.filter((p) => p.isFeatured);
@@ -51,56 +60,26 @@ const FeaturedSection = () => {
     return hasAvailableVariations && matchesCategory && matchesSearch && matchesNicotine;
   });
 
-  // Duplicar a lista de itens para criar o efeito Infinito continuo
-  const infiniteProducts =
-    visibleProducts.length > 0
-      ? visibleProducts.length < 5
-        ? [...visibleProducts, ...visibleProducts, ...visibleProducts, ...visibleProducts]
-        : [...visibleProducts, ...visibleProducts]
-      : [];
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
 
-  const handleScroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const cardWidth = 280;
-      const scrollAmount = direction === "left" ? -cardWidth : cardWidth;
-      scrollContainerRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
-    }
-  };
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
 
-  // Efeito de Rotação Automática Infinita
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+
   useEffect(() => {
-    if (visibleProducts.length === 0 || isHovered) return;
-
-    const interval = setInterval(() => {
-      const container = scrollContainerRef.current;
-      if (!container) return;
-
-      const cardWidth = 280;
-      const maxScroll = container.scrollWidth / 2;
-
-      // Se passou da metade (fim do primeiro bloco), reseta sem animação perceptível para o inicio
-      if (container.scrollLeft >= maxScroll) {
-        container.scrollLeft = 0;
-      }
-
-      container.scrollBy({ left: cardWidth, behavior: "smooth" });
-    }, 3000);
-
-    return () => clearInterval(interval);
-  }, [visibleProducts.length, isHovered]);
-
-  // Efeito para ajustar o scroll infinito ao rolar manualmente
-  const handleScrollInfiniteCheck = () => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const maxScroll = container.scrollWidth / 2;
-
-    if (container.scrollLeft >= maxScroll) {
-      container.scrollLeft -= maxScroll;
-    } else if (container.scrollLeft <= 0) {
-      container.scrollLeft += maxScroll;
-    }
-  };
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on("select", onSelect);
+    emblaApi.on("reInit", onSelect);
+  }, [emblaApi, onSelect]);
 
   if (visibleProducts.length === 0) return null;
 
@@ -121,39 +100,39 @@ const FeaturedSection = () => {
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => handleScroll("left")}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-background/80 text-foreground transition-all hover:bg-accent hover:border-border active:scale-95 shadow-xs"
-              aria-label="Rolar para esquerda"
-            >
-              <ChevronLeft className="h-5 w-5" />
-            </button>
-            <button
-              type="button"
-              onClick={() => handleScroll("right")}
-              className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-background/80 text-foreground transition-all hover:bg-accent hover:border-border active:scale-95 shadow-xs"
-              aria-label="Rolar para direita"
-            >
-              <ChevronRight className="h-5 w-5" />
-            </button>
-          </div>
+          {visibleProducts.length > 1 && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={scrollPrev}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-background/80 text-foreground transition-all hover:bg-accent hover:border-border active:scale-95 shadow-xs"
+                aria-label="Anterior"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </button>
+              <button
+                type="button"
+                onClick={scrollNext}
+                className="flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-background/80 text-foreground transition-all hover:bg-accent hover:border-border active:scale-95 shadow-xs"
+                aria-label="Próximo"
+              >
+                <ChevronRight className="h-5 w-5" />
+              </button>
+            </div>
+          )}
         </div>
 
-        <div
-          ref={scrollContainerRef}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          onScroll={handleScrollInfiniteCheck}
-          className="mt-6 flex gap-4 overflow-x-auto pb-4 pt-1 scrollbar-none snap-x snap-mandatory"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-        >
-          {infiniteProducts.map((product, i) => (
-            <div key={`${product.id}-${i}`} className="w-[240px] sm:w-[260px] md:w-[280px] shrink-0 snap-start">
-              <ProductCard product={product} index={i} isBestSeller={Boolean(product.isBestSeller)} />
-            </div>
-          ))}
+        <div className="mt-6 overflow-hidden" ref={emblaRef}>
+          <div className="flex items-stretch gap-1.5 -ml-2.5 md:-ml-2.5 py-1">
+            {visibleProducts.map((product, i) => (
+              <div
+                key={product.id}
+                className="pl-2.5 md:pl-2.5 w-[220px] sm:w-[240px] md:w-[260px] shrink-0 min-w-0 flex"
+              >
+                <ProductCard product={product} index={i} isBestSeller={Boolean(product.isBestSeller)} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </section>
@@ -161,3 +140,4 @@ const FeaturedSection = () => {
 };
 
 export default FeaturedSection;
+
