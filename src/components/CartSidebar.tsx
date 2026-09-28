@@ -23,6 +23,7 @@ import {
   Clock,
   Info,
   Truck,
+  QrCode,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
@@ -37,6 +38,7 @@ import SavedAddressesList from "@/components/checkout/SavedAddressesList";
 import CartItemImage from "@/components/CartItemImage";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { trackEvent, trackCustomEvent } from "@/components/FacebookPixel";
+import { generatePixPayload } from "@/utils/pix";
 
 const SESSION_ADDRESS_KEY = "podemais-checkout-address";
 const SESSION_ADDRESSES_KEY = "podemais-checkout-addresses";
@@ -1173,13 +1175,22 @@ const CartSidebar = () => {
   };
 
   const handleCopyPix = async () => {
-    const targetPixKey = storeSettings?.pixKey || PIX_KEY;
+    const rawPixKey = storeSettings?.pixKey || PIX_KEY;
+    const pixPayload = generatePixPayload({
+      key: rawPixKey,
+      keyType: storeSettings?.pixKeyType,
+      name: storeSettings?.storeName || storeSettings?.name || "LOJAPOD",
+      city: storeSettings?.city || "SAO PAULO",
+      amount: checkoutTotal > 0 ? checkoutTotal : finalTotal,
+    });
+    const textToCopy = pixPayload || rawPixKey;
+
     try {
       if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(targetPixKey);
+        await navigator.clipboard.writeText(textToCopy);
       } else {
         const textArea = document.createElement("textarea");
-        textArea.value = targetPixKey;
+        textArea.value = textToCopy;
         textArea.style.position = "fixed";
         textArea.style.left = "-999999px";
         textArea.style.top = "-999999px";
@@ -1191,9 +1202,9 @@ const CartSidebar = () => {
         if (!successful) throw new Error('Falha ao copiar');
       }
       setHasCopiedPix(true);
-      toast.success("Chave PIX copiada!");
+      toast.success(pixPayload ? "PIX Copia e Cola (com valor) copiado!" : "Chave PIX copiada!");
     } catch {
-      toast.error("Não foi possível copiar a chave PIX.");
+      toast.error("Não foi possível copiar o código PIX.");
     }
   };
 
@@ -2267,16 +2278,31 @@ const CartSidebar = () => {
                     </>
                   )}
                   {checkoutPaymentMethod === "PIX" && (
-                    <p>
-                      Chave PIX: <span className="font-semibold">{storeSettings?.pixKey || PIX_KEY}</span>{" "}
-                      <button
-                        type="button"
-                        onClick={handleCopyPix}
-                        className="inline-flex items-center gap-1 text-[15px] text-[#666666] underline underline-offset-2"
-                      >
-                        copiar
-                      </button>
-                    </p>
+                    <div className="hidden sm:flex flex-col items-center justify-center mt-4 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-center space-y-2">
+                      <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
+                        <QrCode className="h-4 w-4 text-primary" /> Escaneie o QR Code com seu banco
+                      </span>
+                      {(() => {
+                        const rawPixKey = storeSettings?.pixKey || PIX_KEY;
+                        const payload = generatePixPayload({
+                          key: rawPixKey,
+                          keyType: storeSettings?.pixKeyType,
+                          name: storeSettings?.storeName || storeSettings?.name || "LOJAPOD",
+                          city: storeSettings?.city || "SAO PAULO",
+                          amount: checkoutTotal > 0 ? checkoutTotal : finalTotal,
+                        });
+                        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(payload || rawPixKey)}`;
+                        return (
+                          <div className="rounded-xl border border-gray-200 bg-white p-2.5 shadow-sm">
+                            <img
+                              src={qrUrl}
+                              alt="QR Code PIX"
+                              className="h-44 w-44 object-contain"
+                            />
+                          </div>
+                        );
+                      })()}
+                    </div>
                   )}
                 </div>
 
@@ -2290,10 +2316,10 @@ const CartSidebar = () => {
                   <button
                     type="button"
                     onClick={handleCopyPix}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-base font-bold text-primary-foreground"
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-base font-bold text-primary-foreground transition-all hover:brightness-105 active:scale-[0.99]"
                   >
                     <Copy className="h-5 w-5" />
-                    Copiar PIX
+                    Pix Copia e Cola
                   </button>
                 ) : storeSettings?.phone?.replace(/\D/g, "") ? (
                   <button
