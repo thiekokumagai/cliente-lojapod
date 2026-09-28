@@ -64,11 +64,24 @@ const SiteFooter = () => {
                 {storeName}
               </span>
             </div>
-            {city && state && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground md:justify-start">
-                <MapPin className="h-4 w-4 shrink-0" />
-                <span>{city} - {state}</span>
-              </div>
+            {settings?.hideAddress ? (
+              city && state && (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground md:justify-start">
+                  <MapPin className="h-4 w-4 shrink-0" />
+                  <span>{city} - {state}</span>
+                </div>
+              )
+            ) : (
+              (settings?.street || city) && (
+                <div className="flex items-start justify-center gap-2 text-sm text-muted-foreground md:justify-start">
+                  <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
+                  <span className="leading-tight">
+                    {settings?.street
+                      ? `${settings.street}${settings.number ? `, ${settings.number}` : ''}${settings.neighborhood ? ` - ${settings.neighborhood}` : ''}${city ? `, ${city}` : ''}${state ? ` - ${state}` : ''}`
+                      : `${city} - ${state}`}
+                  </span>
+                </div>
+              )
             )}
           </div>
 
