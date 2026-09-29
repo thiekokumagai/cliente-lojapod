@@ -1,9 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import ProductCard from "./ProductCard";
+import MenuExpressProductCard from "./MenuExpressProductCard";
+import UrbanProductCard from "./UrbanProductCard";
 import { Package } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/hooks/useProducts";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { matchesProductSearch } from "@/utils/search";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -16,7 +20,10 @@ const ITEMS_PER_PAGE = 12;
 
 const AllProductsSection = () => {
   const { selectedCategory, selectedCategoryId, searchTerm, selectedNicotineStrength, selectedVariationFilters } = useCart();
+  const { data: settings } = useStoreSettings();
   const { data: allProducts = [], isLoading } = useProducts(selectedCategoryId);
+  const isMenuExpress = settings?.templateId === "menu-express";
+  const isUrban = settings?.templateId === "urban" || settings?.templateId === "podify";
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const [visibleCount, setVisibleCount] = useState(() => {
     const saved = sessionStorage.getItem("store_visible_count");
@@ -192,10 +199,39 @@ const AllProductsSection = () => {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 md:gap-4">
-          {visible.map((product, i) => (
-            <ProductCard key={product.id} product={product} index={i} isBestSeller={Boolean(product.isBestSeller)} />
-          ))}
+        {/* Grid de Produtos */}
+        <div
+          className={cn(
+            "mt-8 grid gap-3.5",
+            isUrban
+              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-2 lg:gap-4"
+              : isMenuExpress
+                ? "grid-cols-1 md:grid-cols-2 lg:gap-4"
+                : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 md:gap-4"
+          )}
+        >
+          {visible.map((product, i) =>
+            isUrban ? (
+              <UrbanProductCard
+                key={product.id}
+                product={product}
+                isBestSeller={Boolean(product.isBestSeller)}
+              />
+            ) : isMenuExpress ? (
+              <MenuExpressProductCard
+                key={product.id}
+                product={product}
+                isBestSeller={Boolean(product.isBestSeller)}
+              />
+            ) : (
+              <ProductCard
+                key={product.id}
+                product={product}
+                index={i}
+                isBestSeller={Boolean(product.isBestSeller)}
+              />
+            )
+          )}
         </div>
 
         {hasMore && (

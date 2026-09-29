@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import SiteHeader from "@/components/SiteHeader";
+import MenuExpressHeader from "@/components/MenuExpressHeader";
+import UrbanHeader from "@/components/UrbanHeader";
 import SiteFooter from "@/components/SiteFooter";
 import ProductImageModal from "@/components/ProductImageModal";
 import ProductContact from "@/components/product/ProductContact";
@@ -9,6 +11,7 @@ import ProductInfo from "@/components/product/ProductInfo";
 import ProductMobileGallery from "@/components/product/ProductMobileGallery";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProduct } from "@/hooks/useProducts";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreMobilePadding } from "@/hooks/use-store-mobile-padding";
 import { Loader2, AlertCircle } from "lucide-react";
@@ -40,6 +43,11 @@ const ProductPage = () => {
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: product, isLoading } = useProduct(id);
+  const { data: settings } = useStoreSettings();
+
+  const isMenuExpress = settings?.templateId === "menu-express";
+  const isUrban = settings?.templateId === "urban" || settings?.templateId === "podify";
+
   const gallery = useMemo(() => {
     if (product?.images && product.images.length > 0) return product.images;
     return product?.image ? [product.image] : [];
@@ -130,7 +138,15 @@ const ProductPage = () => {
   if (!product || product.isVisible === false) {
     return (
       <div className="min-h-screen bg-background">
-        <SiteHeader />
+        <div className="hidden lg:block">
+          {isUrban ? (
+            <UrbanHeader />
+          ) : isMenuExpress ? (
+            <MenuExpressHeader />
+          ) : (
+            <SiteHeader />
+          )}
+        </div>
         <main className="mx-auto flex max-w-7xl flex-col items-center px-4 py-16 text-center lg:px-8">
           <h1 className="text-2xl font-bold text-foreground">Produto não encontrado</h1>
           <Link to="/" className="mt-6 rounded-xl border border-primary px-6 py-3 text-sm font-medium text-primary">
@@ -256,7 +272,13 @@ const ProductPage = () => {
   return (
     <div className={`min-h-screen bg-background md:pb-0 ${mobileBottom}`}>
       <div className="hidden lg:block">
-        <SiteHeader />
+        {isUrban ? (
+          <UrbanHeader />
+        ) : isMenuExpress ? (
+          <MenuExpressHeader />
+        ) : (
+          <SiteHeader />
+        )}
       </div>
 
       <main className="mx-auto max-w-[1220px] lg:px-8 lg:py-8">

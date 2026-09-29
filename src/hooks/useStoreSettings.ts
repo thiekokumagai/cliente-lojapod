@@ -67,6 +67,10 @@ interface StoreSettings {
   }[];
   searchSuffix?: string;
   searchCity?: string;
+  templateId?: 'classic' | 'menu-express' | 'urban' | 'urban';
+  primaryColor?: string;
+  secondaryColor?: string;
+  priceColor?: string;
 }
 
 function buildSettingsImageUrl(path?: string | null) {

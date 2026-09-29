@@ -224,7 +224,10 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
             </span>
           )}
           <div className="flex items-baseline gap-1.5 flex-wrap">
-            <p className="text-lg font-bold leading-tight text-primary">
+            <p
+              className="text-lg font-bold leading-tight"
+              style={{ color: "var(--price-color, var(--primary-custom, #dc2626))" }}
+            >
               {formatPrice(product.price)}
             </p>
             {product.isPromo && (

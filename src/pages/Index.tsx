@@ -1,6 +1,12 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useParams, useNavigate } from "react-router-dom";
 import SiteHeader from "@/components/SiteHeader";
+import MenuExpressHeader from "@/components/MenuExpressHeader";
+import UrbanHeader from "@/components/UrbanHeader";
+import UrbanSidebar from "@/components/UrbanSidebar";
+import UrbanCategoryDrawer from "@/components/UrbanCategoryDrawer";
+import UrbanFeaturedHeader from "@/components/UrbanFeaturedHeader";
+import FloatingCartBar from "@/components/FloatingCartBar";
 import HeroBanner from "@/components/HeroBanner";
 import CategoriesSection from "@/components/CategoriesSection";
 import NicotineFilter from "@/components/NicotineFilter";
@@ -12,6 +18,7 @@ import { useCart } from "@/contexts/CartContext";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { useStoreMobilePadding } from "@/hooks/use-store-mobile-padding";
 import { useProducts, useCategories, useProduct } from "@/hooks/useProducts";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { matchesProductSearch } from "@/utils/search";
 
 const Index = () => {
@@ -26,6 +33,7 @@ const Index = () => {
     setSelectedNicotineStrength,
   } = useCart();
   const mobileBottom = useStoreMobilePadding("home");
+  const { data: settings } = useStoreSettings();
   const { data: allProducts = [], isLoading } = useProducts(selectedCategoryId);
   const { data: apiCategories = [] } = useCategories();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -163,10 +171,85 @@ const Index = () => {
     };
   }, [isLoading]);
 
+  const isMenuExpress = settings?.templateId === "menu-express";
+  const isUrban = settings?.templateId === "urban" || settings?.templateId === "podify";
+  const [isCategoryDrawerOpen, setIsCategoryDrawerOpen] = useState(false);
+
+  if (isUrban) {
+    return (
+      <div className={`min-h-screen bg-slate-50 md:pb-0 ${mobileBottom}`}>
+        <UrbanHeader onOpenCategoriesMenu={() => setIsCategoryDrawerOpen(true)} />
+        
+        {/* Main Content Area */}
+        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex gap-6 lg:gap-8 items-start">
+            
+            {/* Desktop Left Sidebar */}
+            <UrbanSidebar />
+
+            {/* Main Products Container */}
+            <main className="flex-1 min-w-0 space-y-4 sm:space-y-6">
+              {showBanner && <HeroBanner />}
+              
+              <UrbanFeaturedHeader />
+
+              <NicotineFilter />
+
+              {!isLoading && !hasResults && (normalizedSearch || selectedNicotineStrength) && (
+                <section className="py-12 bg-white rounded-2xl border border-slate-200 p-6 text-center">
+                  <h2 className="text-2xl font-bold text-foreground">Nenhum produto encontrado</h2>
+                  <p className="mt-2 text-muted-foreground">
+                    Sua busca não retornou nenhum produto, altere seus filtros ou seu termo de busca.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleClearSearch}
+                    className="mt-6 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    Limpar busca
+                  </button>
+                </section>
+              )}
+
+              <FeaturedSection />
+              <PromotionsSection />
+              <AllProductsSection />
+            </main>
+          </div>
+        </div>
+
+        <SiteFooter />
+
+        {/* Mobile Categories Drawer */}
+        <UrbanCategoryDrawer
+          isOpen={isCategoryDrawerOpen}
+          onClose={() => setIsCategoryDrawerOpen(false)}
+        />
+
+        {modalProductId && modalProduct && (
+          <ProductDetailsModal
+            product={modalProduct}
+            onClose={() => {
+              searchParams.delete("modal");
+              setSearchParams(searchParams, { replace: true });
+              window.history.pushState({}, '', '/');
+            }}
+          />
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className={`min-h-screen bg-background md:pb-0 ${mobileBottom}`}>
-      <SiteHeader />
-      {showBanner && <HeroBanner />}
+      {isMenuExpress ? (
+        <MenuExpressHeader />
+      ) : (
+        <>
+          <SiteHeader />
+          {showBanner && <HeroBanner />}
+        </>
+      )}
       <CategoriesSection />
       <NicotineFilter />
       {!isLoading && !hasResults && (normalizedSearch || selectedNicotineStrength) && (
@@ -190,6 +273,7 @@ const Index = () => {
       <PromotionsSection />
       <AllProductsSection />
       <SiteFooter />
+      {isMenuExpress && <FloatingCartBar />}
       
       {modalProductId && modalProduct && (
         <ProductDetailsModal
