@@ -99,6 +99,13 @@ const CategoriesSection = () => {
         !hasBanner && !isMenuExpress && "pt-36 md:pt-14"
       )}
     >
+      {/* Barra de Status no topo ao fixar no scroll (100% da largura da tela) */}
+      {isMenuExpress && isSticky && (
+        <div className="w-full -mt-3 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <StoreHoursTopBar />
+        </div>
+      )}
+
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         {!isMenuExpress && (
           <div className="flex items-center justify-between gap-4">
@@ -120,16 +127,9 @@ const CategoriesSection = () => {
           </div>
         )}
 
-        {/* Topo do Header Fixo no Menu Express (Logo e Barra de Horários acima da busca SOMENTE após fixar o menu no scroll) */}
+        {/* Topo do Header Fixo no Menu Express (Logo acima da busca SOMENTE após fixar o menu no scroll) */}
         {isMenuExpress && (
           <div className="mb-3 space-y-2.5">
-            {/* Barra de Status no topo ao fixar no scroll */}
-            {isSticky && (
-              <div className="-mx-4 md:-mx-8 -mt-3 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                <StoreHoursTopBar />
-              </div>
-            )}
-
             {/* Logo Centralizada no topo ao fixar */}
             {isSticky && settings?.logoUrl && (
               <div className="flex items-center justify-center pt-1 animate-in fade-in slide-in-from-top-2 duration-200">

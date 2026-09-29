@@ -63,10 +63,15 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
   };
 
   const cardInner = (
-    <div className="group relative flex justify-between gap-3 w-full bg-card p-3.5 rounded-2xl border border-border/80 shadow-xs hover:shadow-md transition-all cursor-pointer">
+    <div className="group relative flex justify-between gap-3 w-full h-full bg-card p-3.5 rounded-2xl border border-border/80 shadow-xs hover:shadow-md transition-all cursor-pointer">
         {/* Lado Esquerdo: Nome, Variações/Peso, Preço e Descrição */}
         <div className="flex-1 flex flex-col justify-between min-w-0 pr-1">
           <div>
+            {product.category && (
+              <span className="text-[11px] font-semibold text-primary uppercase tracking-wider block mb-0.5 truncate">
+                {product.category}
+              </span>
+            )}
             <div className="flex items-center gap-1.5 flex-wrap">
               <h3 className="font-semibold text-sm md:text-base text-foreground leading-snug truncate">
                 {product.name}
@@ -146,11 +151,11 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
   return (
     <>
       {isMobile ? (
-        <div onClick={handleCardClick} className="w-full">
+        <div onClick={handleCardClick} className="w-full h-full">
           {cardInner}
         </div>
       ) : (
-        <Link to={`/produto/${product.id}`} className="block w-full">
+        <Link to={`/produto/${product.id}`} className="block w-full h-full">
           {cardInner}
         </Link>
       )}

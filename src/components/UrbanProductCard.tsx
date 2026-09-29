@@ -66,7 +66,7 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
   };
 
   const cardInner = (
-    <div className="group relative flex flex-col sm:flex-row items-stretch justify-between gap-3 sm:gap-4 w-full bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer">
+    <div className="group relative flex flex-col sm:flex-row items-stretch justify-between gap-3 sm:gap-4 w-full h-full bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer">
         <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
           {/* Thumbnail com Badge de Desconto */}
           <div className="relative shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
@@ -91,13 +91,18 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
           {/* Info do Produto */}
           <div className="flex-1 flex flex-col justify-between min-w-0">
             <div>
+              {product.category && (
+                <span className="text-[11px] font-semibold text-primary uppercase tracking-wider block mb-0.5 truncate">
+                  {product.category}
+                </span>
+              )}
               <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-snug line-clamp-2">
                 {product.name}
               </h3>
 
               {product.description && (
                 <div
-                  className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed [&>p]:inline"
+                  className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed [&>p]:inline [&>p]:after:content-['\a'] [&>p]:after:whitespace-pre"
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
               )}
@@ -138,11 +143,11 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
   return (
     <>
       {isMobile ? (
-        <div onClick={handleCardClick} className="w-full">
+        <div onClick={handleCardClick} className="w-full h-full">
           {cardInner}
         </div>
       ) : (
-        <Link to={`/produto/${product.id}`} className="block w-full">
+        <Link to={`/produto/${product.id}`} className="block w-full h-full">
           {cardInner}
         </Link>
       )}
