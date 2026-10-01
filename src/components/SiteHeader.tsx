@@ -77,9 +77,9 @@ const SiteHeader = () => {
               <LayoutGrid className="h-5 w-5" />
             </button>
 
-            <Link to="/" className="absolute left-1/2 -translate-x-1/2">
+            <Link to="/" className="relative">
               {settings?.logoUrl && (
-                <img src={settings?.logoUrl} alt={settings?.storeName || ""} className="h-10 w-10 object-contain" />
+                <img src={settings?.logoUrl} alt={settings?.storeName || ""} className="h-12 w-full object-contain" />
               )}
             </Link>
 
@@ -144,7 +144,7 @@ const SiteHeader = () => {
           <div className="flex items-center gap-6">
             <Link to="/" className="flex items-center gap-2">
               {settings?.logoUrl && (
-                <img src={settings?.logoUrl} alt={settings?.storeName || ""} className="h-20 w-20 object-contain" />
+                <img src={settings?.logoUrl} alt={settings?.storeName || ""} className="h-20 w-full object-contain" />
               )}
             </Link>
           </div>
