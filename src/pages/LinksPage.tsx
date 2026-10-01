@@ -47,7 +47,7 @@ const LinksPage = () => {
         <div className="relative z-10 w-full max-w-md flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700">
           
           {/* Profile / Brand Header */}
-          <div className="w-24 h-24 sm:w-28 sm:h-28 mb-5 flex-shrink-0 flex items-center justify-center bg-zinc-900 rounded-2xl overflow-hidden shadow-lg">
+          <div className="h-24 sm:h-28 mb-5 flex-shrink-0 flex items-center justify-center overflow-hidden shadow-lg">
             {isLoading ? (
               <div className="w-full h-full animate-pulse bg-zinc-800"></div>
             ) : settings?.whiteLogoUrl || settings?.logoUrl ? (
