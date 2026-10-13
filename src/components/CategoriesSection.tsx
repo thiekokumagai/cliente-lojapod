@@ -97,7 +97,7 @@ const CategoriesSection = () => {
         isMenuExpress
           ? "sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border-subtle py-3 shadow-xs transition-all"
           : "pb-10 md:pb-14",
-        !isMenuExpress && (hasBanner ? "pt-6 md:pt-10" : "pt-44 md:pt-14")
+        !isMenuExpress && (hasBanner ? "pt-8 sm:pt-10 md:pt-12" : "pt-44 md:pt-14")
       )}
     >
       {/* Barra de Status no topo ao fixar no scroll (100% da largura da tela) */}
