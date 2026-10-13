@@ -13,6 +13,7 @@ const CategoriesSection = () => {
     searchTerm,
     setSearchTerm,
     selectedNicotineStrength,
+    selectedVariationFilters,
     setSelectedCategory,
     setSelectedNicotineStrength,
   } = useCart();
@@ -23,7 +24,7 @@ const CategoriesSection = () => {
   
   const banners = settings?.bannerUrls || [];
   const normalizedSearch = searchTerm.trim();
-  const hasBanner = banners.length > 0 && !selectedCategory && !normalizedSearch && !selectedNicotineStrength;
+  const hasBanner = banners.length > 0 && !selectedCategory && !normalizedSearch && !selectedNicotineStrength && selectedVariationFilters.length === 0;
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
@@ -95,8 +96,8 @@ const CategoriesSection = () => {
       className={cn(
         isMenuExpress
           ? "sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border-subtle py-3 shadow-xs transition-all"
-          : "py-10 md:py-14",
-        !hasBanner && !isMenuExpress && "pt-36 md:pt-14"
+          : "pb-10 md:pb-14",
+        !isMenuExpress && (hasBanner ? "pt-6 md:pt-10" : "pt-44 md:pt-14")
       )}
     >
       {/* Barra de Status no topo ao fixar no scroll (100% da largura da tela) */}
