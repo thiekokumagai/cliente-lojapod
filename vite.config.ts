@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+﻿import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import path from "path";
 export default defineConfig(() => ({
@@ -18,6 +18,10 @@ export default defineConfig(() => ({
   build: {
     chunkSizeWarningLimit: 1500,
     rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "index.html"),
+        links: path.resolve(__dirname, "links.html"),
+      },
       output: {
         manualChunks(id) {
           if (id.includes("node_modules/lucide-react")) {
