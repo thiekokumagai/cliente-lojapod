@@ -46,6 +46,8 @@ interface CartContextType {
   setSelectedNicotineStrength: (strength: string | string[] | null) => void;
   toggleVariationFilter: (option: string, groupOptions?: string[]) => void;
   clearVariationFilters: (groupOptions?: string[]) => void;
+  sortOption: string;
+  setSortOption: (sort: string) => void;
   orders: SavedOrder[];
   addOrder: (order: SavedOrder) => void;
 }
@@ -116,6 +118,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       setSelectedVariationFilters((prev) => prev.filter((o) => !groupOptions.includes(o)));
     }
   }, []);
+
+  const [sortOption, setSortOption] = useState<string>("newest");
   const [orders, setOrders] = useState<SavedOrder[]>([]);
   const addedModalTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -310,6 +314,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         setSelectedNicotineStrength,
         toggleVariationFilter,
         clearVariationFilters,
+        sortOption,
+        setSortOption,
         orders,
         addOrder,
       }}

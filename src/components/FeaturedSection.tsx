@@ -1,14 +1,16 @@
 import ProductCard from "./ProductCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import { useProducts } from "@/hooks/useProducts";
+import { useProducts, useCategories } from "@/hooks/useProducts";
 import { matchesProductSearch } from "@/utils/search";
+import { sortProducts } from "@/utils/sortProducts";
 import useEmblaCarousel from "embla-carousel-react";
 import { useCallback, useEffect, useState } from "react";
 
 const FeaturedSection = () => {
-  const { selectedCategory, searchTerm, selectedNicotineStrength, selectedVariationFilters } = useCart();
+  const { selectedCategory, searchTerm, selectedNicotineStrength, selectedVariationFilters, sortOption } = useCart();
   const { data: allProducts = [] } = useProducts();
+  const { data: apiCategories = [] } = useCategories();
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
@@ -24,7 +26,7 @@ const FeaturedSection = () => {
   // Produtos destacados que passam nos filtros ativos
   const featuredProducts = allProducts.filter((p) => p.isFeatured);
 
-  const visibleProducts = featuredProducts.filter((product) => {
+  const filteredProducts = featuredProducts.filter((product) => {
     const groups =
       product.variationGroups && product.variationGroups.length > 0
         ? product.variationGroups
@@ -59,6 +61,8 @@ const FeaturedSection = () => {
 
     return hasAvailableVariations && matchesCategory && matchesSearch && matchesNicotine;
   });
+
+  const visibleProducts = sortProducts(filteredProducts, sortOption, apiCategories);
 
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();

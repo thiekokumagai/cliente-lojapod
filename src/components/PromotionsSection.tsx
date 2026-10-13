@@ -3,20 +3,22 @@ import MenuExpressProductCard from "./MenuExpressProductCard";
 import UrbanProductCard from "./UrbanProductCard";
 import { Flame } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
-import { useProducts } from "@/hooks/useProducts";
+import { useProducts, useCategories } from "@/hooks/useProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { matchesProductSearch } from "@/utils/search";
+import { sortProducts } from "@/utils/sortProducts";
 import { cn } from "@/lib/utils";
 
 const PromotionsSection = () => {
-  const { selectedCategory, searchTerm, selectedNicotineStrength, selectedVariationFilters } = useCart();
+  const { selectedCategory, searchTerm, selectedNicotineStrength, selectedVariationFilters, sortOption } = useCart();
   const { data: allProducts = [] } = useProducts();
+  const { data: apiCategories = [] } = useCategories();
   const { data: settings } = useStoreSettings();
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const promoProducts = allProducts.filter((p) => p.isPromo);
 
-  const visibleProducts = promoProducts.filter((product) => {
+  const filteredProducts = promoProducts.filter((product) => {
     const groups =
       product.variationGroups && product.variationGroups.length > 0
         ? product.variationGroups
@@ -51,6 +53,8 @@ const PromotionsSection = () => {
 
     return hasAvailableVariations && matchesCategory && matchesSearch && matchesNicotine;
   });
+
+  const visibleProducts = sortProducts(filteredProducts, sortOption, apiCategories);
 
   if (visibleProducts.length === 0) return null;
 

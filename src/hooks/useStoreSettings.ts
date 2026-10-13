@@ -71,6 +71,7 @@ interface StoreSettings {
   primaryColor?: string;
   secondaryColor?: string;
   priceColor?: string;
+  defaultProductSort?: string | null;
 }
 
 function buildSettingsImageUrl(path?: string | null) {
