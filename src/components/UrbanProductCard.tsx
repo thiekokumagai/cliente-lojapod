@@ -121,6 +121,11 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
               >
                 {formatPrice(product.price)}
               </span>
+              {product.isPromo && (
+                <span className="text-xs font-semibold text-primary">
+                  no PIX
+                </span>
+              )}
             </div>
           </div>
         </div>

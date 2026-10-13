@@ -101,13 +101,18 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
             )}
           </div>
 
-          <div className="mt-2 flex items-baseline gap-2">
+          <div className="mt-2 flex items-baseline gap-2 flex-wrap">
             <span
               className="text-base md:text-lg font-bold"
               style={{ color: "var(--price-color, var(--primary-custom, #16a34a))" }}
             >
               {formatPrice(product.price)}
             </span>
+            {product.isPromo && (
+              <span className="text-xs font-semibold text-primary">
+                no PIX
+              </span>
+            )}
             {product.oldPrice && (
               <span className="text-xs text-muted-foreground line-through">
                 {formatPrice(product.oldPrice)}
