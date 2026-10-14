@@ -36,6 +36,7 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 import AddressSearch, { type StructuredAddress } from "@/components/checkout/AddressSearch";
 import SavedAddressesList from "@/components/checkout/SavedAddressesList";
 import CartItemImage from "@/components/CartItemImage";
+import LoyaltyCardWidget from "@/components/LoyaltyCardWidget";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { trackEvent, trackCustomEvent } from "@/components/FacebookPixel";
 import { generatePixPayload } from "@/utils/pix";
@@ -126,6 +127,9 @@ type FinalizedOrder = {
   needsChange: string;
   changeFor: string;
   estimatedTimeStr?: string | null;
+  redeemedReward?: { rewardType: string; rewardTitle: string } | null;
+  loyaltyDiscount?: number;
+  deliveryModality?: string;
   items: Array<{
     product: {
       id: string;
@@ -269,6 +273,8 @@ const CartSidebar = () => {
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finalizedOrder, setFinalizedOrder] = useState<FinalizedOrder | null>(null);
+  const [redeemedReward, setRedeemedReward] = useState<{ rewardType: string; rewardTitle: string } | null>(null);
+  const [loyaltyDiscount, setLoyaltyDiscount] = useState<number>(0);
   const [deliveryModality, setDeliveryModality] = useState<"DELIVERY" | "STORE_PICKUP">("DELIVERY");
   const previousTotalItems = useRef(totalItems);
 
@@ -516,7 +522,7 @@ const CartSidebar = () => {
   const isFreeShippingApplicable = isFreeShippingByCoupon || isFreeShippingBySettings;
 
   const couponDiscountAmount = computedCouponDiscount;
-  const totalAfterCoupon = Math.max(0, effectiveTotalPrice - couponDiscountAmount);
+  const totalAfterCoupon = Math.max(0, effectiveTotalPrice - couponDiscountAmount - (loyaltyDiscount || 0));
   const effectiveDeliveryFee = deliveryModality === "STORE_PICKUP" ? 0 : (isFreeShippingApplicable ? 0 : (deliveryFee || 0));
 
   const getDeliveryFeeDisplay = () => {
@@ -859,6 +865,8 @@ const CartSidebar = () => {
   const checkoutChangeFor = finalizedOrder?.changeFor ?? changeFor;
   const checkoutEstimatedTime = finalizedOrder?.estimatedTimeStr ?? deliveryEstimatedTime;
   const checkoutNote = finalizedOrder?.orderNote ?? orderNote;
+  const checkoutRedeemedReward = finalizedOrder?.redeemedReward ?? redeemedReward;
+  const checkoutLoyaltyDiscount = finalizedOrder?.loyaltyDiscount ?? (loyaltyDiscount || 0);
 
   const checkoutMessage = useMemo(() => {
     const itemsFormatted = checkoutItems.map(item => {
@@ -903,6 +911,14 @@ const CartSidebar = () => {
       `--------`,
       checkoutDeliveryModality === "STORE_PICKUP" ? `Entrega: Retirada na loja` : `Valor da entrega: ${isFreeShippingApplicable || checkoutDeliveryFee === 0 ? "Grátis" : (checkoutDeliveryFee === null ? "A combinar" : formatPrice(checkoutDeliveryFee))}`
     ];
+
+    if (checkoutRedeemedReward) {
+      lines.push(`BRINDE FIDELIDADE: ${checkoutRedeemedReward.rewardTitle}`);
+    }
+
+    if (checkoutLoyaltyDiscount > 0) {
+      lines.push(`Desconto Fidelidade: -${formatPrice(checkoutLoyaltyDiscount)}`);
+    }
 
     if (checkoutSavedCouponCode) {
        const cDiscount = couponData?.type === 'FREE_SHIPPING' ? 'Frete Grátis' : (couponData?.discountAmount ? formatPrice(couponData.discountAmount) : "");
@@ -975,6 +991,7 @@ const CartSidebar = () => {
     checkoutTotal,
     checkoutNeedsChange,
     checkoutChangeFor,
+    checkoutRedeemedReward,
     couponData,
     finalizedOrder,
     storeSettings
@@ -1006,6 +1023,7 @@ const CartSidebar = () => {
         couponTitle: savedCouponCode || undefined,
         couponDiscount: couponData?.type !== 'FREE_SHIPPING' ? Number(computedCouponDiscount.toFixed(2)) : 0,
         couponFreightDiscount: isFreeShippingByCoupon ? (deliveryFee === null ? 0 : Number(deliveryFee.toFixed(2))) : 0,
+        receiptDiscount: loyaltyDiscount > 0 ? Number(loyaltyDiscount.toFixed(2)) : 0,
         totalOrder: Number(finalTotal.toFixed(2)),
         totalReceived: Number(finalTotal.toFixed(2)),
         paymentType: paymentMethod === 'PIX' ? 'online' : 'entrega',
@@ -1062,6 +1080,7 @@ const CartSidebar = () => {
         subtotal: effectiveTotalPrice,
         total: finalTotal,
         pixDiscount,
+        loyaltyDiscount,
         creditMode,
         creditInstallments: effectiveCreditInstallments,
         creditInterest: selectedInstallment.interest,
@@ -1069,9 +1088,12 @@ const CartSidebar = () => {
         needsChange,
         changeFor,
         estimatedTimeStr: deliveryModality === "STORE_PICKUP" ? null : deliveryEstimatedTime,
+        redeemedReward,
         items: orderItems,
       });
 
+      setRedeemedReward(null);
+      setLoyaltyDiscount(0);
       clearCart();
       setHasCopiedPix(paymentMethod !== "PIX");
       setIsCartOpen(false);
@@ -1426,6 +1448,21 @@ const CartSidebar = () => {
               )}
               {step === "delivery" && (
                 <div className="space-y-4 p-4">
+                  {/* Cartão Fidelidade do Cliente */}
+                  <LoyaltyCardWidget
+                    customerPhone={phone}
+                    onApplyRewardCoupon={(coupon) => {
+                      setCouponCode(coupon);
+                      setSavedCouponCode(coupon);
+                    }}
+                    onApplyDiscountValue={(discount) => {
+                      setLoyaltyDiscount(discount);
+                    }}
+                    onRewardRedeemed={(reward) => {
+                      setRedeemedReward(reward);
+                    }}
+                  />
+
                   <div className="rounded-3xl bg-card p-4 shadow-sm">
                     <div className="mb-4 flex items-center gap-3">
                       <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -1769,6 +1806,20 @@ const CartSidebar = () => {
 
                   </div>
 
+                  <LoyaltyCardWidget
+                    customerPhone={phone}
+                    onApplyRewardCoupon={(coupon) => {
+                      setCouponCode(coupon);
+                      setSavedCouponCode(coupon);
+                    }}
+                    onApplyDiscountValue={(discount) => {
+                      setLoyaltyDiscount(discount);
+                    }}
+                    onRewardRedeemed={(reward) => {
+                      setRedeemedReward(reward);
+                    }}
+                  />
+
                   <div className="rounded-3xl bg-card p-4 text-sm shadow-sm">
                     <h3 className="mb-3 text-sm font-semibold text-foreground">Resumo</h3>
                     <div className="space-y-2">
@@ -1778,6 +1829,12 @@ const CartSidebar = () => {
                           <span className="font-medium">
                             {couponData?.type === 'FREE_SHIPPING' ? 'Frete Grátis' : `-${formatPrice(couponData?.discountAmount || 0)}`}
                           </span>
+                        </div>
+                      )}
+                      {loyaltyDiscount > 0 && (
+                        <div className="flex justify-between text-emerald-600 font-bold">
+                          <span>Desconto Fidelidade (Pontos)</span>
+                          <span className="font-medium">-{formatPrice(loyaltyDiscount)}</span>
                         </div>
                       )}
                       <div className="flex justify-between">
@@ -1899,6 +1956,24 @@ const CartSidebar = () => {
                           </div>
                         </div>
                       ))}
+                      {redeemedReward && (
+                        <div className="flex items-start justify-between text-sm gap-3 pt-2 border-t border-border/60">
+                          <div className="flex items-start gap-2 flex-1">
+                            <span className="text-emerald-600 font-bold whitespace-nowrap">1x</span>
+                            <div className="flex flex-col">
+                              <span className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
+                                🎁 Brinde Fidelidade
+                              </span>
+                              <span className="text-foreground font-medium">{redeemedReward.rewardTitle}</span>
+                            </div>
+                          </div>
+                          <div className="text-right flex flex-col items-end">
+                            <span className="font-bold text-emerald-600 whitespace-nowrap">
+                              Grátis
+                            </span>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1923,6 +1998,18 @@ const CartSidebar = () => {
                           <span className="font-medium">
                             {couponData?.type === 'FREE_SHIPPING' ? 'Frete Grátis' : `-${formatPrice(couponData?.discountAmount || 0)}`}
                           </span>
+                        </div>
+                      )}
+                      {redeemedReward && (
+                        <div className="flex justify-between text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 font-bold">
+                          <span className="flex items-center gap-1.5">🎁 Brinde Fidelidade</span>
+                          <span>{redeemedReward.rewardTitle} (Grátis)</span>
+                        </div>
+                      )}
+                      {loyaltyDiscount > 0 && (
+                        <div className="flex justify-between text-emerald-600 font-bold">
+                          <span>Desconto Fidelidade (Pontos / Cashback)</span>
+                          <span className="font-medium">-{formatPrice(loyaltyDiscount)}</span>
                         </div>
                       )}
                       <div className="flex justify-between">
@@ -2240,6 +2327,15 @@ const CartSidebar = () => {
                     <span className="font-semibold">{formatPrice(checkoutSubtotal)}</span>
                   </div>
 
+                  {checkoutRedeemedReward && (
+                    <div className="mt-1 flex items-center justify-between gap-4 text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200">
+                      <span className="font-bold flex items-center gap-1.5">
+                        🎁 Brinde Fidelidade
+                      </span>
+                      <span className="font-extrabold">{checkoutRedeemedReward.rewardTitle}</span>
+                    </div>
+                  )}
+
                   <div className="mt-1 flex items-center justify-between gap-4">
                     <span>Frete</span>
                     <span className="font-semibold text-foreground">
@@ -2251,6 +2347,13 @@ const CartSidebar = () => {
                     <div className="mt-1 flex items-center justify-between gap-4">
                       <span>Desconto PIX</span>
                       <span className="font-semibold">-{formatPrice(checkoutPixDiscount)}</span>
+                    </div>
+                  )}
+
+                  {checkoutLoyaltyDiscount > 0 && (
+                    <div className="mt-1 flex items-center justify-between gap-4 text-emerald-600">
+                      <span>Desconto Fidelidade (Pontos)</span>
+                      <span className="font-semibold">-{formatPrice(checkoutLoyaltyDiscount)}</span>
                     </div>
                   )}
 
