@@ -14,7 +14,8 @@ import { useProduct } from "@/hooks/useProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreMobilePadding } from "@/hooks/use-store-mobile-padding";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, BellRing } from "lucide-react";
+import { StockNotificationModal } from "@/components/StockNotificationModal";
 import {
   Dialog,
   DialogContent,
@@ -40,6 +41,7 @@ const ProductPage = () => {
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [hasJustUpdated, setHasJustUpdated] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const { data: product, isLoading } = useProduct(id);
@@ -458,18 +460,29 @@ const ProductPage = () => {
               />
 
               <div className="mt-6 space-y-3">
-                <button
-                  type="button"
-                  onClick={handleAddOrUpdateCart}
-                  disabled={!canAddToCart || isUnavailable}
-                  className={`w-full rounded-lg px-6 py-3.5 text-base font-bold transition-colors ${
-                    !canAddToCart || isUnavailable
-                      ? "cursor-not-allowed bg-muted text-muted-foreground"
-                      : "bg-primary text-primary-foreground hover:bg-primary/90"
-                  }`}
-                >
-                  {primaryButtonLabel}
-                </button>
+                {isUnavailable && settings?.enableStockAlertNotification !== false ? (
+                  <button
+                    type="button"
+                    onClick={() => setShowNotificationModal(true)}
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-6 py-3.5 text-base font-bold text-white shadow-sm transition-colors"
+                  >
+                    <BellRing className="h-5 w-5" />
+                    Avise-me quando chegar
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleAddOrUpdateCart}
+                    disabled={!canAddToCart || isUnavailable}
+                    className={`w-full rounded-lg px-6 py-3.5 text-base font-bold transition-colors ${
+                      !canAddToCart || isUnavailable
+                        ? "cursor-not-allowed bg-muted text-muted-foreground"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
+                    }`}
+                  >
+                    {primaryButtonLabel}
+                  </button>
+                )}
 
                 {isInCart ? (
                   <button
@@ -516,6 +529,15 @@ const ProductPage = () => {
       </div>
 
       <SiteFooter />
+      {showNotificationModal && product && (
+        <StockNotificationModal
+          isOpen={showNotificationModal}
+          onClose={() => setShowNotificationModal(false)}
+          productId={product.id}
+          productTitle={product.name}
+          variationName={Object.values(selections).join(" / ") || undefined}
+        />
+      )}
       {isImageModalOpen && (
         <ProductImageModal
           images={gallery}

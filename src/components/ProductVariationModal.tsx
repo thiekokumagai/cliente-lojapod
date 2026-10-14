@@ -1,8 +1,10 @@
 import type { Product } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Minus, Plus, ShoppingCart, X } from "lucide-react";
+import { Minus, Plus, ShoppingCart, X, BellRing } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { StockNotificationModal } from "@/components/StockNotificationModal";
 import {
   isOptionAvailableGivenSelections,
   getSelectedCombinationStock,
@@ -23,9 +25,11 @@ const ProductVariationModal = ({
   onClose,
 }: ProductVariationModalProps) => {
   const { items, addToCart, updateQuantity, removeFromCart, triggerAddedModal } = useCart();
+  const { data: storeSettings } = useStoreSettings();
   const autoCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [displayQuantity, setDisplayQuantity] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   const allGroups = useMemo(() => {
     return product.variationGroups && product.variationGroups.length > 0
@@ -285,6 +289,15 @@ const ProductVariationModal = ({
               </p>
             )}
           </div>
+        ) : isCombinationUnavailable && storeSettings?.enableStockAlertNotification !== false ? (
+          <button
+            type="button"
+            onClick={() => setShowNotificationModal(true)}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors"
+          >
+            <BellRing className="h-4 w-4" />
+            Avise-me quando chegar
+          </button>
         ) : (
           <button
             type="button"
@@ -305,6 +318,16 @@ const ProductVariationModal = ({
           </button>
         )}
       </div>
+
+      {showNotificationModal && (
+        <StockNotificationModal
+          isOpen={showNotificationModal}
+          onClose={() => setShowNotificationModal(false)}
+          productId={product.id}
+          productTitle={product.name}
+          variationName={selectedKey || Object.values(selections).join(" / ")}
+        />
+      )}
     </div>,
     document.body
   );

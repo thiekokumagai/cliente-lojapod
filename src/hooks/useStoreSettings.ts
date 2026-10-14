@@ -72,6 +72,8 @@ interface StoreSettings {
   secondaryColor?: string;
   priceColor?: string;
   defaultProductSort?: string | null;
+  autoHideOutOfStock?: boolean;
+  enableStockAlertNotification?: boolean;
 }
 
 function buildSettingsImageUrl(path?: string | null) {

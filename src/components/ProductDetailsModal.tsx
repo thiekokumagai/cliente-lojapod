@@ -1,12 +1,14 @@
 import type { Product } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Minus, Plus, ShoppingCart, X, Search } from "lucide-react";
+import { Minus, Plus, ShoppingCart, X, Search, BellRing } from "lucide-react";
 import ProductImageModal from "@/components/ProductImageModal";
 import ProductShareMenu from "@/components/product/ProductShareMenu";
 import ProductContact from "@/components/product/ProductContact";
 import SiteFooter from "@/components/SiteFooter";
 import { useCart } from "@/contexts/CartContext";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { StockNotificationModal } from "@/components/StockNotificationModal";
 import seloMaisVendido from "@/assets/seloMaisVendido.png";
 import {
   isOptionAvailableGivenSelections,
@@ -46,6 +48,7 @@ const ProductDetailsModal = ({
     setTimeout(onClose, 300); // Wait for animation
   };
   const { items, addToCart, updateQuantity, removeFromCart, triggerAddedModal } = useCart();
+  const { data: storeSettings } = useStoreSettings();
   const gallery = useMemo(() => {
     if (product?.images && product.images.length > 0) return product.images;
     return product?.image ? [product.image] : [];
@@ -55,6 +58,7 @@ const ProductDetailsModal = ({
   const [displayQuantity, setDisplayQuantity] = useState(0);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
 
   const discountPercentage = useMemo(() => {
     if (product.isPromo && product.oldPrice && product.price < product.oldPrice) {
@@ -454,49 +458,71 @@ const ProductDetailsModal = ({
 
         {/* Fixed Bottom Bar */}
         <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-4 border-t border-border bg-background p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          <div className="flex h-12 flex-1 items-center justify-between rounded-xl border border-border px-4">
+          {isUnavailable && storeSettings?.enableStockAlertNotification !== false ? (
             <button
               type="button"
-              onClick={handleDecrease}
-              className={`flex h-8 w-8 items-center justify-center ${displayQuantity <= 1 && quantityInCart === 0 ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary"}`}
-              disabled={displayQuantity <= 1 && quantityInCart === 0}
-              aria-label="Diminuir quantidade"
+              onClick={() => setShowNotificationModal(true)}
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors"
             >
-              <Minus className="h-5 w-5" />
+              <BellRing className="h-5 w-5" />
+              Avise-me quando chegar
             </button>
+          ) : (
+            <>
+              <div className="flex h-12 flex-1 items-center justify-between rounded-xl border border-border px-4">
+                <button
+                  type="button"
+                  onClick={handleDecrease}
+                  className={`flex h-8 w-8 items-center justify-center ${displayQuantity <= 1 && quantityInCart === 0 ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary"}`}
+                  disabled={displayQuantity <= 1 && quantityInCart === 0}
+                  aria-label="Diminuir quantidade"
+                >
+                  <Minus className="h-5 w-5" />
+                </button>
 
-            <span className="text-base font-semibold">{displayQuantity}</span>
+                <span className="text-base font-semibold">{displayQuantity}</span>
 
-            <button
-              type="button"
-              disabled={isAtLimit}
-              onClick={handleIncrease}
-              className={`flex h-8 w-8 items-center justify-center ${isAtLimit ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary"}`}
-              aria-label="Aumentar quantidade"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-          </div>
+                <button
+                  type="button"
+                  disabled={isAtLimit}
+                  onClick={handleIncrease}
+                  className={`flex h-8 w-8 items-center justify-center ${isAtLimit ? "text-muted-foreground opacity-50 cursor-not-allowed" : "text-primary"}`}
+                  aria-label="Aumentar quantidade"
+                >
+                  <Plus className="h-5 w-5" />
+                </button>
+              </div>
 
-          <button
-            type="button"
-            onClick={quantityInCart > 0 ? undefined : handleBuy}
-            disabled={(!canAddToCart && quantityInCart === 0)}
-            className={`flex h-12 flex-[2] items-center justify-between rounded-xl px-4 text-sm font-bold transition-opacity ${
-              canAddToCart || quantityInCart > 0
-                ? "bg-primary text-primary-foreground"
-                : "bg-muted text-muted-foreground cursor-not-allowed"
-            }`}
-          >
-            <span>{quantityInCart > 0 ? "Adicionado" : "Adicionar"}</span>
-            <span>
-              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                quantityInCart > 0 ? 0 : (product.price + selectedOptionsAdditions) * displayQuantity
-              )}
-            </span>
-          </button>
+              <button
+                type="button"
+                onClick={quantityInCart > 0 ? undefined : handleBuy}
+                disabled={(!canAddToCart && quantityInCart === 0) || isUnavailable}
+                className={`flex h-12 flex-[2] items-center justify-between rounded-xl px-4 text-sm font-bold transition-opacity ${
+                  (canAddToCart || quantityInCart > 0) && !isUnavailable
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground cursor-not-allowed"
+                }`}
+              >
+                <span>{isUnavailable ? "Esgotado" : quantityInCart > 0 ? "Adicionado" : "Adicionar"}</span>
+                <span>
+                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
+                    quantityInCart > 0 ? 0 : (product.price + selectedOptionsAdditions) * displayQuantity
+                  )}
+                </span>
+              </button>
+            </>
+          )}
         </div>
       </div>
+      {showNotificationModal && (
+        <StockNotificationModal
+          isOpen={showNotificationModal}
+          onClose={() => setShowNotificationModal(false)}
+          productId={product.id}
+          productTitle={product.name}
+          variationName={selectedKey || Object.values(selections).join(" / ")}
+        />
+      )}
       {isImageModalOpen && (
         <ProductImageModal
           images={gallery}

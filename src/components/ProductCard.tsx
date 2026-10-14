@@ -1,10 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { CheckCircle2, Minus, Plus, ShoppingCart } from "lucide-react";
+import { CheckCircle2, Minus, Plus, ShoppingCart, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import ProductVariationModal from "@/components/ProductVariationModal";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
+import { StockNotificationModal } from "@/components/StockNotificationModal";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import seloMaisVendido from "@/assets/seloMaisVendido.png";
 
@@ -26,10 +28,12 @@ const saveScrollPosition = () => {
 
 const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   const isMobile = useIsMobile();
+  const { data: storeSettings } = useStoreSettings();
   const { items, addToCart, updateQuantity, removeFromCart } = useCart();
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [showVariationModal, setShowVariationModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
   const productImage = product.image || "";
 
   const discountPercentage = useMemo(() => {
@@ -275,19 +279,33 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
                 <Plus className="h-4 w-4" />
               </button>
             </div>
+          ) : product.stock === 0 ? (
+            storeSettings?.enableStockAlertNotification !== false ? (
+              <button
+                type="button"
+                onClick={() => setShowNotificationModal(true)}
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors"
+              >
+                <BellRing className="h-4 w-4" />
+                Avise-me quando chegar
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold bg-muted text-muted-foreground cursor-not-allowed"
+              >
+                Esgotado
+              </button>
+            )
           ) : (
             <button
               type="button"
               onClick={handleBuy}
-              disabled={product.stock === 0}
-              className={`mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold ${
-                product.stock === 0
-                  ? "bg-muted text-muted-foreground"
-                  : "bg-primary text-primary-foreground"
-              }`}
+              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold bg-primary text-primary-foreground"
             >
               <ShoppingCart className="h-4 w-4" />
-              {product.stock === 0 ? "Esgotado" : "Comprar"}
+              Comprar
             </button>
           )}
         </div>
@@ -308,6 +326,14 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
             window.history.pushState({}, '', '/');
             setShowDetailsModal(false);
           }}
+        />
+      )}
+      {showNotificationModal && (
+        <StockNotificationModal
+          isOpen={showNotificationModal}
+          onClose={() => setShowNotificationModal(false)}
+          productId={product.id}
+          productTitle={product.name}
         />
       )}
     </>
