@@ -913,11 +913,11 @@ const CartSidebar = () => {
     ];
 
     if (checkoutRedeemedReward) {
-      lines.push(`BRINDE FIDELIDADE: ${checkoutRedeemedReward.rewardTitle}`);
+      lines.push(`FIDELIDADE: ${checkoutRedeemedReward.rewardTitle}`);
     }
 
     if (checkoutLoyaltyDiscount > 0) {
-      lines.push(`Desconto Fidelidade: -${formatPrice(checkoutLoyaltyDiscount)}`);
+      lines.push(`Fidelidade: -${formatPrice(checkoutLoyaltyDiscount)}`);
     }
 
     if (checkoutSavedCouponCode) {
@@ -1046,7 +1046,12 @@ const CartSidebar = () => {
           quantity: item.quantity,
           price: item.product.price,
           variation: item.selectedVariation
-        }))
+        })),
+        redeemedReward: redeemedReward ? {
+          rewardType: redeemedReward.rewardType,
+          rewardTitle: redeemedReward.rewardTitle,
+          discountValue: loyaltyDiscount > 0 ? loyaltyDiscount : undefined
+        } : undefined
       };
 
       const result = await ordersService.createStoreOrder(payload as any);
@@ -1451,6 +1456,8 @@ const CartSidebar = () => {
                   {/* Cartão Fidelidade do Cliente */}
                   <LoyaltyCardWidget
                     customerPhone={phone}
+                    orderAmount={effectiveTotalPrice}
+                    selectedReward={redeemedReward}
                     onApplyRewardCoupon={(coupon) => {
                       setCouponCode(coupon);
                       setSavedCouponCode(coupon);
@@ -1808,6 +1815,8 @@ const CartSidebar = () => {
 
                   <LoyaltyCardWidget
                     customerPhone={phone}
+                    orderAmount={effectiveTotalPrice}
+                    selectedReward={redeemedReward}
                     onApplyRewardCoupon={(coupon) => {
                       setCouponCode(coupon);
                       setSavedCouponCode(coupon);
@@ -1833,7 +1842,7 @@ const CartSidebar = () => {
                       )}
                       {loyaltyDiscount > 0 && (
                         <div className="flex justify-between text-emerald-600 font-bold">
-                          <span>Desconto Fidelidade (Pontos)</span>
+                          <span>Fidelidade</span>
                           <span className="font-medium">-{formatPrice(loyaltyDiscount)}</span>
                         </div>
                       )}
@@ -1962,7 +1971,7 @@ const CartSidebar = () => {
                             <span className="text-emerald-600 font-bold whitespace-nowrap">1x</span>
                             <div className="flex flex-col">
                               <span className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-600">
-                                🎁 Brinde Fidelidade
+                                Fidelidade
                               </span>
                               <span className="text-foreground font-medium">{redeemedReward.rewardTitle}</span>
                             </div>
@@ -2002,13 +2011,13 @@ const CartSidebar = () => {
                       )}
                       {redeemedReward && (
                         <div className="flex justify-between text-emerald-700 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-200 font-bold">
-                          <span className="flex items-center gap-1.5">🎁 Brinde Fidelidade</span>
-                          <span>{redeemedReward.rewardTitle} (Grátis)</span>
+                          <span className="flex items-center gap-1.5">Fidelidade</span>
+                          <span>{redeemedReward.rewardTitle}</span>
                         </div>
                       )}
                       {loyaltyDiscount > 0 && (
                         <div className="flex justify-between text-emerald-600 font-bold">
-                          <span>Desconto Fidelidade (Pontos / Cashback)</span>
+                          <span>Fidelidade</span>
                           <span className="font-medium">-{formatPrice(loyaltyDiscount)}</span>
                         </div>
                       )}
@@ -2330,7 +2339,7 @@ const CartSidebar = () => {
                   {checkoutRedeemedReward && (
                     <div className="mt-1 flex items-center justify-between gap-4 text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-xl border border-emerald-200">
                       <span className="font-bold flex items-center gap-1.5">
-                        🎁 Brinde Fidelidade
+                        Fidelidade
                       </span>
                       <span className="font-extrabold">{checkoutRedeemedReward.rewardTitle}</span>
                     </div>
@@ -2352,7 +2361,7 @@ const CartSidebar = () => {
 
                   {checkoutLoyaltyDiscount > 0 && (
                     <div className="mt-1 flex items-center justify-between gap-4 text-emerald-600">
-                      <span>Desconto Fidelidade (Pontos)</span>
+                      <span>Fidelidade</span>
                       <span className="font-semibold">-{formatPrice(checkoutLoyaltyDiscount)}</span>
                     </div>
                   )}

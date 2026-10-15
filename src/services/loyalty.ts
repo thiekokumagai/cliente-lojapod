@@ -13,6 +13,7 @@ export interface StoreLoyaltyProgram {
   rewardDiscount?: number | null;
   pointsPerReal?: number;
   pointsRedemptionValue?: number;
+  minPointsToRedeem?: number;
   cashbackPercent?: number;
   progressiveTiers?: { minOrders: number; discountPercent: number }[] | null;
 }
