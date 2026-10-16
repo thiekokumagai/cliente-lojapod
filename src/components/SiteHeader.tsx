@@ -49,7 +49,7 @@ const SiteHeader = () => {
 
   return (
     <>
-      <div className="fixed inset-x-0 top-0 z-[70] border-b border-border-subtle bg-background/95 backdrop-blur-md md:hidden">
+      <div className="fixed inset-x-0 top-0 z-40 border-b border-border-subtle bg-background/95 backdrop-blur-md md:hidden">
         {!isLoading && (
           isOpen ? (
             <div className="bg-green-600 text-white text-[10px] sm:text-xs font-semibold py-1.5 px-4 text-center flex items-center justify-center gap-1.5 w-full">
