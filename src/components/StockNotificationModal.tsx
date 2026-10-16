@@ -148,7 +148,7 @@ export function StockNotificationModal({
                   placeholder="Como podemos te chamar?"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="mt-1 h-11 rounded-xl text-sm"
+                  className="mt-1 h-11 rounded-xl text-base md:text-sm"
                   required
                 />
               </div>
@@ -163,7 +163,7 @@ export function StockNotificationModal({
                   type="tel"
                   value={phone}
                   onChange={handlePhoneChange}
-                  className="mt-1 h-11 rounded-xl text-sm"
+                  className="mt-1 h-11 rounded-xl text-base md:text-sm"
                   required
                 />
               </div>
