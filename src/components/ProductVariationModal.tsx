@@ -293,7 +293,7 @@ const ProductVariationModal = ({
           <button
             type="button"
             onClick={() => setShowNotificationModal(true)}
-            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-xl py-3 text-xs font-bold text-white shadow-sm transition-colors" style={{ backgroundColor: '#ea580c' }} onMouseOver={e => (e.currentTarget.style.backgroundColor='#c2410c')} onMouseOut={e => (e.currentTarget.style.backgroundColor='#ea580c')}
           >
             <BellRing className="h-4 w-4" />
             Avise-me quando chegar
@@ -325,7 +325,7 @@ const ProductVariationModal = ({
           onClose={() => setShowNotificationModal(false)}
           productId={product.id}
           productTitle={product.name}
-          variationName={selectedKey || Object.values(selections).join(" / ")}
+          variationName={Object.values(selections).join(" / ") || null}
         />
       )}
     </div>,

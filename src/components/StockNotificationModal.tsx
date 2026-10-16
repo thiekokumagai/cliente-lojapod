@@ -101,7 +101,7 @@ export function StockNotificationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-md p-6 overflow-hidden rounded-2xl">
+      <DialogContent className="w-full max-w-md p-6 rounded-2xl">
         {isSuccess ? (
           <div className="flex flex-col items-center justify-center py-6 text-center space-y-3 animate-in fade-in zoom-in-95 duration-300">
             <div className="h-16 w-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
@@ -181,7 +181,8 @@ export function StockNotificationModal({
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="flex-1 h-11 rounded-xl text-xs font-semibold gap-1.5 shadow-md shadow-primary/20"
+                className="flex-1 h-11 rounded-xl text-xs font-semibold gap-1.5 shadow-md text-white"
+                style={{ backgroundColor: '#ea580c' }}
               >
                 {isLoading ? (
                   <>

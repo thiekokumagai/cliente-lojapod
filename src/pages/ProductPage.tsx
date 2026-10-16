@@ -464,7 +464,7 @@ const ProductPage = () => {
                   <button
                     type="button"
                     onClick={() => setShowNotificationModal(true)}
-                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500 hover:bg-amber-600 px-6 py-3.5 text-base font-bold text-white shadow-sm transition-colors"
+                    className="flex w-full items-center justify-center gap-2 rounded-lg px-6 py-3.5 text-base font-bold text-white shadow-sm transition-colors" style={{ backgroundColor: '#ea580c' }} onMouseOver={e => (e.currentTarget.style.backgroundColor='#c2410c')} onMouseOut={e => (e.currentTarget.style.backgroundColor='#ea580c')}
                   >
                     <BellRing className="h-5 w-5" />
                     Avise-me quando chegar

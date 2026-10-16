@@ -469,7 +469,7 @@ const ProductDetailsModal = ({
             <button
               type="button"
               onClick={() => setShowNotificationModal(true)}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors"
+              className="flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-bold text-white shadow-sm transition-colors" style={{ backgroundColor: '#ea580c' }} onMouseOver={e => (e.currentTarget.style.backgroundColor='#c2410c')} onMouseOut={e => (e.currentTarget.style.backgroundColor='#ea580c')}
             >
               <BellRing className="h-5 w-5" />
               Avise-me quando chegar
@@ -527,7 +527,7 @@ const ProductDetailsModal = ({
           onClose={() => setShowNotificationModal(false)}
           productId={product.id}
           productTitle={product.name}
-          variationName={selectedKey || Object.values(selections).join(" / ")}
+          variationName={Object.values(selections).join(" / ") || null}
         />
       )}
       {isImageModalOpen && (

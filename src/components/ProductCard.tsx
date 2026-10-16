@@ -284,7 +284,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
               <button
                 type="button"
                 onClick={() => setShowNotificationModal(true)}
-                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors"
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-sm transition-colors" style={{ backgroundColor: '#ea580c' }} onMouseOver={e => (e.currentTarget.style.backgroundColor='#c2410c')} onMouseOut={e => (e.currentTarget.style.backgroundColor='#ea580c')}
               >
                 <BellRing className="h-4 w-4" />
                 Avise-me quando chegar
