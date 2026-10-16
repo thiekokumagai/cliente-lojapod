@@ -126,6 +126,13 @@ const ProductDetailsModal = ({
     return product.stock !== undefined && product.stock <= 0;
   }, [combinationStock, allGroups.length, product.stock]);
 
+  const isUnavailable = useMemo(() => {
+    if (allGroups.length > 0) {
+      return allGroups.every((g) => g.options.every((o) => !o.available));
+    }
+    return product.stock !== undefined && product.stock <= 0;
+  }, [allGroups, product.stock]);
+
   const canAddToCart = allSelected && !isCombinationUnavailable;
 
   const quantityInCart = useMemo(() => {
