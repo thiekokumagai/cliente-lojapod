@@ -31,9 +31,13 @@ export interface CreateOrderPayload {
     productId: string;
     productName: string;
     quantity: number;
-    unitPrice: number;
-    subTotal: number;
+    unitPrice?: number;
+    price?: number;
+    subTotal?: number;
     variationString?: string;
+    variation?: string;
+    comboId?: string;
+    isCombo?: boolean;
   }>;
 }
 

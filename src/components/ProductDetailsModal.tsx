@@ -352,13 +352,36 @@ const ProductDetailsModal = ({
           <div className={`p-5 ${gallery.length === 0 ? "pt-16" : ""}`}>
             {product.category && (
               <span className="mb-2 block text-xs font-semibold uppercase tracking-wider text-primary">
-                {product.category}
+                {product.isCombo ? "Combo Promocional" : product.category}
               </span>
             )}
             <h3 className="text-xl font-bold text-foreground">{product.name}</h3>
+
+          {/* Lista de itens inclusos se for combo */}
+          {product.isCombo && product.comboItems && product.comboItems.length > 0 && (
+            <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3.5 space-y-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-indigo-900 block">
+                Produtos inclusos neste combo:
+              </span>
+              <div className="space-y-1.5">
+                {product.comboItems.map((ci, idx) => (
+                  <div key={idx} className="flex items-center justify-between text-xs text-slate-700 bg-white p-2 rounded-lg border border-slate-100 shadow-xs">
+                    <span className="font-semibold text-slate-800">
+                      {ci.quantity}x {ci.productName}
+                      {ci.variation ? ` (${ci.variation})` : ""}
+                    </span>
+                    <span className="text-slate-400 font-medium">
+                      R$ {ci.productPrice.toFixed(2).replace(".", ",")} un.
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {product.description && (
             <div 
-              className="mt-2 text-sm text-muted-foreground"
+              className="mt-3 text-sm text-muted-foreground"
               dangerouslySetInnerHTML={{ __html: product.description }} 
             />
           )}

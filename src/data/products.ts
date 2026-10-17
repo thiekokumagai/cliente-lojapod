@@ -18,6 +18,16 @@ export interface ProductItem {
   options: ProductItemOption[];
 }
 
+export interface ComboItemComponent {
+  productId: string;
+  productItemId?: string | null;
+  productName: string;
+  productPrice: number;
+  productImage?: string | null;
+  quantity: number;
+  variation?: string | null;
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -36,9 +46,17 @@ export interface Product {
   isBestSeller?: boolean;
   categoryId?: string;
   createdAt?: string;
+
+  // Campos de Combo
+  isCombo?: boolean;
+  comboId?: string;
+  comboItems?: ComboItemComponent[];
+  maxPerOrder?: number | null;
+  discountPercentage?: number;
 }
 
 export interface SelectedProduct {
   product: Product;
   selectedVariation?: string;
 }
+

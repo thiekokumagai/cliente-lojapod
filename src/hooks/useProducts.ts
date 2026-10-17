@@ -162,9 +162,14 @@ export function useProducts(categoryId?: string | null) {
         url += `&categoryId=${categoryId}`;
       }
 
-      const response = await fetch(url, { headers: getApiHeaders() });
-      if (!response.ok) throw new Error("Failed to fetch products");
-      const data = await response.json();
+      // Buscar produtos convencionais e combos ativos em paralelo
+      const [productsRes, combosRes] = await Promise.all([
+        fetch(url, { headers: getApiHeaders() }),
+        fetch(`${import.meta.env.VITE_ADMIN_API}/store/combos`, { headers: getApiHeaders() }).catch(() => null),
+      ]);
+
+      if (!productsRes.ok) throw new Error("Failed to fetch products");
+      const data = await productsRes.json();
 
       // Handle the new paginated wrapper or raw array
       const productList: NewApiProduct[] = Array.isArray(data)
@@ -173,7 +178,7 @@ export function useProducts(categoryId?: string | null) {
 
       const products = productList.map(transformNewApiProduct);
 
-      return products.filter((p) => {
+      const filteredProducts = products.filter((p) => {
         if (p.isVisible === false) return false;
 
         const groups =
@@ -184,11 +189,61 @@ export function useProducts(categoryId?: string | null) {
               : [];
 
         if (groups.length === 0) {
-          // If no variations, check if total stock > 0. But for now, we assume simple products are available if they were returned active.
           return true;
         }
         return groups.some((g) => g.options.some((o) => o.available));
       });
+
+      // Mapear combos retornados para o catálogo da loja
+      let comboProducts: Product[] = [];
+      if (combosRes && combosRes.ok) {
+        try {
+          const rawCombos = await combosRes.json();
+          if (Array.isArray(rawCombos)) {
+            comboProducts = rawCombos
+              .filter((c: any) => {
+                if (categoryId && c.categoryId !== categoryId) return false;
+                return (c.stock ?? 0) > 0;
+              })
+              .map((c: any) => {
+                const img = buildImageUrl(c.imageUrl);
+                return {
+                  id: c.id,
+                  comboId: c.id,
+                  isCombo: true,
+                  name: c.name,
+                  image: img,
+                  images: img ? [img] : [],
+                  category: c.categoryTitle || "Combos",
+                  categoryId: c.categoryId,
+                  description: c.description || "",
+                  price: Number(c.price),
+                  oldPrice: c.originalPrice > c.price ? Number(c.originalPrice) : undefined,
+                  isPromo: c.originalPrice > c.price,
+                  isFeatured: true,
+                  stock: c.stock ?? 99,
+                  maxPerOrder: c.maxPerOrder,
+                  discountPercentage: c.discountPercentage,
+                  createdAt: c.createdAt,
+                  comboItems: (c.items || []).map((ci: any) => ({
+                    productId: ci.productId,
+                    productItemId: ci.productItemId,
+                    productName: ci.productName,
+                    productPrice: ci.productPrice,
+                    productImage: ci.productImage ? buildImageUrl(ci.productImage) : null,
+                    quantity: ci.quantity,
+                    variation: ci.variation,
+                  })),
+                };
+              });
+          }
+        } catch (e) {
+          console.error("Erro ao processar combos na loja:", e);
+        }
+      }
+
+      // Combos aparecem em destaque no topo da listagem
+      return [...comboProducts, ...filteredProducts];
     },
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,

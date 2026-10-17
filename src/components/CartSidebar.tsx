@@ -1045,7 +1045,9 @@ const CartSidebar = () => {
           productName: item.product.name,
           quantity: item.quantity,
           price: item.product.price,
-          variation: item.selectedVariation
+          variation: item.selectedVariation,
+          comboId: item.product.isCombo ? item.product.comboId || item.product.id : undefined,
+          isCombo: !!item.product.isCombo,
         })),
         redeemedReward: redeemedReward ? {
           rewardType: redeemedReward.rewardType,
@@ -1389,16 +1391,32 @@ const CartSidebar = () => {
                               <div className="flex flex-1 flex-col justify-between gap-2">
                                 <div className="flex items-start justify-between gap-2">
                                   <div>
-                                    {item.product.category && (
+                                    {item.product.isCombo ? (
+                                      <span className="mb-1 inline-block text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                                        Combo Especial
+                                      </span>
+                                    ) : item.product.category ? (
                                       <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-primary">
                                         {item.product.category}
                                       </span>
-                                    )}
+                                    ) : null}
                                     <p className="line-clamp-2 text-sm font-semibold text-foreground">{item.product.name}</p>
                                     {item.selectedVariation && (
                                       <p className="mt-1 text-xs text-muted-foreground">
                                         {item.selectedVariation}
                                       </p>
+                                    )}
+
+                                    {/* Componentes inclusos no combo */}
+                                    {item.product.isCombo && item.product.comboItems && (
+                                      <div className="mt-1.5 pl-2 border-l-2 border-indigo-200 space-y-0.5">
+                                        {item.product.comboItems.map((ci, cIdx) => (
+                                          <p key={cIdx} className="text-[11px] text-muted-foreground">
+                                            • {ci.quantity}x {ci.productName}
+                                            {ci.variation ? ` (${ci.variation})` : ""}
+                                          </p>
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
                                   <button
