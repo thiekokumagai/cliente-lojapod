@@ -9,6 +9,8 @@ import SiteFooter from "@/components/SiteFooter";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { StockNotificationModal } from "@/components/StockNotificationModal";
+import ProductVariationModal from "@/components/ProductVariationModal";
+import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 import seloMaisVendido from "@/assets/seloMaisVendido.png";
 import {
   isOptionAvailableGivenSelections,
@@ -56,6 +58,17 @@ const ProductDetailsModal = ({
 
   const autoCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [displayQuantity, setDisplayQuantity] = useState(0);
+
+  const {
+    startComboFlow,
+    isStepActive: isComboFlowActive,
+    currentProductForModal: comboStepProduct,
+    activeCombo,
+    currentStepIndex: comboStepIndex,
+    totalSteps: comboTotalSteps,
+    handleConfirmCurrentStep: handleConfirmComboStep,
+    handleCancelComboFlow,
+  } = useComboVariationFlow();
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
@@ -201,6 +214,13 @@ const ProductDetailsModal = ({
   };
 
   const handleBuy = () => {
+    if (product.isCombo) {
+      startComboFlow(product, () => {
+        handleClose();
+      });
+      return;
+    }
+
     if (!canAddToCart) return;
     setIsLocked(true);
     const variation = allGroups.length > 0 ? combinedVariation : undefined;
@@ -488,7 +508,7 @@ const ProductDetailsModal = ({
 
         {/* Fixed Bottom Bar */}
         <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-between gap-4 border-t border-border bg-background p-4 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-          {isUnavailable && storeSettings?.enableStockAlertNotification !== false ? (
+          {(isUnavailable || isCombinationUnavailable) && storeSettings?.enableStockAlertNotification !== false ? (
             <button
               type="button"
               onClick={() => setShowNotificationModal(true)}
@@ -549,8 +569,29 @@ const ProductDetailsModal = ({
           isOpen={showNotificationModal}
           onClose={() => setShowNotificationModal(false)}
           productId={product.id}
+          comboId={product.isCombo ? (product.comboId || product.id) : undefined}
+          isCombo={product.isCombo}
           productTitle={product.name}
           variationName={Object.values(selections).join(" / ") || null}
+        />
+      )}
+      {isComboFlowActive && comboStepProduct && (
+        <ProductVariationModal
+          product={comboStepProduct}
+          selectedOption={null}
+          onSelect={() => {}}
+          onClose={handleCancelComboFlow}
+          onConfirm={() => {}}
+          isComboStep={true}
+          customTitle={comboStepProduct.name}
+          customSubtitle={`Item ${comboStepIndex + 1} de ${comboTotalSteps} do ${activeCombo?.name || "Combo"}`}
+          customConfirmLabel={comboStepIndex + 1 === comboTotalSteps ? "Concluir e Adicionar Combo" : "Avançar Próximo Item"}
+          onConfirmVariation={(chosenVar) => {
+            handleConfirmComboStep(chosenVar);
+            if (comboStepIndex + 1 >= comboTotalSteps) {
+              handleClose();
+            }
+          }}
         />
       )}
       {isImageModalOpen && (

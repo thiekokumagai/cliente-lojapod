@@ -3,12 +3,14 @@ import ProductCard from "./ProductCard";
 import { TrendingUp } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/hooks/useProducts";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { matchesProductSearch } from "@/utils/search";
 
 const BestSellersSection = () => {
   const [showAll, setShowAll] = useState(false);
   const { selectedCategory, searchTerm, selectedNicotineStrength, selectedVariationFilters } = useCart();
   const { data: allProducts = [] } = useProducts();
+  const { data: settings } = useStoreSettings();
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const nonPromoProducts = allProducts.filter((p) => !p.isPromo);
@@ -21,10 +23,16 @@ const BestSellersSection = () => {
           ? [product.variationGroup]
           : [];
 
+    const allowsNotification = settings?.enableStockAlertNotification !== false;
     const hasAvailableVariations =
       groups.length > 0
         ? groups.some((group) => group.options.some((option) => option.available))
         : true;
+
+    const isAvailableOrNotifiable =
+      product.isCombo
+        ? (product.stock ?? 0) > 0 || allowsNotification
+        : hasAvailableVariations || allowsNotification;
     const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
     const matchesSearch = matchesProductSearch(searchTerm, product);
 
@@ -46,7 +54,7 @@ const BestSellersSection = () => {
           )
         : true;
 
-    return hasAvailableVariations && matchesCategory && matchesSearch && matchesNicotine;
+    return isAvailableOrNotifiable && matchesCategory && matchesSearch && matchesNicotine;
   });
 
   if (selectedCategory && filteredProducts.length === 0) return null;

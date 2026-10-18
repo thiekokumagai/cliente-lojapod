@@ -203,7 +203,7 @@ export function useProducts(categoryId?: string | null) {
             comboProducts = rawCombos
               .filter((c: any) => {
                 if (categoryId && c.categoryId !== categoryId) return false;
-                return (c.stock ?? 0) > 0;
+                return true;
               })
               .map((c: any) => {
                 const img = buildImageUrl(c.imageUrl);
@@ -221,7 +221,7 @@ export function useProducts(categoryId?: string | null) {
                   oldPrice: c.originalPrice > c.price ? Number(c.originalPrice) : undefined,
                   isPromo: c.originalPrice > c.price,
                   isFeatured: true,
-                  stock: c.stock ?? 99,
+                  stock: c.stock ?? 0,
                   maxPerOrder: c.maxPerOrder,
                   discountPercentage: c.discountPercentage,
                   createdAt: c.createdAt,
@@ -233,6 +233,7 @@ export function useProducts(categoryId?: string | null) {
                     productImage: ci.productImage ? buildImageUrl(ci.productImage) : null,
                     quantity: ci.quantity,
                     variation: ci.variation,
+                    componentProduct: ci.product ? transformNewApiProduct(ci.product) : undefined,
                   })),
                 };
               });
@@ -310,6 +311,7 @@ export function useProduct(id?: string) {
                 productImage: ci.productImage ? buildImageUrl(ci.productImage) : null,
                 quantity: ci.quantity,
                 variation: ci.variation,
+                componentProduct: ci.product ? transformNewApiProduct(ci.product) : undefined,
               })),
             };
           }

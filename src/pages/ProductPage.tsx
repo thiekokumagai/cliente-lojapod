@@ -16,6 +16,8 @@ import { useCart } from "@/contexts/CartContext";
 import { useStoreMobilePadding } from "@/hooks/use-store-mobile-padding";
 import { Loader2, AlertCircle, BellRing } from "lucide-react";
 import { StockNotificationModal } from "@/components/StockNotificationModal";
+import ProductVariationModal from "@/components/ProductVariationModal";
+import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +45,17 @@ const ProductPage = () => {
   const [hasJustUpdated, setHasJustUpdated] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const {
+    startComboFlow,
+    isStepActive: isComboFlowActive,
+    currentProductForModal: comboStepProduct,
+    activeCombo,
+    currentStepIndex: comboStepIndex,
+    totalSteps: comboTotalSteps,
+    handleConfirmCurrentStep: handleConfirmComboStep,
+    handleCancelComboFlow,
+  } = useComboVariationFlow();
 
   const { data: product, isLoading } = useProduct(id);
   const { data: settings } = useStoreSettings();
@@ -213,6 +226,13 @@ const ProductPage = () => {
   };
 
   const handleAddOrUpdateCart = () => {
+    if (product.isCombo) {
+      startComboFlow(product, () => {
+        handleNavigateToList();
+      });
+      return;
+    }
+
     if (!canAddToCart || isUnavailable || isCombinationUnavailable) return;
 
     if (cartItem) {
@@ -460,7 +480,7 @@ const ProductPage = () => {
               />
 
               <div className="mt-6 space-y-3">
-                {isUnavailable && settings?.enableStockAlertNotification !== false ? (
+                {(isUnavailable || isCombinationUnavailable) && settings?.enableStockAlertNotification !== false ? (
                   <button
                     type="button"
                     onClick={() => setShowNotificationModal(true)}
@@ -473,9 +493,9 @@ const ProductPage = () => {
                   <button
                     type="button"
                     onClick={handleAddOrUpdateCart}
-                    disabled={!canAddToCart || isUnavailable}
+                    disabled={!canAddToCart || isUnavailable || isCombinationUnavailable}
                     className={`w-full rounded-lg px-6 py-3.5 text-base font-bold transition-colors ${
-                      !canAddToCart || isUnavailable
+                      !canAddToCart || isUnavailable || isCombinationUnavailable
                         ? "cursor-not-allowed bg-muted text-muted-foreground"
                         : "bg-primary text-primary-foreground hover:bg-primary/90"
                     }`}
@@ -514,18 +534,29 @@ const ProductPage = () => {
           totalItems > 0 ? "bottom-[calc(env(safe-area-inset-bottom)+64px)]" : "bottom-0"
         }`}
       >
-        <button
-          type="button"
-          onClick={handleAddOrUpdateCart}
-          disabled={!canAddToCart || isUnavailable}
-          className={`w-full rounded-xl px-6 py-3.5 text-base font-bold transition-colors ${
-            !canAddToCart || isUnavailable
-              ? "cursor-not-allowed bg-muted text-muted-foreground"
-              : "bg-primary text-primary-foreground hover:bg-primary/90"
-          }`}
-        >
-          {primaryButtonLabel}
-        </button>
+        {(isUnavailable || isCombinationUnavailable) && settings?.enableStockAlertNotification !== false ? (
+          <button
+            type="button"
+            onClick={() => setShowNotificationModal(true)}
+            className="flex w-full items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-base font-bold text-white shadow-sm transition-colors" style={{ backgroundColor: '#ea580c' }} onMouseOver={e => (e.currentTarget.style.backgroundColor='#c2410c')} onMouseOut={e => (e.currentTarget.style.backgroundColor='#ea580c')}
+          >
+            <BellRing className="h-5 w-5" />
+            Avise-me quando chegar
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={handleAddOrUpdateCart}
+            disabled={!canAddToCart || isUnavailable || isCombinationUnavailable}
+            className={`w-full rounded-xl px-6 py-3.5 text-base font-bold transition-colors ${
+              !canAddToCart || isUnavailable || isCombinationUnavailable
+                ? "cursor-not-allowed bg-muted text-muted-foreground"
+                : "bg-primary text-primary-foreground hover:bg-primary/90"
+            }`}
+          >
+            {primaryButtonLabel}
+          </button>
+        )}
       </div>
 
       <SiteFooter />
@@ -534,6 +565,8 @@ const ProductPage = () => {
           isOpen={showNotificationModal}
           onClose={() => setShowNotificationModal(false)}
           productId={product.id}
+          comboId={product.isCombo ? (product.comboId || product.id) : undefined}
+          isCombo={product.isCombo}
           productTitle={product.name}
           variationName={Object.values(selections).join(" / ") || undefined}
         />
@@ -546,6 +579,19 @@ const ProductPage = () => {
           onClose={() => setIsImageModalOpen(false)}
           title={product?.name}
           description={product?.description}
+        />
+      )}
+
+      {isComboFlowActive && comboStepProduct && activeCombo && (
+        <ProductVariationModal
+          isOpen={isComboFlowActive}
+          onClose={handleCancelComboFlow}
+          product={comboStepProduct}
+          isComboStep={true}
+          customTitle={`Escolha a variação (${comboStepIndex + 1} de ${comboTotalSteps})`}
+          customSubtitle={`Item do combo: ${activeCombo.name}`}
+          customConfirmLabel={comboStepIndex + 1 === comboTotalSteps ? "Concluir e Adicionar Combo" : "Próximo Item"}
+          onConfirmVariation={(variation, productItem) => handleConfirmComboStep(variation, productItem)}
         />
       )}
     </div>

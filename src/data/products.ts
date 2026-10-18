@@ -26,6 +26,14 @@ export interface ComboItemComponent {
   productImage?: string | null;
   quantity: number;
   variation?: string | null;
+  componentProduct?: Product; // Detalhes completos do produto do componente (para variações no modal)
+}
+
+export interface ComboComponentSelection {
+  productId: string;
+  productItemId?: string;
+  variation?: string;
+  productName?: string;
 }
 
 export interface Product {
@@ -58,5 +66,6 @@ export interface Product {
 export interface SelectedProduct {
   product: Product;
   selectedVariation?: string;
+  comboSelections?: ComboComponentSelection[];
 }
 

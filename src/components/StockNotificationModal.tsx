@@ -19,7 +19,9 @@ const SESSION_PHONE_KEY = "podemais-checkout-phone";
 interface StockNotificationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  productId: string;
+  productId?: string;
+  comboId?: string;
+  isCombo?: boolean;
   productTitle: string;
   variationName?: string | null;
   productItemId?: string | null;
@@ -29,6 +31,8 @@ export function StockNotificationModal({
   isOpen,
   onClose,
   productId,
+  comboId,
+  isCombo,
   productTitle,
   variationName,
   productItemId,
@@ -82,7 +86,8 @@ export function StockNotificationModal({
       localStorage.setItem(SESSION_PHONE_KEY, phone);
 
       await stockNotificationsService.create({
-        productId,
+        productId: isCombo || comboId ? undefined : productId,
+        comboId: comboId || (isCombo ? productId : undefined),
         productItemId: productItemId || undefined,
         customerName: name.trim(),
         customerPhone: phone,

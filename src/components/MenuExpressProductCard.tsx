@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, ShoppingCart } from "lucide-react";
+import { Plus, ShoppingCart, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import ProductVariationModal from "@/components/ProductVariationModal";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
+import { StockNotificationModal } from "@/components/StockNotificationModal";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 
 interface MenuExpressProductCardProps {
   product: Product;
@@ -18,10 +21,23 @@ const formatPrice = (price: number) =>
 export default function MenuExpressProductCard({ product, isBestSeller }: MenuExpressProductCardProps) {
   const isMobile = useIsMobile();
   const { items, addToCart } = useCart();
+  const { data: storeSettings } = useStoreSettings();
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [showVariationModal, setShowVariationModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
   const productImage = product.image || "";
+
+  const {
+    startComboFlow,
+    isStepActive: isComboFlowActive,
+    currentProductForModal: comboStepProduct,
+    activeCombo,
+    currentStepIndex: comboStepIndex,
+    totalSteps: comboTotalSteps,
+    handleConfirmCurrentStep: handleConfirmComboStep,
+    handleCancelComboFlow,
+  } = useComboVariationFlow();
 
   const allGroups = useMemo(() => {
     return product.variationGroups && product.variationGroups.length > 0
@@ -37,9 +53,22 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
     return allGroups.flatMap((g) => g.options).filter((o) => o.available);
   }, [allGroups]);
 
+  const isUnavailable = useMemo(() => {
+    if (hasVariationGroup) {
+      return availableOptions.length === 0;
+    }
+    return (product.stock ?? 0) <= 0;
+  }, [hasVariationGroup, availableOptions.length, product.stock]);
+
   const handleBuy = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (product.isCombo) {
+      startComboFlow(product);
+      return;
+    }
+
     if (hasVariationGroup) {
       setSelectedVariation(null);
       setShowVariationModal(true);
@@ -141,14 +170,32 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
             </div>
           )}
 
-          {/* Botão de Adição Rápida (+) com efeito de sobreposição */}
-          <button
-            onClick={handleBuy}
-            className="absolute bottom-1.5 right-1.5 h-7 w-7 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
-            title="Adicionar ao carrinho"
-          >
-            <Plus className="h-4 w-4" />
-          </button>
+          {/* Botão de Adição Rápida (+) ou Avise-me */}
+          {isUnavailable ? (
+            storeSettings?.enableStockAlertNotification !== false ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowNotificationModal(true);
+                }}
+                className="absolute bottom-1.5 right-1.5 h-7 w-7 rounded-full text-white shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
+                style={{ backgroundColor: "#ea580c" }}
+                title="Avise-me quando chegar"
+              >
+                <BellRing className="h-3.5 w-3.5" />
+              </button>
+            ) : null
+          ) : (
+            <button
+              onClick={handleBuy}
+              className="absolute bottom-1.5 right-1.5 h-7 w-7 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
+              title="Adicionar ao carrinho"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
   );
@@ -174,6 +221,21 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
           onConfirm={handleConfirmVariation}
         />
       )}
+      {/* Modal de Variação de Componente do Combo (Reutilizado) */}
+      {isComboFlowActive && comboStepProduct && (
+        <ProductVariationModal
+          product={comboStepProduct}
+          selectedOption={null}
+          onSelect={() => {}}
+          onClose={handleCancelComboFlow}
+          onConfirm={() => {}}
+          isComboStep={true}
+          customTitle={comboStepProduct.name}
+          customSubtitle={`Item ${comboStepIndex + 1} de ${comboTotalSteps} do ${activeCombo?.name || "Combo"}`}
+          customConfirmLabel={comboStepIndex + 1 === comboTotalSteps ? "Concluir e Adicionar Combo" : "Avançar Próximo Item"}
+          onConfirmVariation={handleConfirmComboStep}
+        />
+      )}
       {showDetailsModal && (
         <ProductDetailsModal
           product={product}
@@ -181,6 +243,17 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
             window.history.pushState({}, '', '/');
             setShowDetailsModal(false);
           }}
+        />
+      )}
+      {/* Modal de Avise-me quando chegar */}
+      {showNotificationModal && (
+        <StockNotificationModal
+          isOpen={showNotificationModal}
+          onClose={() => setShowNotificationModal(false)}
+          productId={product.id}
+          comboId={product.isCombo ? (product.comboId || product.id) : undefined}
+          isCombo={product.isCombo}
+          productTitle={product.name}
         />
       )}
     </>

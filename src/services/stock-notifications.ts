@@ -1,8 +1,9 @@
 import { api } from "./api";
 
 export interface CreateStockNotificationRequest {
-  productId: string;
+  productId?: string;
   productItemId?: string;
+  comboId?: string;
   customerName: string;
   customerPhone: string;
 }

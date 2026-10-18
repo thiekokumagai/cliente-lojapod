@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useCallback, useMemo, useEffect, useRef, type ReactNode } from "react";
-import type { Product, SelectedProduct } from "@/data/products";
+import type { Product, SelectedProduct, ComboComponentSelection } from "@/data/products";
 import { trackEvent } from "@/components/FacebookPixel";
 import { syncCartAnalytics } from "@/services/analytics";
 
@@ -7,6 +7,7 @@ export interface CartItem {
   product: Product;
   quantity: number;
   selectedVariation?: string;
+  comboSelections?: ComboComponentSelection[];
 }
 
 export interface SavedOrder {
@@ -66,7 +67,7 @@ const normalizeItem = (item: Product | SelectedProduct) => {
     return item;
   }
 
-  return { product: item };
+  return { product: item, selectedVariation: undefined, comboSelections: undefined };
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
@@ -153,6 +154,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       product: normalizedItem.product,
       quantity: 1,
       selectedVariation: normalizedItem.selectedVariation,
+      comboSelections: normalizedItem.comboSelections,
     });
 
     setShowAddedModal(false);
@@ -163,11 +165,26 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     setItems((prev) => {
       const isFirstProduct = prev.length === 0;
-      const existing = prev.find(
-        (cartItem) =>
-          cartItem.product.id === normalizedItem.product.id &&
-          cartItem.selectedVariation === normalizedItem.selectedVariation
-      );
+
+      // Para combos com variações de componentes diferentes, cada combinação é tratada como item único no carrinho
+      const getComboKey = (ci: CartItem | typeof normalizedItem) => {
+        if (!ci.comboSelections || ci.comboSelections.length === 0) return "";
+        return ci.comboSelections
+          .map((s) => `${s.productId}:${s.productItemId || s.variation || ""}`)
+          .sort()
+          .join("|");
+      };
+
+      const normalizedComboKey = getComboKey(normalizedItem);
+
+      const existing = prev.find((cartItem) => {
+        if (cartItem.product.id !== normalizedItem.product.id) return false;
+        if (cartItem.selectedVariation !== normalizedItem.selectedVariation) return false;
+        if (normalizedComboKey || getComboKey(cartItem)) {
+          return getComboKey(cartItem) === normalizedComboKey;
+        }
+        return true;
+      });
 
       if (existing) {
         if (normalizedItem.selectedVariation && normalizedItem.product.variationGroup) {
@@ -186,18 +203,21 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const nextItems = existing
-        ? prev.map((cartItem) =>
-            cartItem.product.id === normalizedItem.product.id &&
-            cartItem.selectedVariation === normalizedItem.selectedVariation
-              ? { ...cartItem, quantity: cartItem.quantity + 1 }
-              : cartItem
-          )
+        ? prev.map((cartItem) => {
+            const matches =
+              cartItem.product.id === normalizedItem.product.id &&
+              cartItem.selectedVariation === normalizedItem.selectedVariation &&
+              (normalizedComboKey ? getComboKey(cartItem) === normalizedComboKey : true);
+
+            return matches ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem;
+          })
         : [
             ...prev,
             {
               product: normalizedItem.product,
               quantity: 1,
               selectedVariation: normalizedItem.selectedVariation,
+              comboSelections: normalizedItem.comboSelections,
             },
           ];
 
@@ -205,6 +225,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         product: normalizedItem.product,
         quantity: 1,
         selectedVariation: normalizedItem.selectedVariation,
+        comboSelections: normalizedItem.comboSelections,
       });
 
       trackEvent('AddToCart', {

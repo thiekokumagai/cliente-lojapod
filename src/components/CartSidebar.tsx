@@ -872,14 +872,17 @@ const CartSidebar = () => {
     const itemsFormatted = checkoutItems.map(item => {
       const isCombo = item.product.isCombo;
       const prefix = isCombo ? "[COMBO] " : "";
-      let qtyStr = `${item.quantity} x ${prefix}${item.product.name}: ${formatPrice(item.product.price * item.quantity)}`;
+      const categoryStr = item.product.category ? ` [${item.product.category}]` : "";
+      let qtyStr = `${item.quantity} x ${prefix}${item.product.name}${categoryStr}: ${formatPrice(item.product.price * item.quantity)}`;
       if (item.selectedVariation) {
         qtyStr += `\n    ${item.quantity}x ${item.selectedVariation}`;
       }
       if (isCombo && item.product.comboItems && item.product.comboItems.length > 0) {
         item.product.comboItems.forEach(ci => {
           const compQtd = (ci.quantity || 1) * item.quantity;
-          const compVar = ci.variation ? ` (${ci.variation})` : "";
+          const chosen = item.comboSelections?.find((cs) => cs.productId === ci.productId);
+          const effectiveVar = ci.variation || chosen?.variation;
+          const compVar = effectiveVar ? ` (${effectiveVar})` : "";
           qtyStr += `\n    • ${compQtd}x ${ci.productName}${compVar}`;
         });
       }
@@ -1057,6 +1060,7 @@ const CartSidebar = () => {
           variation: item.selectedVariation,
           comboId: item.product.isCombo ? item.product.comboId || item.product.id : undefined,
           isCombo: !!item.product.isCombo,
+          comboSelections: item.comboSelections || undefined,
         })),
         redeemedReward: redeemedReward ? {
           rewardType: redeemedReward.rewardType,
@@ -1419,12 +1423,18 @@ const CartSidebar = () => {
                                     {/* Componentes inclusos no combo */}
                                     {item.product.isCombo && item.product.comboItems && (
                                       <div className="mt-1.5 pl-2 border-l-2 border-indigo-200 space-y-0.5">
-                                        {item.product.comboItems.map((ci, cIdx) => (
-                                          <p key={cIdx} className="text-[11px] text-muted-foreground">
-                                            • {ci.quantity}x {ci.productName}
-                                            {ci.variation ? ` (${ci.variation})` : ""}
-                                          </p>
-                                        ))}
+                                        {item.product.comboItems.map((ci, cIdx) => {
+                                          const chosen = item.comboSelections?.find((cs) => cs.productId === ci.productId);
+                                          const effectiveVariation = ci.variation || chosen?.variation;
+                                          return (
+                                            <p key={cIdx} className="text-[11px] text-muted-foreground">
+                                              • {ci.quantity}x {ci.productName}
+                                              {effectiveVariation ? (
+                                                <span className="font-medium text-foreground"> ({effectiveVariation})</span>
+                                              ) : ""}
+                                            </p>
+                                          );
+                                        })}
                                       </div>
                                     )}
                                   </div>
@@ -2364,12 +2374,16 @@ const CartSidebar = () => {
                           )}
                           {item.product.isCombo && item.product.comboItems && item.product.comboItems.length > 0 && (
                             <div className="mt-1 pl-2 border-l-2 border-indigo-200 space-y-0.5">
-                              {item.product.comboItems.map((ci, cIdx) => (
-                                <p key={cIdx} className="text-[12px] text-[#8b8b8b]">
-                                  • {(ci.quantity || 1) * item.quantity}x {ci.productName}
-                                  {ci.variation ? ` (${ci.variation})` : ""}
-                                </p>
-                              ))}
+                              {item.product.comboItems.map((ci, cIdx) => {
+                                const chosen = item.comboSelections?.find((cs) => cs.productId === ci.productId);
+                                const effectiveVariation = ci.variation || chosen?.variation;
+                                return (
+                                  <p key={cIdx} className="text-[12px] text-[#8b8b8b]">
+                                    • {(ci.quantity || 1) * item.quantity}x {ci.productName}
+                                    {effectiveVariation ? ` (${effectiveVariation})` : ""}
+                                  </p>
+                                );
+                              })}
                             </div>
                           )}
                         </div>

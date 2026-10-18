@@ -15,7 +15,13 @@ interface ProductVariationModalProps {
   selectedOption: string | null;
   onSelect: (option: string) => void;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm?: () => void;
+  customTitle?: string;
+  customSubtitle?: string;
+  customConfirmLabel?: string;
+  onConfirmVariation?: (variation: string) => void;
+  isComboStep?: boolean;
+  isOpen?: boolean;
 }
 
 const ProductVariationModal = ({
@@ -23,6 +29,13 @@ const ProductVariationModal = ({
   selectedOption,
   onSelect,
   onClose,
+  onConfirm,
+  customTitle,
+  customSubtitle,
+  customConfirmLabel,
+  onConfirmVariation,
+  isComboStep = false,
+  isOpen = true,
 }: ProductVariationModalProps) => {
   const { items, addToCart, updateQuantity, removeFromCart, triggerAddedModal } = useCart();
   const { data: storeSettings } = useStoreSettings();
@@ -61,6 +74,25 @@ const ProductVariationModal = ({
     });
     return initial;
   });
+
+  // Atualizar seleções sempre que o produto ou a opção selecionada mudar
+  useEffect(() => {
+    if (!selectedOption) {
+      setSelections({});
+      return;
+    }
+    const parts = selectedOption.split(" / ").map((p) => p.trim());
+    const initial: Record<string, string> = {};
+    parts.forEach((part) => {
+      const group = allGroups.find((g) =>
+        g.options.some((o) => o.label === part)
+      );
+      if (group) {
+        initial[group.name] = part;
+      }
+    });
+    setSelections(initial);
+  }, [product.id, selectedOption, allGroups]);
 
   const combinedVariation = useMemo(() => {
     return allGroups
@@ -153,6 +185,15 @@ const ProductVariationModal = ({
 
   const handleBuy = () => {
     if (!combinedVariation || !canAddToCart) return;
+    if (isComboStep && onConfirmVariation) {
+      onConfirmVariation(combinedVariation);
+      onClose();
+      return;
+    }
+    if (onConfirm) {
+      onConfirm();
+      return;
+    }
     setDisplayQuantity(1);
     setIsLocked(true);
     addToCart({ product, selectedVariation: combinedVariation });
@@ -188,7 +229,7 @@ const ProductVariationModal = ({
     return false;
   }, [combinationStock, displayQuantity]);
 
-  if (allGroups.length === 0) return null;
+  if (!isOpen || allGroups.length === 0) return null;
 
   return createPortal(
     <div
@@ -209,9 +250,11 @@ const ProductVariationModal = ({
         </button>
 
         <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Escolha a variação
+          {customSubtitle || "Escolha a variação"}
         </p>
-        <h3 className="mt-1 pr-8 text-lg font-bold text-foreground">{product.name}</h3>
+        <h3 className="mt-1 pr-8 text-lg font-bold text-foreground">
+          {customTitle || product.name}
+        </h3>
 
         <div className="mt-5 space-y-4">
           {allGroups.map((group) => (
@@ -314,7 +357,7 @@ const ProductVariationModal = ({
               ? "Esgotado"
               : !allSelected
                 ? "Selecione as variações"
-                : "Comprar"}
+                : customConfirmLabel || (isComboStep ? "Confirmar opção" : "Comprar")}
           </button>
         )}
       </div>

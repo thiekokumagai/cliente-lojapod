@@ -1,11 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import ProductVariationModal from "@/components/ProductVariationModal";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
+import { StockNotificationModal } from "@/components/StockNotificationModal";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 
 interface UrbanProductCardProps {
   product: Product;
@@ -18,10 +21,23 @@ const formatPrice = (price: number) =>
 export default function UrbanProductCard({ product, isBestSeller }: UrbanProductCardProps) {
   const isMobile = useIsMobile();
   const { addToCart } = useCart();
+  const { data: storeSettings } = useStoreSettings();
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [showVariationModal, setShowVariationModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
   const productImage = product.image || "";
+
+  const {
+    startComboFlow,
+    isStepActive: isComboFlowActive,
+    currentProductForModal: comboStepProduct,
+    activeCombo,
+    currentStepIndex: comboStepIndex,
+    totalSteps: comboTotalSteps,
+    handleConfirmCurrentStep: handleConfirmComboStep,
+    handleCancelComboFlow,
+  } = useComboVariationFlow();
 
   const discountPercentage = useMemo(() => {
     if (product.isPromo && product.oldPrice && product.price < product.oldPrice) {
@@ -40,9 +56,26 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
 
   const hasVariationGroup = allGroups.length > 0;
 
+  const availableOptions = useMemo(() => {
+    return allGroups.flatMap((g) => g.options).filter((o) => o.available);
+  }, [allGroups]);
+
+  const isUnavailable = useMemo(() => {
+    if (hasVariationGroup) {
+      return availableOptions.length === 0;
+    }
+    return (product.stock ?? 0) <= 0;
+  }, [hasVariationGroup, availableOptions.length, product.stock]);
+
   const handleBuy = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (product.isCombo) {
+      startComboFlow(product);
+      return;
+    }
+
     if (hasVariationGroup) {
       setSelectedVariation(null);
       setShowVariationModal(true);
@@ -130,17 +163,40 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
           </div>
         </div>
 
-        {/* Botão + Ícone Apenas */}
+        {/* Botão de Adição ou Avise-me */}
         <div className="flex items-end justify-end sm:self-center shrink-0">
-          <button
-            type="button"
-            onClick={handleBuy}
-            className="flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-lg text-white font-bold hover:opacity-90 transition-all shadow-xs shrink-0"
-            style={{ backgroundColor: "var(--primary-custom, #000000)" }}
-            aria-label="Adicionar ao carrinho"
-          >
-            <Plus className="h-4 w-4 stroke-[2.5]" />
-          </button>
+          {isUnavailable ? (
+            storeSettings?.enableStockAlertNotification !== false ? (
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShowNotificationModal(true);
+                }}
+                className="flex items-center justify-center h-8 px-2.5 rounded-lg text-white font-bold text-xs hover:opacity-90 transition-all shadow-xs shrink-0 gap-1"
+                style={{ backgroundColor: "#ea580c" }}
+                title="Avise-me quando chegar"
+              >
+                <BellRing className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Avise-me</span>
+              </button>
+            ) : (
+              <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded">
+                Esgotado
+              </span>
+            )
+          ) : (
+            <button
+              type="button"
+              onClick={handleBuy}
+              className="flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-lg text-white font-bold hover:opacity-90 transition-all shadow-xs shrink-0"
+              style={{ backgroundColor: "var(--primary-custom, #000000)" }}
+              aria-label="Adicionar ao carrinho"
+            >
+              <Plus className="h-4 w-4 stroke-[2.5]" />
+            </button>
+          )}
         </div>
       </div>
   );
@@ -168,6 +224,22 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
         />
       )}
 
+      {/* Modal de Variação de Componente do Combo (Reutilizado) */}
+      {isComboFlowActive && comboStepProduct && (
+        <ProductVariationModal
+          product={comboStepProduct}
+          selectedOption={null}
+          onSelect={() => {}}
+          onClose={handleCancelComboFlow}
+          onConfirm={() => {}}
+          isComboStep={true}
+          customTitle={comboStepProduct.name}
+          customSubtitle={`Item ${comboStepIndex + 1} de ${comboTotalSteps} do ${activeCombo?.name || "Combo"}`}
+          customConfirmLabel={comboStepIndex + 1 === comboTotalSteps ? "Concluir e Adicionar Combo" : "Avançar Próximo Item"}
+          onConfirmVariation={handleConfirmComboStep}
+        />
+      )}
+
       {/* Modal Interno de Detalhes */}
       {showDetailsModal && (
         <ProductDetailsModal
@@ -176,6 +248,18 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
             setShowDetailsModal(false);
             window.history.pushState({}, '', '/');
           }}
+        />
+      )}
+
+      {/* Modal de Avise-me quando chegar */}
+      {showNotificationModal && (
+        <StockNotificationModal
+          isOpen={showNotificationModal}
+          onClose={() => setShowNotificationModal(false)}
+          productId={product.id}
+          comboId={product.isCombo ? (product.comboId || product.id) : undefined}
+          isCombo={product.isCombo}
+          productTitle={product.name}
         />
       )}
     </>

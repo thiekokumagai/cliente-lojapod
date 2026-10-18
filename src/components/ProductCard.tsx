@@ -8,6 +8,7 @@ import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { StockNotificationModal } from "@/components/StockNotificationModal";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 import seloMaisVendido from "@/assets/seloMaisVendido.png";
 
 
@@ -36,6 +37,17 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const productImage = product.image || "";
 
+  const {
+    startComboFlow,
+    isStepActive: isComboFlowActive,
+    currentProductForModal: comboStepProduct,
+    activeCombo,
+    currentStepIndex: comboStepIndex,
+    totalSteps: comboTotalSteps,
+    handleConfirmCurrentStep: handleConfirmComboStep,
+    handleCancelComboFlow,
+  } = useComboVariationFlow();
+
   const discountPercentage = useMemo(() => {
     if (product.isPromo && product.oldPrice && product.price < product.oldPrice) {
       return Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100);
@@ -56,6 +68,13 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   const availableOptions = useMemo(() => {
     return allGroups.flatMap((g) => g.options).filter((o) => o.available);
   }, [allGroups]);
+
+  const isUnavailable = useMemo(() => {
+    if (hasVariationGroup) {
+      return availableOptions.length === 0;
+    }
+    return product.stock !== undefined && product.stock <= 0;
+  }, [hasVariationGroup, availableOptions.length, product.stock]);
 
   const cartItem = items.find(
     (item) => item.product.id === product.id && item.selectedVariation === undefined
@@ -78,6 +97,11 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   );
 
   const handleBuy = () => {
+    if (product.isCombo) {
+      startComboFlow(product);
+      return;
+    }
+
     if (hasVariationGroup) {
       setSelectedVariation(null);
       setShowVariationModal(true);
@@ -247,49 +271,16 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
           </div>
         </div>
 
-        {hasVariationGroup ? (
-          <button
-            type="button"
-            onClick={handleBuy}
-            disabled={availableOptions.length === 0}
-            className={`mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold ${
-              availableOptions.length === 0
-                ? "bg-muted text-muted-foreground"
-                : "bg-primary text-primary-foreground"
-            }`}
-          >
-            <ShoppingCart className="h-4 w-4" />
-            {availableOptions.length === 0 ? "Indisponível" : hasVariationInCart ? "Adicionar mais" : "Comprar"}
-          </button>
-          ) : quantityInCart > 0 ? (
-            <div className="mt-2 flex h-12 items-center justify-between rounded-xl bg-primary px-4 text-primary-foreground">
-              <button
-                type="button"
-                onClick={handleDecrease}
-                className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-foreground/20"
-                aria-label="Diminuir quantidade"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-
-              <span className="text-base font-semibold">{quantityInCart}</span>
-
-              <button
-                type="button"
-                disabled={isAtLimit}
-                onClick={handleIncrease}
-                className={`flex h-7 w-7 items-center justify-center rounded-full ${isAtLimit ? "bg-muted/40 text-muted-foreground opacity-50 cursor-not-allowed" : "bg-primary-foreground/20"}`}
-                aria-label="Aumentar quantidade"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-          ) : product.stock === 0 ? (
+        {product.isCombo ? (
+          (product.stock ?? 0) <= 0 ? (
             storeSettings?.enableStockAlertNotification !== false ? (
               <button
                 type="button"
                 onClick={() => setShowNotificationModal(true)}
-                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-sm transition-colors" style={{ backgroundColor: '#ea580c' }} onMouseOver={e => (e.currentTarget.style.backgroundColor='#c2410c')} onMouseOut={e => (e.currentTarget.style.backgroundColor='#ea580c')}
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-sm transition-colors"
+                style={{ backgroundColor: '#ea580c' }}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#c2410c')}
+                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#ea580c')}
               >
                 <BellRing className="h-4 w-4" />
                 Avise-me quando chegar
@@ -310,9 +301,70 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
               className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold bg-primary text-primary-foreground"
             >
               <ShoppingCart className="h-4 w-4" />
-              Comprar
+              Comprar Combo
             </button>
-          )}
+          )
+        ) : isUnavailable ? (
+          storeSettings?.enableStockAlertNotification !== false ? (
+            <button
+              type="button"
+              onClick={() => setShowNotificationModal(true)}
+              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-sm transition-colors" style={{ backgroundColor: '#ea580c' }} onMouseOver={e => (e.currentTarget.style.backgroundColor='#c2410c')} onMouseOut={e => (e.currentTarget.style.backgroundColor='#ea580c')}
+            >
+              <BellRing className="h-4 w-4" />
+              Avise-me quando chegar
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold bg-muted text-muted-foreground cursor-not-allowed"
+            >
+              Esgotado
+            </button>
+          )
+        ) : hasVariationGroup ? (
+          <button
+            type="button"
+            onClick={handleBuy}
+            className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold bg-primary text-primary-foreground"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            {hasVariationInCart ? "Adicionar mais" : "Comprar"}
+          </button>
+        ) : quantityInCart > 0 ? (
+          <div className="mt-2 flex h-12 items-center justify-between rounded-xl bg-primary px-4 text-primary-foreground">
+            <button
+              type="button"
+              onClick={handleDecrease}
+              className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-foreground/20"
+              aria-label="Diminuir quantidade"
+            >
+              <Minus className="h-4 w-4" />
+            </button>
+
+            <span className="text-base font-semibold">{quantityInCart}</span>
+
+            <button
+              type="button"
+              disabled={isAtLimit}
+              onClick={handleIncrease}
+              className={`flex h-7 w-7 items-center justify-center rounded-full ${isAtLimit ? "bg-muted/40 text-muted-foreground opacity-50 cursor-not-allowed" : "bg-primary-foreground/20"}`}
+              aria-label="Aumentar quantidade"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleBuy}
+            className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold bg-primary text-primary-foreground"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            Comprar
+          </button>
+        )}
         </div>
 
       {showVariationModal && (
@@ -322,6 +374,20 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
           onSelect={setSelectedVariation}
           onClose={() => setShowVariationModal(false)}
           onConfirm={handleConfirmVariation}
+        />
+      )}
+      {isComboFlowActive && comboStepProduct && (
+        <ProductVariationModal
+          product={comboStepProduct}
+          selectedOption={null}
+          onSelect={() => {}}
+          onClose={handleCancelComboFlow}
+          onConfirm={() => {}}
+          isComboStep={true}
+          customTitle={comboStepProduct.name}
+          customSubtitle={`Item ${comboStepIndex + 1} de ${comboTotalSteps} do ${activeCombo?.name || "Combo"}`}
+          customConfirmLabel={comboStepIndex + 1 === comboTotalSteps ? "Concluir e Adicionar Combo" : "Avançar Próximo Item"}
+          onConfirmVariation={handleConfirmComboStep}
         />
       )}
       {showDetailsModal && (
@@ -338,6 +404,8 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
           isOpen={showNotificationModal}
           onClose={() => setShowNotificationModal(false)}
           productId={product.id}
+          comboId={product.isCombo ? (product.comboId || product.id) : undefined}
+          isCombo={product.isCombo}
           productTitle={product.name}
         />
       )}

@@ -26,10 +26,17 @@ const PromotionsSection = () => {
           ? [product.variationGroup]
           : [];
 
+    const allowsNotification = settings?.enableStockAlertNotification !== false;
     const hasAvailableVariations =
       groups.length > 0
         ? groups.some((group) => group.options.some((option) => option.available))
         : true;
+
+    const isAvailableOrNotifiable =
+      product.isCombo
+        ? (product.stock ?? 0) > 0 || allowsNotification
+        : hasAvailableVariations || allowsNotification;
+
     const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
     const matchesSearch = matchesProductSearch(searchTerm, product);
 
@@ -51,7 +58,7 @@ const PromotionsSection = () => {
           )
         : true;
 
-    return hasAvailableVariations && matchesCategory && matchesSearch && matchesNicotine;
+    return isAvailableOrNotifiable && matchesCategory && matchesSearch && matchesNicotine;
   });
 
   const visibleProducts = sortProducts(filteredProducts, sortOption, apiCategories);

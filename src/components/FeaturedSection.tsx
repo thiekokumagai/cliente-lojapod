@@ -2,6 +2,7 @@ import ProductCard from "./ProductCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts, useCategories } from "@/hooks/useProducts";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { matchesProductSearch } from "@/utils/search";
 import { sortProducts } from "@/utils/sortProducts";
 import useEmblaCarousel from "embla-carousel-react";
@@ -12,6 +13,8 @@ const FeaturedSection = () => {
   const { data: allProducts = [] } = useProducts();
   const { data: apiCategories = [] } = useCategories();
   const normalizedSearch = searchTerm.trim().toLowerCase();
+
+  const { data: settings } = useStoreSettings();
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
@@ -34,10 +37,17 @@ const FeaturedSection = () => {
           ? [product.variationGroup]
           : [];
 
+    const allowsNotification = settings?.enableStockAlertNotification !== false;
     const hasAvailableVariations =
       groups.length > 0
         ? groups.some((group) => group.options.some((option) => option.available))
         : true;
+
+    const isAvailableOrNotifiable =
+      product.isCombo
+        ? (product.stock ?? 0) > 0 || allowsNotification
+        : hasAvailableVariations || allowsNotification;
+
     const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
     const matchesSearch = matchesProductSearch(searchTerm, product);
 
@@ -59,7 +69,7 @@ const FeaturedSection = () => {
           )
         : true;
 
-    return hasAvailableVariations && matchesCategory && matchesSearch && matchesNicotine;
+    return isAvailableOrNotifiable && matchesCategory && matchesSearch && matchesNicotine;
   });
 
   const visibleProducts = sortProducts(filteredProducts, sortOption, apiCategories);

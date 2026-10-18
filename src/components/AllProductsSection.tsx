@@ -72,10 +72,20 @@ const AllProductsSection = () => {
             ? [product.variationGroup]
             : [];
 
+      const allowsNotification =
+        settings?.enableStockAlertNotification !== false;
+
       const hasAvailableVariations =
         groups.length > 0
           ? groups.some((group) => group.options.some((option) => option.available))
           : true;
+
+      // Se o produto/combo estiver sem estoque ou sem variação disponível,
+      // ele só deve ser exibido se a loja permitir a notificação "Avise-me quando chegar"
+      const isAvailableOrNotifiable =
+        product.isCombo
+          ? (product.stock ?? 0) > 0 || allowsNotification
+          : hasAvailableVariations || allowsNotification;
 
       const matchesSearch = matchesProductSearch(searchTerm, product);
 
@@ -98,7 +108,7 @@ const AllProductsSection = () => {
             )
           : true;
 
-      return hasAvailableVariations && matchesSearch && matchesNicotine;
+      return isAvailableOrNotifiable && matchesSearch && matchesNicotine;
     });
 
   const sortedProducts = sortProducts(filteredProducts, sortOption, apiCategories);
