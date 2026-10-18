@@ -381,7 +381,7 @@ const ProductDetailsModal = ({
 
           {product.description && (
             <div 
-              className="mt-3 text-sm text-muted-foreground"
+              className="mt-3 text-sm text-muted-foreground rich-text-content"
               dangerouslySetInnerHTML={{ __html: product.description }} 
             />
           )}

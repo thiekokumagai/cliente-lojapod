@@ -63,7 +63,7 @@ const AllProductsSection = () => {
   }, [sortOption]);
 
   const filteredProducts = allProducts
-    .filter((p) => !p.isPromo)
+    .filter((p) => !p.isPromo || p.isCombo)
     .filter((product) => {
       const groups =
         product.variationGroups && product.variationGroups.length > 0

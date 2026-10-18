@@ -255,16 +255,70 @@ export function useProduct(id?: string) {
     queryKey: ["api-product", id],
     queryFn: async (): Promise<Product | null> => {
       if (!id) return null;
-      const response = await fetch(
-        `${import.meta.env.VITE_ADMIN_API}/store/products/${id}`,
-        {
-          headers: getApiHeaders(),
-        },
-      );
-      if (!response.ok) throw new Error("Failed to fetch product");
-      const data = await response.json();
-      if (!data) return null;
-      return transformNewApiProduct(data);
+
+      // 1. Tentar buscar como produto convencional
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_ADMIN_API}/store/products/${id}`,
+          {
+            headers: getApiHeaders(),
+          },
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data) return transformNewApiProduct(data);
+        }
+      } catch (err) {
+        // Fallback para combo
+      }
+
+      // 2. Se não encontrar em products, tentar buscar em combos
+      try {
+        const comboRes = await fetch(
+          `${import.meta.env.VITE_ADMIN_API}/store/combos/${id}`,
+          {
+            headers: getApiHeaders(),
+          },
+        );
+        if (comboRes.ok) {
+          const c = await comboRes.json();
+          if (c) {
+            const img = buildImageUrl(c.imageUrl);
+            return {
+              id: c.id,
+              comboId: c.id,
+              isCombo: true,
+              name: c.name,
+              image: img,
+              images: img ? [img] : [],
+              category: c.categoryTitle || "Combos",
+              categoryId: c.categoryId,
+              description: c.description || "",
+              price: Number(c.price),
+              oldPrice: c.originalPrice > c.price ? Number(c.originalPrice) : undefined,
+              isPromo: c.originalPrice > c.price,
+              isFeatured: true,
+              stock: c.stock ?? 99,
+              maxPerOrder: c.maxPerOrder,
+              discountPercentage: c.discountPercentage,
+              createdAt: c.createdAt,
+              comboItems: (c.items || []).map((ci: any) => ({
+                productId: ci.productId,
+                productItemId: ci.productItemId,
+                productName: ci.productName,
+                productPrice: ci.productPrice,
+                productImage: ci.productImage ? buildImageUrl(ci.productImage) : null,
+                quantity: ci.quantity,
+                variation: ci.variation,
+              })),
+            };
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao buscar combo por ID:", err);
+      }
+
+      throw new Error("Failed to fetch product or combo");
     },
     enabled: !!id,
     staleTime: 5 * 60 * 1000,

@@ -85,6 +85,49 @@
       font-size: 16px !important;
     }
   }
+
+  /* Formatação HTML vinda do editor de texto rico (produtos e combos) */
+  .rich-text-content strong,
+  .rich-text-content b {
+    font-weight: 700 !important;
+    color: inherit;
+  }
+
+  .rich-text-content em,
+  .rich-text-content i {
+    font-style: italic !important;
+  }
+
+  .rich-text-content s,
+  .rich-text-content strike {
+    text-decoration: line-through !important;
+  }
+
+  .rich-text-content ul {
+    list-style-type: disc !important;
+    padding-left: 1.25rem !important;
+    margin: 0.5rem 0 !important;
+  }
+
+  .rich-text-content ol {
+    list-style-type: decimal !important;
+    padding-left: 1.25rem !important;
+    margin: 0.5rem 0 !important;
+  }
+
+  .rich-text-content li {
+    margin-bottom: 0.25rem !important;
+  }
+
+  .rich-text-content h1,
+  .rich-text-content h2,
+  .rich-text-content h3,
+  .rich-text-content h4 {
+    font-weight: 700 !important;
+    margin-top: 0.75rem !important;
+    margin-bottom: 0.35rem !important;
+    color: inherit;
+  }
 }
 
 @layer utilities {

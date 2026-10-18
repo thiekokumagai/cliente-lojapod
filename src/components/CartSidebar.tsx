@@ -870,9 +870,18 @@ const CartSidebar = () => {
 
   const checkoutMessage = useMemo(() => {
     const itemsFormatted = checkoutItems.map(item => {
-      let qtyStr = `${item.quantity} x ${item.product.name}: ${formatPrice(item.product.price * item.quantity)}`;
+      const isCombo = item.product.isCombo;
+      const prefix = isCombo ? "[COMBO] " : "";
+      let qtyStr = `${item.quantity} x ${prefix}${item.product.name}: ${formatPrice(item.product.price * item.quantity)}`;
       if (item.selectedVariation) {
         qtyStr += `\n    ${item.quantity}x ${item.selectedVariation}`;
+      }
+      if (isCombo && item.product.comboItems && item.product.comboItems.length > 0) {
+        item.product.comboItems.forEach(ci => {
+          const compQtd = (ci.quantity || 1) * item.quantity;
+          const compVar = ci.variation ? ` (${ci.variation})` : "";
+          qtyStr += `\n    • ${compQtd}x ${ci.productName}${compVar}`;
+        });
       }
       return qtyStr;
     }).join("\n\n");
@@ -1960,14 +1969,28 @@ const CartSidebar = () => {
                           <div className="flex items-start gap-2 flex-1">
                             <span className="text-muted-foreground whitespace-nowrap">{item.quantity}x</span>
                             <div className="flex flex-col">
-                              {item.product.category && (
+                              {item.product.isCombo ? (
+                                <span className="mb-0.5 inline-block text-[10px] font-bold uppercase tracking-wider text-indigo-600">
+                                  [Combo Especial]
+                                </span>
+                              ) : item.product.category ? (
                                 <span className="mb-0.5 text-[10px] font-semibold uppercase tracking-wider text-primary">
                                   {item.product.category}
                                 </span>
-                              )}
+                              ) : null}
                               <span className="text-foreground">{item.product.name}</span>
                               {item.selectedVariation && (
                                 <span className="text-xs text-muted-foreground">{item.selectedVariation}</span>
+                              )}
+                              {item.product.isCombo && item.product.comboItems && item.product.comboItems.length > 0 && (
+                                <div className="mt-1 pl-2 border-l-2 border-indigo-200 space-y-0.5">
+                                  {item.product.comboItems.map((ci, cIdx) => (
+                                    <p key={cIdx} className="text-[11px] text-muted-foreground">
+                                      • {(ci.quantity || 1) * item.quantity}x {ci.productName}
+                                      {ci.variation ? ` (${ci.variation})` : ""}
+                                    </p>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -2321,11 +2344,15 @@ const CartSidebar = () => {
                         />
 
                         <div className="min-w-0 flex-1">
-                          {item.product.category && (
+                          {item.product.isCombo ? (
+                            <span className="mb-1 inline-block text-[10px] font-bold uppercase tracking-wider text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">
+                              Combo Especial
+                            </span>
+                          ) : item.product.category ? (
                             <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wider text-primary">
                               {item.product.category}
                             </span>
-                          )}
+                          ) : null}
                           <div className="flex items-start justify-between gap-3">
                             <p className="line-clamp-1 text-[15px] text-[#666666]">{item.product.name}</p>
                             <span className="shrink-0 text-[15px] font-semibold text-[#666666]">
@@ -2334,6 +2361,16 @@ const CartSidebar = () => {
                           </div>
                           {item.selectedVariation && (
                             <p className="mt-1 text-[15px] text-[#8b8b8b]">1x {item.selectedVariation}</p>
+                          )}
+                          {item.product.isCombo && item.product.comboItems && item.product.comboItems.length > 0 && (
+                            <div className="mt-1 pl-2 border-l-2 border-indigo-200 space-y-0.5">
+                              {item.product.comboItems.map((ci, cIdx) => (
+                                <p key={cIdx} className="text-[12px] text-[#8b8b8b]">
+                                  • {(ci.quantity || 1) * item.quantity}x {ci.productName}
+                                  {ci.variation ? ` (${ci.variation})` : ""}
+                                </p>
+                              ))}
+                            </div>
                           )}
                         </div>
                       </div>

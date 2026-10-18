@@ -19,15 +19,39 @@ const ProductInfo = ({
   onSelectOption,
 }: ProductInfoProps) => {
   const descriptionClassName = isDesktop
-    ? "mt-6 text-[15px] leading-[1.35] text-[#6f6f6f] [&>p]:mb-3 last:[&>p]:mb-0"
-    : "mt-5 text-[16px] leading-[1.35] text-[#7a7a7a] [&>p]:mb-3 last:[&>p]:mb-0";
+    ? "mt-6 text-[15px] leading-[1.35] text-[#6f6f6f] rich-text-content [&>p]:mb-3 last:[&>p]:mb-0"
+    : "mt-5 text-[16px] leading-[1.35] text-[#7a7a7a] rich-text-content [&>p]:mb-3 last:[&>p]:mb-0";
+
+  const comboBlock = product?.isCombo && product.comboItems && product.comboItems.length > 0 && (
+    <div className="my-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 space-y-2.5">
+      <span className="text-xs font-bold uppercase tracking-wider text-indigo-950 block">
+        Produtos inclusos neste combo:
+      </span>
+      <div className="space-y-1.5">
+        {product.comboItems.map((ci, idx) => (
+          <div key={idx} className="flex items-center justify-between text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-100 shadow-xs">
+            <span className="font-semibold text-slate-800">
+              {ci.quantity}x {ci.productName}
+              {ci.variation ? ` (${ci.variation})` : ""}
+            </span>
+            <span className="text-slate-500 font-medium">
+              R$ {ci.productPrice.toFixed(2).replace(".", ",")} un.
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 
   if (!variationGroups || variationGroups.length === 0) {
     return (
-      <div
-        className={descriptionClassName}
-        dangerouslySetInnerHTML={{ __html: productDescription }}
-      />
+      <div>
+        {comboBlock}
+        <div
+          className={descriptionClassName}
+          dangerouslySetInnerHTML={{ __html: productDescription }}
+        />
+      </div>
     );
   }
 
@@ -39,8 +63,9 @@ const ProductInfo = ({
           : "mt-5 space-y-5 text-[16px] text-[#7a7a7a]"
       }
     >
+      {comboBlock}
       <div
-        className={`${isDesktop ? "text-[16px] text-[#666666]" : ""} [&>p]:mb-3 last:[&>p]:mb-0`}
+        className={`${isDesktop ? "text-[16px] text-[#666666]" : ""} rich-text-content [&>p]:mb-3 last:[&>p]:mb-0`}
         dangerouslySetInnerHTML={{ __html: productDescription }}
       />
 
