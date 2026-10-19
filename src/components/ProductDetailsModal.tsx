@@ -16,7 +16,7 @@ import {
   isOptionAvailableGivenSelections,
   getSelectedCombinationStock,
 } from "@/utils/variation-stock";
-import { getReservedStockInCart } from "@/utils/cart-stock";
+import { getReservedStockInCart, getProductAvailableStock, areVariationsEqual } from "@/utils/cart-stock";
 
 interface ProductDetailsModalProps {
   product: Product;
@@ -159,7 +159,22 @@ const ProductDetailsModal = ({
     return product.stock !== undefined && product.stock <= 0;
   }, [allGroups, product.stock]);
 
-  const [comboSelections, setComboSelections] = useState<Record<string, string>>({});
+  const [comboSelections, setComboSelections] = useState<Record<string, string>>(() => {
+    if (!product.isCombo || !product.comboItems) return {};
+    const existingComboInCart = items.find(
+      (item) => item.product.id === product.id || item.product.comboId === product.id
+    );
+    if (!existingComboInCart || !existingComboInCart.comboSelections) return {};
+    const initialSelections: Record<string, string> = {};
+    product.comboItems.forEach((ci, idx) => {
+      const compKey = `${ci.productId}-${idx}`;
+      const found = existingComboInCart.comboSelections?.find((cs) => cs.productId === ci.productId);
+      if (found?.variation) {
+        initialSelections[compKey] = found.variation;
+      }
+    });
+    return initialSelections;
+  });
 
   const comboNeedsSelections = useMemo(() => {
     if (!product.isCombo || !product.comboItems) return [];
@@ -195,9 +210,19 @@ const ProductDetailsModal = ({
 
   const quantityInCart = useMemo(() => {
     if (product.isCombo) {
-      // Para combos, não travar o modal como "Adicionado" para permitir configurar ou comprar mais
-      return 0;
+      if (!allComboComponentsSelected) return 0;
+      const comboCartItem = items.find((item) => {
+        if (item.product.id !== product.id && item.product.comboId !== product.id) return false;
+        return comboNeedsSelections.every((cns) => {
+          if (!cns.needsSelection) return true;
+          const chosenVar = comboSelections[cns.compKey];
+          const itemSel = item.comboSelections?.find((cs) => cs.productId === cns.ci.productId);
+          return areVariationsEqual(itemSel?.variation, chosenVar);
+        });
+      });
+      return comboCartItem?.quantity ?? 0;
     }
+
     const variationToCheck = allGroups.length > 0 ? combinedVariation : undefined;
     if (allGroups.length > 0 && !combinedVariation) return 0;
 
@@ -208,9 +233,25 @@ const ProductDetailsModal = ({
     );
 
     return cartItem?.quantity ?? 0;
-  }, [items, product.id, product.isCombo, combinedVariation, allGroups.length]);
+  }, [items, product.id, product.isCombo, product.comboId, combinedVariation, allGroups.length, allComboComponentsSelected, comboNeedsSelections, comboSelections]);
 
   useEffect(() => {
+    if (product.isCombo) {
+      if (!allComboComponentsSelected) {
+        setDisplayQuantity(1);
+        setIsLocked(false);
+        return;
+      }
+      if (quantityInCart > 0) {
+        setDisplayQuantity(quantityInCart);
+        return;
+      }
+      if (!isLocked) {
+        setDisplayQuantity(1);
+      }
+      return;
+    }
+
     const hasVariations = allGroups.length > 0;
 
     if (hasVariations && (!combinedVariation || !allSelected)) {
@@ -227,7 +268,7 @@ const ProductDetailsModal = ({
     if (!isLocked) {
       setDisplayQuantity(1);
     }
-  }, [quantityInCart, combinedVariation, allSelected, isLocked, allGroups.length]);
+  }, [product.isCombo, allComboComponentsSelected, quantityInCart, combinedVariation, allSelected, isLocked, allGroups.length]);
 
   useEffect(() => {
     return () => {
@@ -259,6 +300,8 @@ const ProductDetailsModal = ({
   };
 
   const handleSelectComboOption = (componentKey: string, variationLabel: string) => {
+    if (quantityInCart > 0) return;
+
     setComboSelections((prev) => {
       const next = { ...prev };
       if (next[componentKey] === variationLabel) {
@@ -332,9 +375,24 @@ const ProductDetailsModal = ({
   };
 
   const isAtLimit = useMemo(() => {
+    if (product.isCombo) {
+      const comboComponents = product.comboItems || [];
+      return comboComponents.some((ci) => {
+        const chosen = comboNeedsSelections.find((cns) => cns.ci.productId === ci.productId);
+        const compVar = ci.variation || (chosen ? comboSelections[chosen.compKey] : undefined);
+        const compStock = ci.componentProduct
+          ? getProductAvailableStock(ci.componentProduct, compVar)
+          : null;
+        if (compStock === null) return false;
+        const currentReserved = getReservedStockInCart(items, ci.productId, compVar);
+        const neededForNext = ci.quantity || 1;
+        return currentReserved + neededForNext > compStock;
+      });
+    }
+
     if (effectiveRemainingStock !== null && effectiveRemainingStock !== undefined && displayQuantity >= effectiveRemainingStock) return true;
     return false;
-  }, [effectiveRemainingStock, displayQuantity]);
+  }, [product.isCombo, product.comboItems, comboNeedsSelections, comboSelections, items, effectiveRemainingStock, displayQuantity]);
 
   const handleIncrease = () => {
     if (isAtLimit) return;
@@ -507,11 +565,11 @@ const ProductDetailsModal = ({
                                     <button
                                       key={option.label}
                                       type="button"
-                                      onClick={() => isAvailable && handleSelectComboOption(compKey, option.label)}
-                                      disabled={!isAvailable}
+                                      onClick={() => isAvailable && quantityInCart === 0 && handleSelectComboOption(compKey, option.label)}
+                                      disabled={!isAvailable || quantityInCart > 0}
                                       className={`flex w-full items-center justify-between py-2.5 text-left transition-colors ${
-                                        isAvailable ? "hover:bg-muted/40 cursor-pointer" : "cursor-not-allowed opacity-50"
-                                      }`}
+                                        isAvailable && quantityInCart === 0 ? "hover:bg-muted/40 cursor-pointer" : "cursor-not-allowed opacity-50"
+                                      } ${quantityInCart > 0 && !isSelected ? "opacity-50" : ""}`}
                                     >
                                       <div>
                                         <p className={`text-sm font-medium px-2 ${!isAvailable ? "line-through text-muted-foreground" : "text-foreground"}`}>
