@@ -9,6 +9,7 @@ import {
   isOptionAvailableGivenSelections,
   getSelectedCombinationStock,
 } from "@/utils/variation-stock";
+import { getReservedStockInCart } from "@/utils/cart-stock";
 
 interface ProductVariationModalProps {
   product: Product;
@@ -114,9 +115,21 @@ const ProductVariationModal = ({
     );
   }, [product, selections, allGroups]);
 
+  const reservedInCombosAndCart = useMemo(() => {
+    if (!combinedVariation) return 0;
+    // Calculate total reserved across all items in cart (including combos)
+    return getReservedStockInCart(items, product.id, combinedVariation);
+  }, [items, product.id, combinedVariation]);
+
+  const effectiveRemainingStock = useMemo(() => {
+    if (combinationStock === null) return null;
+    return Math.max(0, combinationStock - reservedInCombosAndCart);
+  }, [combinationStock, reservedInCombosAndCart]);
+
   const isCombinationUnavailable = useMemo(() => {
-    return combinationStock !== null && combinationStock <= 0;
-  }, [combinationStock]);
+    if (combinationStock === null) return false;
+    return effectiveRemainingStock !== null && effectiveRemainingStock <= 0;
+  }, [combinationStock, effectiveRemainingStock]);
 
   const canAddToCart = allSelected && !isCombinationUnavailable;
 
@@ -215,19 +228,19 @@ const ProductVariationModal = ({
     updateQuantity(product.id, nextQuantity, combinedVariation);
   };
 
+  const isAtLimit = useMemo(() => {
+    if (effectiveRemainingStock !== null && displayQuantity >= effectiveRemainingStock) return true;
+    return false;
+  }, [effectiveRemainingStock, displayQuantity]);
+
   const handleIncrease = () => {
     if (!combinedVariation || displayQuantity === 0) return;
-    if (combinationStock !== null && displayQuantity >= combinationStock) return;
+    if (isAtLimit) return;
 
     const nextQuantity = displayQuantity + 1;
     setDisplayQuantity(nextQuantity);
     updateQuantity(product.id, nextQuantity, combinedVariation);
   };
-
-  const isAtLimit = useMemo(() => {
-    if (combinationStock !== null && displayQuantity >= combinationStock) return true;
-    return false;
-  }, [combinationStock, displayQuantity]);
 
   if (!isOpen || allGroups.length === 0) return null;
 

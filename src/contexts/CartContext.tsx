@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useMemo, useEffect, u
 import type { Product, SelectedProduct, ComboComponentSelection } from "@/data/products";
 import { trackEvent } from "@/components/FacebookPixel";
 import { syncCartAnalytics } from "@/services/analytics";
+import { getReservedStockInCart, getProductAvailableStock } from "@/utils/cart-stock";
 
 export interface CartItem {
   product: Product;
@@ -177,6 +178,40 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
       const normalizedComboKey = getComboKey(normalizedItem);
 
+      // Validação de estoque considerando a demanda acumulada (itens avulsos + componentes de combos)
+      if (normalizedItem.product.isCombo) {
+        const comboComponents = normalizedItem.product.comboItems || [];
+        for (const ci of comboComponents) {
+          const chosen = normalizedItem.comboSelections?.find((cs) => cs.productId === ci.productId);
+          const compVar = ci.variation || chosen?.variation;
+          const currentReserved = getReservedStockInCart(prev, ci.productId, compVar);
+          const needed = (ci.quantity || 1);
+          const compStock = ci.componentProduct
+            ? getProductAvailableStock(ci.componentProduct, compVar)
+            : null;
+
+          if (compStock !== null && currentReserved + needed > compStock) {
+            // Estoque insuficiente para este componente do combo
+            return prev;
+          }
+        }
+      } else {
+        const currentReserved = getReservedStockInCart(
+          prev,
+          normalizedItem.product.id,
+          normalizedItem.selectedVariation
+        );
+        const availableStock = getProductAvailableStock(
+          normalizedItem.product,
+          normalizedItem.selectedVariation
+        );
+
+        if (availableStock !== null && currentReserved + 1 > availableStock) {
+          // Estoque acumulado insuficiente (já consumido avulso ou em combos)
+          return prev;
+        }
+      }
+
       const existing = prev.find((cartItem) => {
         if (cartItem.product.id !== normalizedItem.product.id) return false;
         if (cartItem.selectedVariation !== normalizedItem.selectedVariation) return false;
@@ -185,22 +220,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         }
         return true;
       });
-
-      if (existing) {
-        if (normalizedItem.selectedVariation && normalizedItem.product.variationGroup) {
-          const opt = normalizedItem.product.variationGroup.options.find(o => o.label === normalizedItem.selectedVariation);
-          if (opt?.stock !== undefined && existing.quantity >= opt.stock) return prev;
-        } else if (normalizedItem.product.stock !== undefined && existing.quantity >= normalizedItem.product.stock) {
-          return prev;
-        }
-      } else {
-        if (normalizedItem.selectedVariation && normalizedItem.product.variationGroup) {
-          const opt = normalizedItem.product.variationGroup.options.find(o => o.label === normalizedItem.selectedVariation);
-          if (opt?.stock !== undefined && opt.stock < 1) return prev;
-        } else if (normalizedItem.product.stock !== undefined && normalizedItem.product.stock < 1) {
-          return prev;
-        }
-      }
 
       const nextItems = existing
         ? prev.map((cartItem) => {
@@ -265,23 +284,60 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
-    setItems((prev) =>
-      prev.map((item) => {
-        if (item.product.id === productId && item.selectedVariation === selectedVariation) {
-          let finalQuantity = quantity;
-          if (selectedVariation && item.product.variationGroup) {
-            const opt = item.product.variationGroup.options.find(o => o.label === selectedVariation);
-            if (opt?.stock !== undefined && finalQuantity > opt.stock) {
-              finalQuantity = opt.stock;
+    setItems((prev) => {
+      const targetIndex = prev.findIndex(
+        (item) => item.product.id === productId && item.selectedVariation === selectedVariation
+      );
+      if (targetIndex === -1) return prev;
+
+      const item = prev[targetIndex];
+      let finalQuantity = quantity;
+
+      if (item.product.isCombo) {
+        const comboComponents = item.product.comboItems || [];
+        for (const ci of comboComponents) {
+          const chosen = item.comboSelections?.find((cs) => cs.productId === ci.productId);
+          const compVar = ci.variation || chosen?.variation;
+          const reservedOther = getReservedStockInCart(prev, ci.productId, compVar, targetIndex);
+          const compStock = ci.componentProduct
+            ? getProductAvailableStock(ci.componentProduct, compVar)
+            : null;
+
+          if (compStock !== null) {
+            const maxAllowedForComp = Math.floor(
+              Math.max(0, compStock - reservedOther) / (ci.quantity || 1)
+            );
+            if (finalQuantity > maxAllowedForComp) {
+              finalQuantity = maxAllowedForComp;
             }
-          } else if (item.product.stock !== undefined && finalQuantity > item.product.stock) {
-            finalQuantity = item.product.stock;
           }
-          return { ...item, quantity: finalQuantity };
         }
-        return item;
-      })
-    );
+      } else {
+        const reservedOther = getReservedStockInCart(
+          prev,
+          item.product.id,
+          item.selectedVariation,
+          targetIndex
+        );
+        const availableStock = getProductAvailableStock(
+          item.product,
+          item.selectedVariation
+        );
+
+        if (availableStock !== null) {
+          const maxAllowed = Math.max(0, availableStock - reservedOther);
+          if (finalQuantity > maxAllowed) {
+            finalQuantity = maxAllowed;
+          }
+        }
+      }
+
+      if (finalQuantity <= 0) {
+        return prev.filter((_, idx) => idx !== targetIndex);
+      }
+
+      return prev.map((it, idx) => (idx === targetIndex ? { ...it, quantity: finalQuantity } : it));
+    });
   }, []);
 
   const clearCart = useCallback(() => {

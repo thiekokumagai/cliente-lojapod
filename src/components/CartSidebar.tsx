@@ -31,6 +31,11 @@ import { useFreight } from "@/hooks/use-calculator-freight";
 import { formatFreightDestinationAddress } from "@/utils/freight-address";
 import { ordersService } from "@/services/orders";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import {
+  getReservedStockInCart,
+  getProductAvailableStock,
+  validateCartStockAllocation,
+} from "@/utils/cart-stock";
 
 
 import AddressSearch, { type StructuredAddress } from "@/components/checkout/AddressSearch";
@@ -768,6 +773,13 @@ const CartSidebar = () => {
 
   const goToDelivery = () => {
     if (!effectiveItems.length) return;
+
+    const stockError = validateCartStockAllocation(effectiveItems);
+    if (stockError) {
+      toast.error(stockError);
+      return;
+    }
+
     setStep("delivery");
     trackEvent('InitiateCheckout', {
       value: effectiveTotalPrice,
@@ -1381,13 +1393,36 @@ const CartSidebar = () => {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {items.map((item) => {
-                          const isAtLimit = item.selectedVariation && item.product.variationGroup
-                            ? (() => {
-                                const opt = item.product.variationGroup.options.find((o) => o.label === item.selectedVariation);
-                                return opt?.stock !== undefined && item.quantity >= opt.stock;
-                              })()
-                            : item.product.stock !== undefined && item.quantity >= item.product.stock;
+                        {items.map((item, itemIdx) => {
+                          const isAtLimit = (() => {
+                            if (item.product.isCombo) {
+                              const comboComponents = item.product.comboItems || [];
+                              return comboComponents.some((ci) => {
+                                const chosen = item.comboSelections?.find((cs) => cs.productId === ci.productId);
+                                const compVar = ci.variation || chosen?.variation;
+                                const reservedOther = getReservedStockInCart(items, ci.productId, compVar, itemIdx);
+                                const compStock = ci.componentProduct
+                                  ? getProductAvailableStock(ci.componentProduct, compVar)
+                                  : null;
+                                if (compStock === null) return false;
+                                return (item.quantity + 1) * (ci.quantity || 1) + reservedOther > compStock;
+                              });
+                            }
+
+                            const reservedOther = getReservedStockInCart(
+                              items,
+                              item.product.id,
+                              item.selectedVariation,
+                              itemIdx
+                            );
+                            const availableStock = getProductAvailableStock(
+                              item.product,
+                              item.selectedVariation
+                            );
+
+                            if (availableStock === null) return false;
+                            return (item.quantity + 1) + reservedOther > availableStock;
+                          })();
 
                           return (
                             <div

@@ -16,6 +16,7 @@ import {
   isOptionAvailableGivenSelections,
   getSelectedCombinationStock,
 } from "@/utils/variation-stock";
+import { getReservedStockInCart } from "@/utils/cart-stock";
 
 interface ProductDetailsModalProps {
   product: Product;
@@ -132,12 +133,24 @@ const ProductDetailsModal = ({
     );
   }, [product, selections, allGroups]);
 
+  const reservedInCombosAndCart = useMemo(() => {
+    const variationToCheck = allGroups.length > 0 ? combinedVariation : undefined;
+    return getReservedStockInCart(items, product.id, variationToCheck);
+  }, [items, product.id, combinedVariation, allGroups.length]);
+
+  const effectiveRemainingStock = useMemo(() => {
+    const rawStock = allGroups.length > 0 ? combinationStock : product.stock;
+    if (rawStock === null || rawStock === undefined) return null;
+    return Math.max(0, rawStock - reservedInCombosAndCart);
+  }, [allGroups.length, combinationStock, product.stock, reservedInCombosAndCart]);
+
   const isCombinationUnavailable = useMemo(() => {
     if (allGroups.length > 0) {
-      return combinationStock !== null && combinationStock <= 0;
+      if (combinationStock === null) return false;
+      return effectiveRemainingStock !== null && effectiveRemainingStock <= 0;
     }
-    return product.stock !== undefined && product.stock <= 0;
-  }, [combinationStock, allGroups.length, product.stock]);
+    return effectiveRemainingStock !== null ? effectiveRemainingStock <= 0 : (product.stock !== undefined && product.stock <= 0);
+  }, [combinationStock, allGroups.length, effectiveRemainingStock, product.stock]);
 
   const isUnavailable = useMemo(() => {
     if (allGroups.length > 0) {
@@ -256,10 +269,9 @@ const ProductDetailsModal = ({
   };
 
   const isAtLimit = useMemo(() => {
-    const maxStock = allGroups.length > 0 ? combinationStock : product.stock;
-    if (maxStock !== null && maxStock !== undefined && displayQuantity >= maxStock) return true;
+    if (effectiveRemainingStock !== null && effectiveRemainingStock !== undefined && displayQuantity >= effectiveRemainingStock) return true;
     return false;
-  }, [combinationStock, displayQuantity, allGroups.length, product.stock]);
+  }, [effectiveRemainingStock, displayQuantity]);
 
   const handleIncrease = () => {
     if (isAtLimit) return;

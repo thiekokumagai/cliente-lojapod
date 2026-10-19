@@ -10,6 +10,7 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 import seloMaisVendido from "@/assets/seloMaisVendido.png";
+import { getReservedStockInCart, getProductAvailableStock } from "@/utils/cart-stock";
 
 
 interface ProductCardProps {
@@ -152,7 +153,9 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
     }
 
     if (cartItem) {
-      if (product.stock !== undefined && cartItem.quantity >= product.stock) return;
+      const reserved = getReservedStockInCart(items, product.id);
+      const available = getProductAvailableStock(product);
+      if (available !== null && reserved >= available) return;
       updateQuantity(product.id, cartItem.quantity + 1);
       return;
     }
@@ -160,7 +163,24 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
     addToCart(product);
   };
 
-  const isAtLimit = cartItem && product.stock !== undefined ? cartItem.quantity >= product.stock : false;
+  const isAtLimit = useMemo(() => {
+    if (product.isCombo) {
+      const comboComponents = product.comboItems || [];
+      return comboComponents.some((ci) => {
+        const compStock = ci.componentProduct
+          ? getProductAvailableStock(ci.componentProduct, ci.variation)
+          : null;
+        if (compStock === null) return false;
+        const reserved = getReservedStockInCart(items, ci.productId, ci.variation);
+        return reserved + (ci.quantity || 1) > compStock;
+      });
+    }
+
+    if (!cartItem) return false;
+    const reserved = getReservedStockInCart(items, product.id);
+    const available = getProductAvailableStock(product);
+    return available !== null ? reserved >= available : false;
+  }, [items, product, cartItem]);
 
   const cardContent = (
     <>
