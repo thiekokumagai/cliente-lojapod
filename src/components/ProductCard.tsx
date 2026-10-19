@@ -81,6 +81,21 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   );
   const quantityInCart = cartItem?.quantity ?? 0;
 
+  const comboItemsInCart = useMemo(
+    () =>
+      items.filter(
+        (item) =>
+          item.product.id === product.id ||
+          (product.isCombo && item.product.comboId === product.id)
+      ),
+    [items, product.id, product.isCombo]
+  );
+  const comboQuantityInCart = comboItemsInCart.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
+  const isComboInCart = product.isCombo && comboQuantityInCart > 0;
+
   const variationItemsInCart = useMemo(
     () =>
       items.filter(
@@ -248,6 +263,15 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
               )}
             </div>
           )}
+
+          {isComboInCart && (
+            <div className="mt-3 flex items-center gap-1.5 rounded-lg bg-primary/10 px-2.5 py-2 text-xs font-medium text-primary">
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+              <span>
+                Adicionado ao carrinho ({comboQuantityInCart} {comboQuantityInCart === 1 ? "item" : "itens"})
+              </span>
+            </div>
+          )}
         </div>
 
         <div className="mt-4 min-h-[62px]">
@@ -301,7 +325,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
               className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold bg-primary text-primary-foreground"
             >
               <ShoppingCart className="h-4 w-4" />
-              Comprar Combo
+              {isComboInCart ? "Adicionar mais" : "Comprar Combo"}
             </button>
           )
         ) : isUnavailable ? (
