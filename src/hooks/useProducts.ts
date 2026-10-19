@@ -220,7 +220,7 @@ export function useProducts(categoryId?: string | null) {
                   price: Number(c.price),
                   oldPrice: c.originalPrice > c.price ? Number(c.originalPrice) : undefined,
                   isPromo: c.originalPrice > c.price,
-                  isFeatured: true,
+                  isFeatured: !!c.isFeatured,
                   stock: c.stock ?? 0,
                   maxPerOrder: c.maxPerOrder,
                   discountPercentage: c.discountPercentage,
