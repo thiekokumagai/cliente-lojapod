@@ -145,6 +145,26 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
     updateQuantity(product.id, cartItem.quantity - 1);
   };
 
+  const handleDecreaseCombo = () => {
+    if (comboItemsInCart.length === 0) return;
+    const lastItem = comboItemsInCart[comboItemsInCart.length - 1];
+    if (lastItem.quantity <= 1) {
+      removeFromCart(lastItem.product.id, lastItem.selectedVariation);
+    } else {
+      updateQuantity(lastItem.product.id, lastItem.quantity - 1, lastItem.selectedVariation);
+    }
+  };
+
+  const handleIncreaseCombo = () => {
+    if (isAtLimit) return;
+    if (comboItemsInCart.length > 0) {
+      const lastItem = comboItemsInCart[comboItemsInCart.length - 1];
+      updateQuantity(lastItem.product.id, lastItem.quantity + 1, lastItem.selectedVariation);
+    } else {
+      handleBuy();
+    }
+  };
+
   const handleIncrease = () => {
     if (hasVariationGroup) {
       setSelectedVariation(null);
@@ -338,6 +358,29 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
                 Esgotado
               </button>
             )
+          ) : isComboInCart ? (
+            <div className="mt-2 flex h-12 items-center justify-between rounded-xl bg-primary px-4 text-primary-foreground">
+              <button
+                type="button"
+                onClick={handleDecreaseCombo}
+                className="flex h-7 w-7 items-center justify-center rounded-full bg-primary-foreground/20"
+                aria-label="Diminuir quantidade do combo"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+
+              <span className="text-base font-semibold">{comboQuantityInCart}</span>
+
+              <button
+                type="button"
+                disabled={isAtLimit}
+                onClick={handleIncreaseCombo}
+                className={`flex h-7 w-7 items-center justify-center rounded-full ${isAtLimit ? "bg-muted/40 text-muted-foreground opacity-50 cursor-not-allowed" : "bg-primary-foreground/20"}`}
+                aria-label="Aumentar quantidade do combo"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
           ) : (
             <button
               type="button"
@@ -345,7 +388,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
               className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold bg-primary text-primary-foreground"
             >
               <ShoppingCart className="h-4 w-4" />
-              {isComboInCart ? "Adicionar mais" : "Comprar Combo"}
+              Comprar Combo
             </button>
           )
         ) : isUnavailable ? (

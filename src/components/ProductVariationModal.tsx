@@ -128,8 +128,13 @@ const ProductVariationModal = ({
 
   const isCombinationUnavailable = useMemo(() => {
     if (combinationStock === null) return false;
+    if (isComboStep) {
+      // In a combo step, the stock might be reserved by the combo already in the cart.
+      // The option itself is valid if raw combinationStock > 0.
+      return combinationStock <= 0;
+    }
     return effectiveRemainingStock !== null && effectiveRemainingStock <= 0;
-  }, [combinationStock, effectiveRemainingStock]);
+  }, [combinationStock, effectiveRemainingStock, isComboStep]);
 
   const canAddToCart = allSelected && !isCombinationUnavailable;
 
