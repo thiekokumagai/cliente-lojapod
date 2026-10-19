@@ -307,6 +307,8 @@ export function useProduct(id?: string) {
               maxPerOrder: c.maxPerOrder,
               discountPercentage: c.discountPercentage,
               createdAt: c.createdAt,
+              isBestSeller: Boolean(c.isBestSeller),
+              totalSold: Number(c.totalSold || 0),
               comboItems: (c.items || []).map((ci: any) => ({
                 productId: ci.productId,
                 productItemId: ci.productItemId,
