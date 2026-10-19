@@ -143,6 +143,90 @@ const ProductPage = () => {
     });
   };
 
+  const [comboSelections, setComboSelections] = useState<Record<string, string>>({});
+
+  const handleSelectComboOption = (componentKey: string, variationLabel: string) => {
+    setComboSelections((prev) => {
+      const next = { ...prev };
+      if (next[componentKey] === variationLabel) {
+        delete next[componentKey];
+      } else {
+        next[componentKey] = variationLabel;
+      }
+      return next;
+    });
+  };
+
+  const comboNeedsSelections = useMemo(() => {
+    if (!product?.isCombo || !product.comboItems) return [];
+    return product.comboItems.map((ci, idx) => {
+      const compKey = `${ci.productId}-${idx}`;
+      const cp = ci.componentProduct;
+      const groups = cp?.variationGroups && cp.variationGroups.length > 0
+        ? cp.variationGroups
+        : cp?.variationGroup
+          ? [cp.variationGroup]
+          : [];
+      return {
+        ci,
+        idx,
+        compKey,
+        needsSelection: !ci.variation && groups.length > 0,
+        groups,
+      };
+    });
+  }, [product]);
+
+  const allComboComponentsSelected = useMemo(() => {
+    if (!product?.isCombo) return true;
+    return comboNeedsSelections.every((item) => {
+      if (!item.needsSelection) return true;
+      return !!comboSelections[item.compKey];
+    });
+  }, [product, comboNeedsSelections, comboSelections]);
+
+  const reservedInCombosAndCart = useMemo(() => {
+    if (!product) return 0;
+    const variationToCheck = variationGroups.length > 0 ? selectedVariation : undefined;
+    return getReservedStockInCart(items, product.id, variationToCheck);
+  }, [items, product, variationGroups.length, selectedVariation]);
+
+  const rawStock = combinationStock !== null ? combinationStock : product?.stock;
+  const effectiveStock = rawStock !== undefined && rawStock !== null
+    ? Math.max(0, rawStock - reservedInCombosAndCart)
+    : undefined;
+
+  const canAddToCart = product?.isCombo
+    ? allComboComponentsSelected && (product.stock === undefined || product.stock > 0)
+    : variationGroups.length > 0
+      ? allSelected && !isCombinationUnavailable
+      : product?.stock !== 0;
+
+  const isUnavailable = product?.isCombo
+    ? product.stock === 0
+    : variationGroups.length > 0
+      ? variationGroups.every((g) => g.options.every((o) => !o.available))
+      : product?.stock === 0;
+
+  const isInCart = !!cartItem;
+
+  const priceVal = product?.price || 0;
+  const totalPrice = priceVal * quantity;
+  const totalOldPrice = product?.oldPrice ? product.oldPrice * quantity : 0;
+  const discount = product?.isPromo && product.oldPrice 
+    ? Math.round(((product.oldPrice - priceVal) / product.oldPrice) * 100)
+    : undefined;
+
+  const isAtLimit = effectiveStock !== undefined && quantity >= effectiveStock;
+
+  const primaryButtonLabel = isUnavailable || isCombinationUnavailable
+    ? "Esgotado"
+    : !canAddToCart
+      ? "Selecione as variações"
+      : isInCart
+        ? "Atualizar"
+        : "Adicionar ao Pedido";
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
@@ -204,75 +288,13 @@ const ProductPage = () => {
       </div>
     );
   }
-
-  const [comboSelections, setComboSelections] = useState<Record<string, string>>({});
-
-  const handleSelectComboOption = (componentKey: string, variationLabel: string) => {
-    setComboSelections((prev) => {
-      const next = { ...prev };
-      if (next[componentKey] === variationLabel) {
-        delete next[componentKey];
-      } else {
-        next[componentKey] = variationLabel;
-      }
-      return next;
-    });
-  };
-
-  const comboNeedsSelections = useMemo(() => {
-    if (!product?.isCombo || !product.comboItems) return [];
-    return product.comboItems.map((ci, idx) => {
-      const compKey = `${ci.productId}-${idx}`;
-      const cp = ci.componentProduct;
-      const groups = cp?.variationGroups && cp.variationGroups.length > 0
-        ? cp.variationGroups
-        : cp?.variationGroup
-          ? [cp.variationGroup]
-          : [];
-      return {
-        ci,
-        idx,
-        compKey,
-        needsSelection: !ci.variation && groups.length > 0,
-        groups,
-      };
-    });
-  }, [product]);
-
-  const allComboComponentsSelected = useMemo(() => {
-    if (!product?.isCombo) return true;
-    return comboNeedsSelections.every((item) => {
-      if (!item.needsSelection) return true;
-      return !!comboSelections[item.compKey];
-    });
-  }, [product, comboNeedsSelections, comboSelections]);
-
-  const canAddToCart = product?.isCombo
-    ? allComboComponentsSelected && (product.stock === undefined || product.stock > 0)
-    : variationGroups.length > 0
-      ? allSelected && !isCombinationUnavailable
-      : product?.stock !== 0;
-
-  const isUnavailable = product?.isCombo
-    ? product.stock === 0
-    : variationGroups.length > 0
-      ? variationGroups.every((g) => g.options.every((o) => !o.available))
-      : product?.stock === 0;
-
-  const isInCart = !!cartItem;
-
-  const priceVal = product?.price || 0;
-  const totalPrice = priceVal * quantity;
-  const totalOldPrice = product?.oldPrice ? product.oldPrice * quantity : 0;
-  const discount = product?.isPromo && product.oldPrice 
-    ? Math.round(((product.oldPrice - priceVal) / product.oldPrice) * 100)
-    : undefined;
-
   const handleNavigateToList = () => {
     navigate("/");
   };
 
   const handleAddOrUpdateCart = () => {
+    if (!product) return;
+
     if (product.isCombo) {
       if (!canAddToCart || isUnavailable) return;
       const formattedSelections = comboNeedsSelections
@@ -314,7 +336,7 @@ const ProductPage = () => {
   };
 
   const handleRemoveFromCart = () => {
-    if (!cartItem) return;
+    if (!cartItem || !product) return;
 
     removeFromCart(product.id, selectedVariation);
     setHasJustUpdated(false);
@@ -328,6 +350,7 @@ const ProductPage = () => {
       navigate("/");
     }
   };
+
   const handleGoBack = () => {
     if (window.history.length > 2) {
       navigate(-1);
@@ -336,32 +359,11 @@ const ProductPage = () => {
     }
   };
 
-  const reservedInCombosAndCart = useMemo(() => {
-    if (!product) return 0;
-    const variationToCheck = variationGroups.length > 0 ? selectedVariation : undefined;
-    return getReservedStockInCart(items, product.id, variationToCheck);
-  }, [items, product, variationGroups.length, selectedVariation]);
-
-  const rawStock = combinationStock !== null ? combinationStock : product?.stock;
-  const effectiveStock = rawStock !== undefined && rawStock !== null
-    ? Math.max(0, rawStock - reservedInCombosAndCart)
-    : undefined;
-
   const handleDecreaseQuantity = () => setQuantity((current) => Math.max(1, current - 1));
   const handleIncreaseQuantity = () => setQuantity((current) => {
     if (effectiveStock !== undefined && current >= effectiveStock) return current;
     return current + 1;
   });
-
-  const isAtLimit = effectiveStock !== undefined && quantity >= effectiveStock;
-
-  const primaryButtonLabel = isUnavailable || isCombinationUnavailable
-    ? "Esgotado"
-    : !canAddToCart
-      ? "Selecione as variações"
-      : isInCart
-        ? "Atualizar"
-        : "Adicionar ao Pedido";
 
   return (
     <div className={`min-h-screen bg-background md:pb-0 ${mobileBottom}`}>
