@@ -29,6 +29,7 @@ interface NewApiProduct {
   isBestSeller?: boolean;
   isFeatured?: boolean;
   createdAt?: string;
+  totalSold?: number;
 }
 
 function buildImageUrl(path?: string) {
@@ -148,6 +149,7 @@ export function transformNewApiProduct(
     isFeatured: raw.isFeatured,
     categoryId: raw.categoryId,
     createdAt: raw.createdAt,
+    totalSold: Number(raw.totalSold || 0),
   };
 }
 
@@ -225,6 +227,8 @@ export function useProducts(categoryId?: string | null) {
                   maxPerOrder: c.maxPerOrder,
                   discountPercentage: c.discountPercentage,
                   createdAt: c.createdAt,
+                  isBestSeller: Boolean(c.isBestSeller),
+                  totalSold: Number(c.totalSold || 0),
                   comboItems: (c.items || []).map((ci: any) => ({
                     productId: ci.productId,
                     productItemId: ci.productItemId,

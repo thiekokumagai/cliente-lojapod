@@ -61,6 +61,7 @@ export interface Product {
   comboItems?: ComboItemComponent[];
   maxPerOrder?: number | null;
   discountPercentage?: number;
+  totalSold?: number;
 }
 
 export interface SelectedProduct {

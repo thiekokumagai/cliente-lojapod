@@ -52,14 +52,41 @@ export function sortProducts(
       const catCompare = (a.category || "").localeCompare(b.category || "", "pt-BR", { sensitivity: "base" });
       if (catCompare !== 0) return catCompare;
     }
-    if (sortOption === "newest" || sortOption === "default") {
+    if (sortOption === "default") {
+      // 1. Mais Vendidos (isBestSeller) no topo
+      if (a.isBestSeller && !b.isBestSeller) return -1;
+      if (!a.isBestSeller && b.isBestSeller) return 1;
+
+      // 2. Quantidade total vendida (totalSold) decrescente
+      const soldA = a.totalSold || 0;
+      const soldB = b.totalSold || 0;
+      if (soldB !== soldA) return soldB - soldA;
+
+      // 3. Critério de desempate: mais recentes primeiro
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      if (dateB !== dateA) return dateB - dateA;
+      return 0;
+    }
+
+    if (sortOption === "newest") {
       const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
       const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       if (dateB !== dateA) return dateB - dateA;
     }
 
+    // Critério de desempate padrão para as demais ordenações (preço, categoria, etc.)
     if (a.isBestSeller && !b.isBestSeller) return -1;
     if (!a.isBestSeller && b.isBestSeller) return 1;
+
+    const soldA = a.totalSold || 0;
+    const soldB = b.totalSold || 0;
+    if (soldB !== soldA) return soldB - soldA;
+
+    const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+    const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+    if (dateB !== dateA) return dateB - dateA;
+
     return 0;
   });
 }

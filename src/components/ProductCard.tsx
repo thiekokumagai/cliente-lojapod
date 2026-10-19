@@ -205,7 +205,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   const cardContent = (
     <>
       <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-subtle">
-        {isBestSeller && !product.isCombo && (
+        {isBestSeller && (
           <img
             src={seloMaisVendido}
             alt="Selo Mais Vendido"
