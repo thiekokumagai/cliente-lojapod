@@ -8,6 +8,8 @@ interface ProductInfoProps {
   selections?: Record<string, string>;
   isDesktop?: boolean;
   onSelectOption?: (groupName: string, optionLabel: string) => void;
+  comboSelections?: Record<string, string>;
+  onSelectComboOption?: (componentKey: string, variationLabel: string) => void;
 }
 
 const ProductInfo = ({
@@ -17,6 +19,8 @@ const ProductInfo = ({
   selections = {},
   isDesktop = false,
   onSelectOption,
+  comboSelections = {},
+  onSelectComboOption,
 }: ProductInfoProps) => {
   const descriptionClassName = isDesktop
     ? "mt-6 text-[15px] leading-[1.35] text-[#6f6f6f] rich-text-content [&>p]:mb-3 last:[&>p]:mb-0"
@@ -28,17 +32,95 @@ const ProductInfo = ({
         Produtos inclusos neste combo:
       </span>
       <div className="space-y-1.5">
-        {product.comboItems.map((ci, idx) => (
-          <div key={idx} className="flex items-center justify-between text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-100 shadow-xs">
-            <span className="font-semibold text-slate-800">
-              {ci.quantity}x {ci.productName}
-              {ci.variation ? ` (${ci.variation})` : ""}
-            </span>
-            <span className="text-slate-500 font-medium">
-              R$ {ci.productPrice.toFixed(2).replace(".", ",")} un.
-            </span>
-          </div>
-        ))}
+        {product.comboItems.map((ci, idx) => {
+          const compKey = `${ci.productId}-${idx}`;
+          const cp = ci.componentProduct;
+          const cpGroups = cp?.variationGroups && cp.variationGroups.length > 0
+            ? cp.variationGroups
+            : cp?.variationGroup
+              ? [cp.variationGroup]
+              : [];
+          const needsSelection = !ci.variation && cpGroups.length > 0;
+          const chosenVariation = comboSelections[compKey];
+
+          return (
+            <div key={idx} className="flex flex-col text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-100 shadow-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-800">
+                  {ci.quantity}x {ci.productName}
+                  {ci.variation ? ` (${ci.variation})` : chosenVariation ? ` (${chosenVariation})` : ""}
+                </span>
+                <span className="text-slate-500 font-medium">
+                  R$ {ci.productPrice.toFixed(2).replace(".", ",")} un.
+                </span>
+              </div>
+
+              {needsSelection && (
+                <div className="mt-3 pt-2.5 border-t border-slate-100 space-y-3">
+                  {cpGroups.map((group) => (
+                    <div key={group.name} className="space-y-2">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-900">
+                        {group.name}:
+                      </p>
+                      <div className="space-y-2 pl-1">
+                        {group.options.map((option) => {
+                          const isSelected = chosenVariation === option.label;
+                          const isAvailable = cp
+                            ? isOptionAvailableGivenSelections(
+                                cp,
+                                group.name,
+                                option.label,
+                                { [group.name]: option.label }
+                              )
+                            : option.available;
+
+                          return (
+                            <button
+                              key={option.label}
+                              type="button"
+                              onClick={() =>
+                                isAvailable &&
+                                onSelectComboOption &&
+                                onSelectComboOption(compKey, option.label)
+                              }
+                              disabled={!isAvailable}
+                              className={`flex items-center gap-2.5 text-left transition-colors ${
+                                isAvailable ? "cursor-pointer" : "cursor-not-allowed opacity-50"
+                              }`}
+                            >
+                              <span
+                                className={`h-4 w-4 rounded-full border flex items-center justify-center transition-colors ${
+                                  isSelected
+                                    ? "border-primary bg-primary"
+                                    : isAvailable
+                                      ? "border-[#c9c9c9] bg-[#d9d9d9]"
+                                      : "border-[#d8d8d8] bg-[#eeeeee]"
+                                }`}
+                              >
+                                {isSelected && <span className="h-1.5 w-1.5 rounded-full bg-white" />}
+                              </span>
+                              <span
+                                className={`text-[13px] ${
+                                  isAvailable
+                                    ? isSelected
+                                      ? "font-semibold text-foreground"
+                                      : "text-slate-700"
+                                    : "text-slate-400 line-through"
+                                }`}
+                              >
+                                {option.label}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );

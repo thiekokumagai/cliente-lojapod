@@ -159,9 +159,45 @@ const ProductDetailsModal = ({
     return product.stock !== undefined && product.stock <= 0;
   }, [allGroups, product.stock]);
 
-  const canAddToCart = allSelected && !isCombinationUnavailable;
+  const [comboSelections, setComboSelections] = useState<Record<string, string>>({});
+
+  const comboNeedsSelections = useMemo(() => {
+    if (!product.isCombo || !product.comboItems) return [];
+    return product.comboItems.map((ci, idx) => {
+      const compKey = `${ci.productId}-${idx}`;
+      const cp = ci.componentProduct;
+      const groups = cp?.variationGroups && cp.variationGroups.length > 0
+        ? cp.variationGroups
+        : cp?.variationGroup
+          ? [cp.variationGroup]
+          : [];
+      return {
+        ci,
+        idx,
+        compKey,
+        needsSelection: !ci.variation && groups.length > 0,
+        groups,
+      };
+    });
+  }, [product]);
+
+  const allComboComponentsSelected = useMemo(() => {
+    if (!product.isCombo) return true;
+    return comboNeedsSelections.every((item) => {
+      if (!item.needsSelection) return true;
+      return !!comboSelections[item.compKey];
+    });
+  }, [product.isCombo, comboNeedsSelections, comboSelections]);
+
+  const canAddToCart = product.isCombo
+    ? allComboComponentsSelected && (product.stock === undefined || product.stock > 0)
+    : allSelected && !isCombinationUnavailable;
 
   const quantityInCart = useMemo(() => {
+    if (product.isCombo) {
+      // Para combos, não travar o modal como "Adicionado" para permitir configurar ou comprar mais
+      return 0;
+    }
     const variationToCheck = allGroups.length > 0 ? combinedVariation : undefined;
     if (allGroups.length > 0 && !combinedVariation) return 0;
 
@@ -172,7 +208,7 @@ const ProductDetailsModal = ({
     );
 
     return cartItem?.quantity ?? 0;
-  }, [items, product.id, combinedVariation, allGroups.length]);
+  }, [items, product.id, product.isCombo, combinedVariation, allGroups.length]);
 
   useEffect(() => {
     const hasVariations = allGroups.length > 0;
@@ -221,6 +257,19 @@ const ProductDetailsModal = ({
       return next;
     });
   };
+
+  const handleSelectComboOption = (componentKey: string, variationLabel: string) => {
+    setComboSelections((prev) => {
+      const next = { ...prev };
+      if (next[componentKey] === variationLabel) {
+        delete next[componentKey];
+      } else {
+        next[componentKey] = variationLabel;
+      }
+      return next;
+    });
+  };
+
   const startAutoClose = (variation?: string) => {
     triggerAddedModal({ product, selectedVariation: variation });
     handleClose();
@@ -228,9 +277,23 @@ const ProductDetailsModal = ({
 
   const handleBuy = () => {
     if (product.isCombo) {
-      startComboFlow(product, () => {
-        handleClose();
+      if (!canAddToCart || isUnavailable) return;
+      const formattedSelections = comboNeedsSelections
+        .filter((item) => item.needsSelection)
+        .map((item) => ({
+          productId: item.ci.productId,
+          productName: item.ci.productName,
+          variation: comboSelections[item.compKey],
+        }));
+
+      addToCart({
+        product,
+        comboSelections: formattedSelections,
       });
+      if (displayQuantity > 1) {
+        updateQuantity(product.id, displayQuantity);
+      }
+      startAutoClose();
       return;
     }
 
@@ -389,24 +452,88 @@ const ProductDetailsModal = ({
             )}
             <h3 className="text-xl font-bold text-foreground">{product.name}</h3>
 
-          {/* Lista de itens inclusos se for combo */}
+          {/* Lista de itens inclusos se for combo com seleção de variação */}
           {product.isCombo && product.comboItems && product.comboItems.length > 0 && (
             <div className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3.5 space-y-2">
               <span className="text-xs font-bold uppercase tracking-wider text-indigo-900 block">
                 Produtos inclusos neste combo:
               </span>
-              <div className="space-y-1.5">
-                {product.comboItems.map((ci, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-xs text-slate-700 bg-white p-2 rounded-lg border border-slate-100 shadow-xs">
-                    <span className="font-semibold text-slate-800">
-                      {ci.quantity}x {ci.productName}
-                      {ci.variation ? ` (${ci.variation})` : ""}
-                    </span>
-                    <span className="text-slate-400 font-medium">
-                      R$ {ci.productPrice.toFixed(2).replace(".", ",")} un.
-                    </span>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                {product.comboItems.map((ci, idx) => {
+                  const compKey = `${ci.productId}-${idx}`;
+                  const cp = ci.componentProduct;
+                  const cpGroups = cp?.variationGroups && cp.variationGroups.length > 0
+                    ? cp.variationGroups
+                    : cp?.variationGroup
+                      ? [cp.variationGroup]
+                      : [];
+                  const needsSelection = !ci.variation && cpGroups.length > 0;
+                  const chosenVariation = comboSelections[compKey];
+
+                  return (
+                    <div key={idx} className="flex flex-col text-xs text-slate-700 bg-white p-2.5 rounded-lg border border-slate-100 shadow-xs">
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-slate-800">
+                          {ci.quantity}x {ci.productName}
+                          {ci.variation ? ` (${ci.variation})` : chosenVariation ? ` (${chosenVariation})` : ""}
+                        </span>
+                        <span className="text-slate-400 font-medium">
+                          R$ {ci.productPrice.toFixed(2).replace(".", ",")} un.
+                        </span>
+                      </div>
+
+                      {needsSelection && (
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-2.5">
+                          {cpGroups.map((group) => (
+                            <div key={group.name} className="space-y-1.5">
+                              <div className="bg-slate-50 px-2 py-1.5 rounded-md">
+                                <p className="text-xs font-bold text-slate-900">{ci.productName} - {group.name}</p>
+                                <p className="text-[11px] text-muted-foreground">Escolha 1 opção</p>
+                              </div>
+
+                              <div className="space-y-0 divide-y divide-border/40">
+                                {group.options.map((option) => {
+                                  const isSelected = chosenVariation === option.label;
+                                  const isAvailable = cp
+                                    ? isOptionAvailableGivenSelections(
+                                        cp,
+                                        group.name,
+                                        option.label,
+                                        { [group.name]: option.label }
+                                      )
+                                    : option.available;
+
+                                  return (
+                                    <button
+                                      key={option.label}
+                                      type="button"
+                                      onClick={() => isAvailable && handleSelectComboOption(compKey, option.label)}
+                                      disabled={!isAvailable}
+                                      className={`flex w-full items-center justify-between py-2.5 text-left transition-colors ${
+                                        isAvailable ? "hover:bg-muted/40 cursor-pointer" : "cursor-not-allowed opacity-50"
+                                      }`}
+                                    >
+                                      <div>
+                                        <p className={`text-sm font-medium px-2 ${!isAvailable ? "line-through text-muted-foreground" : "text-foreground"}`}>
+                                          {option.label}
+                                        </p>
+                                      </div>
+                                      <div className="mr-2 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-primary">
+                                        {isSelected ? (
+                                          <div className="h-2.5 w-2.5 rounded-full bg-primary" />
+                                        ) : null}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}

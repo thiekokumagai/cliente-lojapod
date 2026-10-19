@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getSelectedCombinationStock } from "@/utils/variation-stock";
+import { getReservedStockInCart } from "@/utils/cart-stock";
 
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
 
@@ -204,20 +205,66 @@ const ProductPage = () => {
     );
   }
 
-  const canAddToCart = variationGroups.length > 0
-    ? allSelected && !isCombinationUnavailable
-    : product.stock !== 0;
+  const [comboSelections, setComboSelections] = useState<Record<string, string>>({});
 
-  const isUnavailable = variationGroups.length > 0
-    ? variationGroups.every((g) => g.options.every((o) => !o.available))
-    : product.stock === 0;
+  const handleSelectComboOption = (componentKey: string, variationLabel: string) => {
+    setComboSelections((prev) => {
+      const next = { ...prev };
+      if (next[componentKey] === variationLabel) {
+        delete next[componentKey];
+      } else {
+        next[componentKey] = variationLabel;
+      }
+      return next;
+    });
+  };
+
+  const comboNeedsSelections = useMemo(() => {
+    if (!product?.isCombo || !product.comboItems) return [];
+    return product.comboItems.map((ci, idx) => {
+      const compKey = `${ci.productId}-${idx}`;
+      const cp = ci.componentProduct;
+      const groups = cp?.variationGroups && cp.variationGroups.length > 0
+        ? cp.variationGroups
+        : cp?.variationGroup
+          ? [cp.variationGroup]
+          : [];
+      return {
+        ci,
+        idx,
+        compKey,
+        needsSelection: !ci.variation && groups.length > 0,
+        groups,
+      };
+    });
+  }, [product]);
+
+  const allComboComponentsSelected = useMemo(() => {
+    if (!product?.isCombo) return true;
+    return comboNeedsSelections.every((item) => {
+      if (!item.needsSelection) return true;
+      return !!comboSelections[item.compKey];
+    });
+  }, [product, comboNeedsSelections, comboSelections]);
+
+  const canAddToCart = product?.isCombo
+    ? allComboComponentsSelected && (product.stock === undefined || product.stock > 0)
+    : variationGroups.length > 0
+      ? allSelected && !isCombinationUnavailable
+      : product?.stock !== 0;
+
+  const isUnavailable = product?.isCombo
+    ? product.stock === 0
+    : variationGroups.length > 0
+      ? variationGroups.every((g) => g.options.every((o) => !o.available))
+      : product?.stock === 0;
 
   const isInCart = !!cartItem;
 
-  const priceVal = product.price || 0;
+  const priceVal = product?.price || 0;
   const totalPrice = priceVal * quantity;
-  const totalOldPrice = product.oldPrice ? product.oldPrice * quantity : 0;
-  const discount = product.isPromo && product.oldPrice 
+  const totalOldPrice = product?.oldPrice ? product.oldPrice * quantity : 0;
+  const discount = product?.isPromo && product.oldPrice 
     ? Math.round(((product.oldPrice - priceVal) / product.oldPrice) * 100)
     : undefined;
 
@@ -227,9 +274,25 @@ const ProductPage = () => {
 
   const handleAddOrUpdateCart = () => {
     if (product.isCombo) {
-      startComboFlow(product, () => {
-        handleNavigateToList();
+      if (!canAddToCart || isUnavailable) return;
+      const formattedSelections = comboNeedsSelections
+        .filter((item) => item.needsSelection)
+        .map((item) => ({
+          productId: item.ci.productId,
+          productName: item.ci.productName,
+          variation: comboSelections[item.compKey],
+        }));
+
+      addToCart({
+        product,
+        comboSelections: formattedSelections,
       });
+      if (quantity > 1) {
+        updateQuantity(product.id, quantity);
+      }
+      triggerAddedModal({ product });
+      setHasJustUpdated(true);
+      handleNavigateToList();
       return;
     }
 
@@ -273,7 +336,16 @@ const ProductPage = () => {
     }
   };
 
-  const effectiveStock = combinationStock !== null ? combinationStock : product?.stock;
+  const reservedInCombosAndCart = useMemo(() => {
+    if (!product) return 0;
+    const variationToCheck = variationGroups.length > 0 ? selectedVariation : undefined;
+    return getReservedStockInCart(items, product.id, variationToCheck);
+  }, [items, product, variationGroups.length, selectedVariation]);
+
+  const rawStock = combinationStock !== null ? combinationStock : product?.stock;
+  const effectiveStock = rawStock !== undefined && rawStock !== null
+    ? Math.max(0, rawStock - reservedInCombosAndCart)
+    : undefined;
 
   const handleDecreaseQuantity = () => setQuantity((current) => Math.max(1, current - 1));
   const handleIncreaseQuantity = () => setQuantity((current) => {
@@ -374,6 +446,8 @@ const ProductPage = () => {
               variationGroups={variationGroups}
               selections={selections}
               onSelectOption={handleSelectOption}
+              comboSelections={comboSelections}
+              onSelectComboOption={handleSelectComboOption}
             />
 
             {isInCart && (
@@ -477,6 +551,8 @@ const ProductPage = () => {
                 selections={selections}
                 isDesktop
                 onSelectOption={handleSelectOption}
+                comboSelections={comboSelections}
+                onSelectComboOption={handleSelectComboOption}
               />
 
               <div className="mt-6 space-y-3">

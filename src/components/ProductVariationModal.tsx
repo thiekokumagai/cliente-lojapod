@@ -134,6 +134,7 @@ const ProductVariationModal = ({
   const canAddToCart = allSelected && !isCombinationUnavailable;
 
   const quantityInCart = useMemo(() => {
+    if (isComboStep) return 0;
     if (!combinedVariation) return 0;
 
     const cartItem = items.find(
@@ -143,9 +144,15 @@ const ProductVariationModal = ({
     );
 
     return cartItem?.quantity ?? 0;
-  }, [items, product.id, combinedVariation]);
+  }, [items, product.id, combinedVariation, isComboStep]);
 
   useEffect(() => {
+    if (isComboStep) {
+      setDisplayQuantity(0);
+      setIsLocked(false);
+      return;
+    }
+
     if (!combinedVariation || !allSelected) {
       setDisplayQuantity(0);
       setIsLocked(false);
@@ -160,7 +167,7 @@ const ProductVariationModal = ({
     if (!isLocked) {
       setDisplayQuantity(0);
     }
-  }, [quantityInCart, combinedVariation, allSelected, isLocked]);
+  }, [quantityInCart, combinedVariation, allSelected, isLocked, isComboStep]);
 
   useEffect(() => {
     return () => {
