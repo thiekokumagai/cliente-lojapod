@@ -157,8 +157,7 @@ const Index = () => {
     }
 
     const handleScroll = () => {
-      // Never overwrite saved position with 0 during initial render/restoration
-      if (!isRestoring && window.scrollY > 0) {
+      if (!isRestoring) {
         sessionStorage.setItem("store_scroll_pos", window.scrollY.toString());
       }
     };

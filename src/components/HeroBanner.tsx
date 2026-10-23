@@ -23,7 +23,7 @@ const HeroBanner = () => {
   const isClassic = !settings?.templateId || settings?.templateId === "classic";
 
   return (
-    <section className={isClassic ? "bg-background pt-[170px] sm:pt-[160px] md:pt-8" : "bg-transparent pt-2 md:pt-4"}>
+    <section className={isClassic ? "bg-background pt-3 sm:pt-4 md:pt-6" : "bg-transparent pt-2 md:pt-4"}>
       <div className={isClassic ? "mx-auto max-w-7xl px-4 md:px-8" : "w-full"}>
         <Carousel 
           className="w-full relative rounded-sm md:rounded-sm overflow-hidden group" 
