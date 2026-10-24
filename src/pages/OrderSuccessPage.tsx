@@ -27,17 +27,22 @@ export default function OrderSuccessPage() {
       try {
         setLoading(true);
 
-        // 1. Verificar ativamente status de pagamento online se houver transaction_id
+        let loadedOrder = null;
         try {
-          await ordersService.checkPaymentStatus(id, transactionId || undefined, slug || undefined);
+          const statusRes = await ordersService.checkPaymentStatus(id, transactionId || undefined, slug || undefined);
+          if (statusRes && (statusRes as any).order) {
+            loadedOrder = (statusRes as any).order;
+          }
         } catch (e) {
-          // Ignora erro da checagem ativa e carrega dados do pedido
+          // Fallback
         }
 
-        // 2. Carregar dados completos do pedido
-        const orderData = await ordersService.getStoreOrder(id);
+        if (!loadedOrder) {
+          loadedOrder = await ordersService.getStoreOrder(id);
+        }
+
         if (isMounted) {
-          setOrder(orderData);
+          setOrder(loadedOrder);
           setError(null);
         }
       } catch (err: any) {
