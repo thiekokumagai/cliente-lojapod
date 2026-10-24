@@ -94,35 +94,77 @@ export default function OrderSuccessPage() {
 
     const itemsFormatted = (order.items || [])
       .map((item: any) => {
-        const variation = item.variation ? ` (${item.variation})` : "";
-        return `${item.quantity}x ${item.productName || item.product?.name || "Produto"}${variation} - ${formatPrice(Number(item.price) * item.quantity)}`;
+        const isCombo = item.isCombo || !!item.comboId;
+        const prefix = isCombo ? "[COMBO] " : "";
+        const name = item.productName || item.product?.name || "Produto";
+        let qtyStr = `${item.quantity} x ${prefix}${name}: ${formatPrice(Number(item.price) * item.quantity)}`;
+        if (item.variation) {
+          qtyStr += `\n    ${item.quantity}x ${item.variation}`;
+        }
+        if (item.comboSelections && Array.isArray(item.comboSelections)) {
+          item.comboSelections.forEach((cs: any) => {
+            const compVar = cs.variation ? ` (${cs.variation})` : "";
+            qtyStr += `\n    • ${cs.quantity || 1}x ${cs.productName || "Item"}${compVar}`;
+          });
+        }
+        return qtyStr;
       })
-      .join("\n");
+      .join("\n\n");
+
+    const totalQty = (order.items || []).reduce((acc: number, item: any) => acc + (item.quantity || 1), 0);
 
     const lines = [
-      `Olá, meu nome é ${order.customerName || "-"}, realizei o pedido #${order.orderNumber} através do site.`,
+      `Olá, meu nome é ${order.customerName || "-"}, esse é o meu pedido realizado através do site`,
       `--------`,
       ``,
       itemsFormatted,
       ``,
       `--------`,
+      `Quantidade de itens: ${totalQty} `,
       `Total dos itens: ${formatPrice(Number(order.itemsTotal || 0))}`,
-      order.freight > 0 ? `Taxa de entrega: ${formatPrice(Number(order.freight))}` : `Taxa de entrega: Grátis`,
-      `Valor Total: ${formatPrice(Number(order.totalOrder || 0))}`,
-      `Forma de pagamento: Cartão de Crédito Online (Aprovado)`,
-      `Status do pagamento: ${order.paymentStatus === "PAID" ? "PAGO ✅" : "Processando"}`,
+      `--------`,
+      order.deliveryModality === "STORE_PICKUP"
+        ? `Entrega: Retirada na loja`
+        : `Valor da entrega: ${Number(order.freight) === 0 ? "Grátis" : formatPrice(Number(order.freight))}`,
     ];
 
-    if (order.deliveryModality === "STORE_PICKUP") {
-      lines.push(`Entrega: Retirada na loja`);
-    } else {
-      const addr = [order.street, order.number, order.neighborhood, order.city, order.state].filter(Boolean).join(", ");
-      lines.push(`Endereço: ${addr}`);
+    if (order.couponTitle) {
+      lines.push(`Cupom: ${order.couponTitle} ${order.couponDiscount ? formatPrice(Number(order.couponDiscount)) : ""}`);
     }
 
-    if (order.observation) {
-      lines.push(`Observação: ${order.observation}`);
+    if (Number(order.receiptDiscount) > 0) {
+      lines.push(`Fidelidade: -${formatPrice(Number(order.receiptDiscount))}`);
     }
+
+    if (Number(order.paymentDiscount) > 0) {
+      lines.push(`Desconto: ${formatPrice(Number(order.paymentDiscount))}`);
+    }
+
+    if (Number(order.installmentSurcharge) > 0) {
+      lines.push(`Acréscimo cartão: ${formatPrice(Number(order.installmentSurcharge))}`);
+    }
+
+    lines.push(`Valor Total: ${formatPrice(Number(order.totalOrder || 0))}`);
+    lines.push(`Forma de pagamento: Cartão de Crédito Online (Aprovado)`);
+    lines.push(`Status do pagamento: ${order.paymentStatus === 'PAID' ? 'PAGO ✅' : 'Processando'}`);
+    lines.push(`Pagamento: Online`);
+
+    if (order.deliveryModality === "STORE_PICKUP") {
+      lines.push(`Para entregar em: Retirada na loja`);
+    } else {
+      const addr = [order.street, order.number, order.neighborhood, order.city, order.state].filter(Boolean).join(", ");
+      const fullAddress = order.complement ? `${addr} (${order.complement})` : addr;
+      lines.push(`Para entregar em: ${fullAddress || "-"}`);
+    }
+
+    if (order.observation && order.observation.trim() !== "") {
+      lines.push(`Observação do Pedido: ${order.observation.trim()}`);
+    }
+
+    lines.push(`Contato: ${order.customerPhone || "-"}`);
+    lines.push(`Número do pedido: ${order.orderNumber}`);
+    lines.push(`--------`);
+    lines.push(`Pedido feito na ${storeSettings?.storeName || ""}`);
 
     return lines.join("\n");
   };
