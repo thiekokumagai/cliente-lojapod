@@ -45,4 +45,10 @@ export const ordersService = {
   async createStoreOrder(payload: CreateOrderPayload) {
     return api.post<{ id: string; orderNumber: number }>("/store/orders", payload);
   },
+  async createOnlineCheckout(orderId: string, originUrl?: string) {
+    return api.post<{ checkoutUrl: string; transactionId?: string }>(`/payments/checkout/${orderId}`, { originUrl });
+  },
+  async checkPaymentStatus(orderId: string, transactionNsu?: string, slug?: string) {
+    return api.post<{ paid: boolean; status: string; paymentStatus: string }>(`/payments/check-status/${orderId}`, { transactionNsu, slug });
+  },
 };

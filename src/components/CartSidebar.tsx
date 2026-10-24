@@ -107,7 +107,7 @@ const parseCurrencyInput = (value: string) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-type PaymentMethod = "PIX" | "Cartão de Débito" | "Cartão de Crédito" | "Dinheiro";
+type PaymentMethod = "PIX" | "Cartão de Débito" | "Cartão de Crédito" | "Cartão de Crédito Online" | "Dinheiro";
 type CheckoutStep = "cart" | "delivery" | "payment" | "confirmation";
 type CreditMode = "avista" | "parcelado";
 
@@ -422,8 +422,26 @@ const CartSidebar = () => {
       options.push({
         value: "Cartão de Crédito",
         title: "Cartão de crédito",
-        subtitle: "Pague na entrega",
+        subtitle: "Pague na entrega (Maquininha)",
         icon: CreditCard,
+      });
+    }
+
+    // Verificar se a loja possui gateway de pagamento online ativo
+    const onlineGateways = (storeSettings as any)?.paymentGateways || {};
+    const onlineCreditEnabled = !!(
+      (onlineGateways.infinitepay?.enabled && onlineGateways.infinitepay?.acceptCreditCard) ||
+      (onlineGateways.mercadopago?.enabled && onlineGateways.mercadopago?.acceptCreditCard) ||
+      (onlineGateways.asaas?.enabled && onlineGateways.asaas?.acceptCreditCard)
+    );
+
+    if (onlineCreditEnabled) {
+      options.push({
+        value: "Cartão de Crédito Online",
+        title: "Cartão de Crédito Online",
+        subtitle: "Pague com segurança agora (InfinitePay)",
+        icon: CreditCard,
+        highlight: "Online",
       });
     }
     if (cashEnabled) {
@@ -524,7 +542,7 @@ const CartSidebar = () => {
     return false;
   }, [couponData, effectiveTotalPrice, nonPromoItemsTotal]);
 
-  const isFreeShippingApplicable = isFreeShippingByCoupon || isFreeShippingBySettings;
+  const isFreeShippingApplicable = !deliveryError && (isFreeShippingByCoupon || isFreeShippingBySettings);
 
   const couponDiscountAmount = computedCouponDiscount;
   const totalAfterCoupon = Math.max(0, effectiveTotalPrice - couponDiscountAmount - (loyaltyDiscount || 0));
@@ -532,6 +550,7 @@ const CartSidebar = () => {
 
   const getDeliveryFeeDisplay = () => {
     if (deliveryModality === "STORE_PICKUP") return "Retirada na loja";
+    if (deliveryError) return <span className="text-destructive font-semibold">Fora da área</span>;
     if (isFreeShippingApplicable || deliveryFee === 0) return <span className="text-primary font-bold">Grátis</span>;
     if (deliveryFee === null) return "A combinar";
     return formatPrice(deliveryFee);
@@ -576,8 +595,7 @@ const CartSidebar = () => {
   const isAddressValid = deliveryModality === "STORE_PICKUP" || structuredAddress !== null;
   const hasValidDeliveryFee =
     deliveryModality === "STORE_PICKUP" ||
-    isFreeShippingApplicable ||
-    (!deliveryError && (deliveryFee === null || deliveryFee >= 0));
+    (!deliveryError && (isFreeShippingApplicable || deliveryFee === null || deliveryFee >= 0));
 
   const savedAddressDisplay = useMemo(() => {
     if (!structuredAddress) return "";
@@ -594,11 +612,13 @@ const CartSidebar = () => {
         ? "Cartão de Débito"
         : paymentMethod === "Cartão de Crédito"
           ? creditMode === "parcelado"
-            ? `Cartão de Crédito - ${effectiveCreditInstallments}x`
-            : "Cartão de Crédito à vista"
-          : paymentMethod === "Dinheiro"
-            ? "Dinheiro"
-            : "-";
+            ? `Cartão de Crédito (Entrega) - ${effectiveCreditInstallments}x`
+            : "Cartão de Crédito (Entrega) à vista"
+          : paymentMethod === "Cartão de Crédito Online"
+            ? "Cartão de Crédito Online (InfinitePay)"
+            : paymentMethod === "Dinheiro"
+              ? "Dinheiro"
+              : "-";
 
   const persistAddresses = (addresses: StructuredAddress[]) => {
     setSavedAddresses(addresses);
@@ -1129,6 +1149,22 @@ const CartSidebar = () => {
       clearCart();
       setHasCopiedPix(paymentMethod !== "PIX");
       setIsCartOpen(false);
+
+      // Se o método for Cartão de Crédito Online, gerar link do checkout da InfinitePay
+      if (paymentMethod === "Cartão de Crédito Online") {
+        try {
+          const originUrl = window.location.origin;
+          const checkoutResponse = await ordersService.createOnlineCheckout(orderId, originUrl);
+          if (checkoutResponse?.checkoutUrl) {
+            toast.info("Redirecionando para o pagamento seguro na InfinitePay...");
+            window.location.href = checkoutResponse.checkoutUrl;
+            return;
+          }
+        } catch (checkoutErr: any) {
+          toast.error("Erro ao gerar link de pagamento online. Verifique com a loja.");
+        }
+      }
+
       setIsFinishModalOpen(true);
 
       // Verificação de Recompra (histórico local e janela de 7 dias)

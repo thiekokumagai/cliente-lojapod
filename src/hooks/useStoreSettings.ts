@@ -56,6 +56,7 @@ interface StoreSettings {
       valor: number;
     }[];
     allowAboveMax?: boolean;
+    maxDeliveryKm?: number | string | null;
   };
   marketingLinks?: {
     id: string;
@@ -109,7 +110,14 @@ export function useStoreSettings() {
       let searchCity = "Campo Grande";
       let searchSuffix = ", Campo Grande, MS, Brasil";
 
-      const allowAboveMax = data.deliveryRanges?.allowAboveMax;
+      // Se maxDeliveryKm estiver configurado (> 0), restringir a busca de endereços para a cidade da loja.
+      // Se estiver vazio (null/undefined/0), permitir buscar endereços de outras cidades/estados no Brasil.
+      const hasStrictMaxKm =
+        data.deliveryRanges?.maxDeliveryKm !== undefined &&
+        data.deliveryRanges?.maxDeliveryKm !== null &&
+        Number(data.deliveryRanges?.maxDeliveryKm) > 0;
+
+      const allowNationwide = !hasStrictMaxKm;
 
       if (data.deliveryOriginCep) {
         try {
@@ -119,14 +127,14 @@ export function useStoreSettings() {
           if (!viaCepData.erro) {
             searchCity = viaCepData.localidade;
             const state = viaCepData.uf;
-            searchSuffix = allowAboveMax ? ", Brasil" : `, ${searchCity}, ${state}, Brasil`;
-          } else if (allowAboveMax) {
+            searchSuffix = allowNationwide ? ", Brasil" : `, ${searchCity}, ${state}, Brasil`;
+          } else if (allowNationwide) {
             searchSuffix = ", Brasil";
           }
         } catch (e) {
-          if (allowAboveMax) searchSuffix = ", Brasil";
+          if (allowNationwide) searchSuffix = ", Brasil";
         }
-      } else if (allowAboveMax) {
+      } else if (allowNationwide) {
         searchSuffix = ", Brasil";
       }
 

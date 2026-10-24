@@ -35,16 +35,21 @@ function getFreightPrice(distanceKm: number, ranges: DeliveryRange[]): number | 
 function validateDistance(
     distanceKm: number, 
     ranges: DeliveryRange[], 
-    allowAboveMax: boolean
+    allowAboveMax: boolean,
+    customMaxDistance?: number | null
 ): FreightError | null {
-    if (!ranges || ranges.length === 0) return null;
-
     const km = Math.round(distanceKm * 10) / 10;
-    const maxDistance = Math.max(...ranges.map(r => r.distancia));
-
-    if (km > maxDistance && !allowAboveMax) {
+    const rangesMax = ranges && ranges.length > 0 ? Math.max(...ranges.map(r => r.distancia)) : 0;
+    if (customMaxDistance !== null && customMaxDistance !== undefined && customMaxDistance > 0) {
+        if (km > customMaxDistance) {
+            return {
+                error: `Endereço fora da área de entrega (máximo ${customMaxDistance}km).`,
+                distanceKm: km,
+            };
+        }
+    } else if (rangesMax > 0 && km > rangesMax && !allowAboveMax) {
         return {
-            error: `Endereço fora da área de entrega (máximo ${maxDistance}km).`,
+            error: `Endereço fora da área de entrega (máximo ${rangesMax}km).`,
             distanceKm: km,
         };
     }
@@ -97,8 +102,8 @@ export function useFreight() {
             }
 
             // Fallback origin if missing
-            const cep = storeSettings?.deliveryOriginCep || "79000-000";
-            const num = storeSettings?.deliveryOriginNumber || "";
+            const cep = (storeSettings?.deliveryOriginCep || storeSettings?.cep || "79000-000").replace(/\D/g, "");
+            const num = (storeSettings?.deliveryOriginNumber || storeSettings?.number || "").trim();
             const originAddress = `CEP ${cep}, ${num}, Brasil`;
 
             const route = await fetchRoute(originAddress, destination);
@@ -108,6 +113,16 @@ export function useFreight() {
 
             const ranges = storeSettings?.deliveryRanges?.ranges || [];
             const allowAboveMax = !!storeSettings?.deliveryRanges?.allowAboveMax;
+            const customMaxDistance = storeSettings?.deliveryRanges?.maxDeliveryKm
+                ? Number(storeSettings.deliveryRanges.maxDeliveryKm)
+                : null;
+
+            // Valida limite de distância/raio máximo para qualquer tipo de frete
+            const distanceValidation = validateDistance(km, ranges, allowAboveMax, customMaxDistance);
+            if (distanceValidation) {
+                setError(distanceValidation.error);
+                return distanceValidation;
+            }
 
             // Verifica tipo de entrega e frete grátis
             let freightPrice: number | null = null;
@@ -121,12 +136,7 @@ export function useFreight() {
                 freightPrice = null; // Taxa a combinar
             } else {
                 // Por distância (DISTANCE ou fallback)
-                const validationError = validateDistance(km, ranges, allowAboveMax);
-                if (validationError) {
-                    deliveryError = validationError;
-                } else {
-                    freightPrice = getFreightPrice(km, ranges);
-                }
+                freightPrice = getFreightPrice(km, ranges);
             }
             
             // Regra de Frete Grátis
