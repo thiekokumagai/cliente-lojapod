@@ -45,6 +45,9 @@ export const ordersService = {
   async createStoreOrder(payload: CreateOrderPayload) {
     return api.post<{ id: string; orderNumber: number }>("/store/orders", payload);
   },
+  async getStoreOrder(orderId: string) {
+    return api.get<any>(`/store/orders/${orderId}`);
+  },
   async createOnlineCheckout(orderId: string, originUrl?: string) {
     return api.post<{ checkoutUrl: string; transactionId?: string }>(`/payments/checkout/${orderId}`, { originUrl });
   },
