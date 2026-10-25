@@ -12,16 +12,30 @@ const SiteFooter = () => {
   const city = settings?.city;
   const state = settings?.state;
 
-  const acceptsCard = settings?.payOnDeliveryCardDebit || settings?.payOnDeliveryCardCredit;
+  const onlineGateways = (settings as any)?.paymentGateways || {};
+  const acceptsOnlineCard = !!(
+    (onlineGateways.infinitepay?.enabled && onlineGateways.infinitepay?.acceptCreditCard) ||
+    (onlineGateways.mercadopago?.enabled && onlineGateways.mercadopago?.acceptCreditCard) ||
+    (onlineGateways.asaas?.enabled && onlineGateways.asaas?.acceptCreditCard)
+  );
+  const acceptsDeliveryCard = !!(settings?.payOnDeliveryCardDebit || settings?.payOnDeliveryCardCredit);
   const acceptsPix = settings?.pixEnabled;
   const acceptsCash = settings?.payOnDeliveryCash;
 
   const PaymentMethods = () => (
     <>
-      {acceptsCard && (
+      {acceptsOnlineCard && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <CreditCard className="h-7 w-7 text-primary" />
+          <span className="text-sm font-medium">Crédito (Online)</span>
+        </div>
+      )}
+      {acceptsDeliveryCard && (
         <div className="flex items-center gap-2 text-muted-foreground">
           <CreditCard className="h-7 w-7" />
-          <span className="text-sm font-medium">Cartão</span>
+          <span className="text-sm font-medium">
+            {acceptsOnlineCard ? "Cartão (Entrega)" : "Cartão"}
+          </span>
         </div>
       )}
       {acceptsPix && (
@@ -36,7 +50,7 @@ const SiteFooter = () => {
           <span className="text-sm font-medium">Dinheiro</span>
         </div>
       )}
-      {!acceptsCard && !acceptsPix && !acceptsCash && (
+      {!acceptsOnlineCard && !acceptsDeliveryCard && !acceptsPix && !acceptsCash && (
         <div className="flex items-center gap-2 text-muted-foreground">
           <span className="text-sm font-medium">Consulte as opções no checkout</span>
         </div>

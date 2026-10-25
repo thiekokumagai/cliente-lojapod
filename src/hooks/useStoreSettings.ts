@@ -33,6 +33,7 @@ interface StoreSettings {
   payOnDeliveryCash: boolean;
   payOnDeliveryCardDebit: boolean;
   payOnDeliveryCardCredit: boolean;
+  paymentGateways?: any;
   paymentRules?: {
     id: string;
     paymentMethod: string;
