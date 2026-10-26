@@ -269,6 +269,7 @@ const CartSidebar = () => {
   const [creditInstallments, setCreditInstallments] = useState(1);
   const [needsChange, setNeedsChange] = useState("não");
   const [changeFor, setChangeFor] = useState("");
+  const [tempChangeFor, setTempChangeFor] = useState("");
   const [couponCode, setCouponCode] = useState("");
   const [savedCouponCode, setSavedCouponCode] = useState("");
   const [isEditingCoupon, setIsEditingCoupon] = useState(false);
@@ -357,6 +358,7 @@ const CartSidebar = () => {
       setCreditInstallments(1);
       setNeedsChange("não");
       setChangeFor("");
+      setTempChangeFor("");
       setEditingAddress(null);
       setIsAddressModalOpen(false);
       setIsShowingSavedAddresses(false);
@@ -845,6 +847,7 @@ const CartSidebar = () => {
     setCreditInstallments(1);
     setNeedsChange("não");
     setChangeFor("");
+    setTempChangeFor("");
     setStep("payment");
   };
 
@@ -1877,12 +1880,13 @@ const CartSidebar = () => {
                             onClick={() => {
                               setPaymentMethod(option.value);
                               if (option.value === "Cartão de Crédito") {
-                                setCreditMode("avista");
-                                setCreditInstallments(1);
+                                if (paymentMethod !== "Cartão de Crédito") {
+                                  setCreditMode("avista");
+                                  setCreditInstallments(1);
+                                }
                                 setIsCreditModalOpen(true);
                               } else if (option.value === "Dinheiro") {
-                                setNeedsChange("não");
-                                setChangeFor("");
+                                setTempChangeFor(changeFor);
                                 setIsCashModalOpen(true);
                               }
                             }}
@@ -1905,7 +1909,15 @@ const CartSidebar = () => {
                                     </span>
                                   )}
                                 </div>
-                                <p className="text-xs text-muted-foreground">{option.subtitle}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {isSelected && option.value === "Dinheiro"
+                                    ? (needsChange === "sim" && changeFor
+                                      ? `Troco para R$ ${changeFor}${parseCurrencyInput(changeFor) > finalTotal ? ` (Troco de ${formatPrice(parseCurrencyInput(changeFor) - finalTotal)})` : ""}`
+                                      : "Não preciso de troco")
+                                    : isSelected && option.value === "Cartão de Crédito" && creditMode === "parcelado" && creditInstallments > 1
+                                    ? `${creditInstallments}x de ${formatPrice(((effectiveTotalPrice + (deliveryFee || 0)) * (1 + (creditInstallmentsOptions.find(i => i.value === creditInstallments)?.interest || 0) / 100)) / creditInstallments)}`
+                                    : option.subtitle}
+                                </p>
                               </div>
                             </div>
                             <div
@@ -2704,48 +2716,78 @@ const CartSidebar = () => {
             className="relative flex max-h-[90dvh] w-full flex-col overflow-hidden rounded-t-2xl bg-card shadow-xl md:max-w-md md:rounded-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center border-b border-border px-4 py-4">
+            <div className="flex items-center justify-between border-b border-border px-4 py-4">
               <h3 className="text-base font-semibold text-foreground">Vai precisar de troco?</h3>
+              <button
+                type="button"
+                onClick={() => setIsCashModalOpen(false)}
+                className="rounded-full p-1 text-muted-foreground hover:bg-secondary hover:text-foreground"
+                aria-label="Fechar"
+              >
+                <X className="h-5 w-5" />
+              </button>
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-4 overscroll-contain">
-              <p className="mb-4 text-sm text-muted-foreground">Digite o valor que vai pagar em dinheiro</p>
-              <div className="relative mb-6">
+              <p className="mb-4 text-sm text-muted-foreground">
+                Total a pagar: <strong className="text-foreground">{formatPrice(finalTotal)}</strong>. Digite o valor que vai entregar em dinheiro:
+              </p>
+              <div className="relative mb-2">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground">R$</span>
                 <input
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
-                  value={changeFor}
+                  value={tempChangeFor}
                   onChange={(e) => {
-                    setNeedsChange("sim");
-                    setChangeFor(formatCurrencyInput(e.target.value));
+                    setTempChangeFor(formatCurrencyInput(e.target.value));
                   }}
                   className="h-14 w-full rounded-xl border border-border bg-background pl-10 pr-4 text-lg font-semibold outline-none focus:border-primary"
                   placeholder="0,00"
+                  autoFocus
                 />
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setNeedsChange("sim");
-                  setIsCashModalOpen(false);
-                }}
-                disabled={!changeFor.trim() || parseCurrencyInput(changeFor) < finalTotal}
-                className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-50"
-              >
-                Confirmar
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setNeedsChange("não");
-                  setChangeFor("");
-                  setIsCashModalOpen(false);
-                }}
-                className="mt-4 flex w-full items-center justify-center text-sm font-semibold text-primary"
-              >
-                Não preciso de troco
-              </button>
+
+              {tempChangeFor.trim() && parseCurrencyInput(tempChangeFor) > 0 && parseCurrencyInput(tempChangeFor) < finalTotal && (
+                <p className="mb-3 text-xs font-medium text-destructive">
+                  O valor deve ser de no mínimo {formatPrice(finalTotal)}.
+                </p>
+              )}
+
+              {parseCurrencyInput(tempChangeFor) > finalTotal && (
+                <div className="mb-4 rounded-xl bg-primary/10 p-3 text-sm text-foreground">
+                  <div className="flex justify-between font-medium">
+                    <span className="text-muted-foreground">Seu troco será de:</span>
+                    <span className="font-bold text-primary">{formatPrice(parseCurrencyInput(tempChangeFor) - finalTotal)}</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-4 space-y-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNeedsChange("sim");
+                    setChangeFor(tempChangeFor);
+                    setIsCashModalOpen(false);
+                  }}
+                  disabled={!tempChangeFor.trim() || parseCurrencyInput(tempChangeFor) < finalTotal}
+                  className="h-14 w-full rounded-xl bg-primary text-base font-bold text-primary-foreground disabled:opacity-50"
+                >
+                  Confirmar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNeedsChange("não");
+                    setChangeFor("");
+                    setTempChangeFor("");
+                    setIsCashModalOpen(false);
+                  }}
+                  className="flex h-12 w-full items-center justify-center rounded-xl border border-border text-sm font-semibold text-foreground hover:bg-secondary"
+                >
+                  Não preciso de troco
+                </button>
+              </div>
             </div>
           </div>
         </div>
