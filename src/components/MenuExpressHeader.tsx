@@ -35,10 +35,10 @@ export default function MenuExpressHeader() {
 
       {/* Conteúdo Principal do Cabeçalho */}
       <div className="max-w-7xl mx-auto px-4 md:px-8 py-4">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-start md:items-center justify-between gap-3 md:gap-4">
           
           {/* Logo & Dados da Loja */}
-          <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="flex items-start sm:items-center gap-3 md:gap-4 flex-1 min-w-0">
             {settings?.logoUrl ? (
               <img
                 src={settings.logoUrl}
@@ -51,8 +51,8 @@ export default function MenuExpressHeader() {
               </div>
             )}
 
-            <div className="space-y-1 flex-1">
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground">
+            <div className="space-y-1 flex-1 min-w-0">
+              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground truncate">
                 {settings?.storeName || "Minha Loja"}
               </h1>
               
@@ -100,7 +100,7 @@ export default function MenuExpressHeader() {
           </div>
 
           {/* Ações de Carrinho */}
-          <div className="flex items-center justify-end w-full md:w-auto">
+          <div className="flex items-center shrink-0 pt-0.5 md:pt-0">
             <button
               onClick={() => setIsCartOpen(true)}
               className="relative p-2.5 rounded-full bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 transition-colors shrink-0"
