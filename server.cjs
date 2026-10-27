@@ -53,8 +53,9 @@ async function getStoreSettings(domain) {
         "Content-Type": "application/json",
         "X-Store-Domain": domain,
         "X-Store-Subdomain": domain,
+        "X-Custom-Domain": domain,
       },
-      signal: AbortSignal.timeout(3500),
+      signal: AbortSignal.timeout(6000),
     });
 
     if (res.ok) {
@@ -106,37 +107,45 @@ const server = http.createServer(async (req, res) => {
 
     let html = fs.readFileSync(indexPath, "utf8");
 
-    // Identificar domínio da requisição
-    const rawHost = (req.headers["x-forwarded-host"] || req.headers.host || "").toString().toLowerCase();
+    // Identificar domínio da requisição tratando proxy e múltiplos hosts
+    const fwdHost = (req.headers["x-forwarded-host"] || req.headers.host || "").toString().toLowerCase();
+    const rawHost = fwdHost.split(",")[0].trim();
     const cleanHost = rawHost.split(":")[0].replace(/^www\./, "");
 
     const settings = await getStoreSettings(cleanHost);
 
-    if (settings) {
-      const storeName = settings.storeName?.trim() || "Loja Online";
-      const title = `${storeName} | Catálogo Online`;
-      const description = `Acesse o catálogo online da ${storeName} e confira nossos produtos a pronta entrega!`;
-      const logoUrl = buildFullLogoUrl(settings.logoUrl);
+    const storeName = settings?.storeName?.trim() || "Loja Online";
+    const title = settings ? `${storeName} | Catálogo Online` : "Catálogo digital";
+    const description = settings
+      ? `Acesse o catálogo online da ${storeName} e confira nossos produtos a pronta entrega!`
+      : "Confira nossos produtos a pronta entrega!";
+    const logoUrl = settings ? buildFullLogoUrl(settings.logoUrl) : `https://${cleanHost}/placeholder.svg`;
+    const canonicalUrl = `https://${cleanHost}${pathname}`;
 
-      // Injeção de tags dinâmicas
-      html = html.replace(/<title>.*?<\/title>/i, `<title>${title}</title>`);
-      html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:title" content="${title}" />`);
-      html = html.replace(/<meta\s+name=["']twitter:title["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:title" content="${title}" />`);
-      html = html.replace(/<meta\s+name=["']description["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="description" content="${description}" />`);
-      html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:description" content="${description}" />`);
-      html = html.replace(/<meta\s+name=["']twitter:description["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:description" content="${description}" />`);
-      html = html.replace(/<meta\s+name=["']author["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="author" content="${storeName}" />`);
+    // Injeção de tags dinâmicas
+    html = html.replace(/<title>.*?<\/title>/i, `<title>${title}</title>`);
+    html = html.replace(/<meta\s+property=["']og:title["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:title" content="${title}" />`);
+    html = html.replace(/<meta\s+name=["']twitter:title["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:title" content="${title}" />`);
+    html = html.replace(/<meta\s+name=["']description["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="description" content="${description}" />`);
+    html = html.replace(/<meta\s+property=["']og:description["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:description" content="${description}" />`);
+    html = html.replace(/<meta\s+name=["']twitter:description["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:description" content="${description}" />`);
+    html = html.replace(/<meta\s+name=["']author["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="author" content="${storeName}" />`);
 
-      if (logoUrl) {
-        html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:image" content="${logoUrl}" />`);
-        html = html.replace(/<meta\s+name=["']twitter:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:image" content="${logoUrl}" />`);
-      }
+    if (logoUrl) {
+      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:image" content="${logoUrl}" />`);
+      html = html.replace(/<meta\s+name=["']twitter:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:image" content="${logoUrl}" />`);
+    }
 
-      if (html.includes("og:site_name")) {
-        html = html.replace(/<meta\s+property=["']og:site_name["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:site_name" content="${storeName}" />`);
-      } else {
-        html = html.replace(/<\/head>/i, `  <meta property="og:site_name" content="${storeName}" />\n</head>`);
-      }
+    if (html.includes("og:site_name")) {
+      html = html.replace(/<meta\s+property=["']og:site_name["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:site_name" content="${storeName}" />`);
+    } else {
+      html = html.replace(/<\/head>/i, `  <meta property="og:site_name" content="${storeName}" />\n</head>`);
+    }
+
+    if (html.includes("og:url")) {
+      html = html.replace(/<meta\s+property=["']og:url["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:url" content="${canonicalUrl}" />`);
+    } else {
+      html = html.replace(/<\/head>/i, `  <meta property="og:url" content="${canonicalUrl}" />\n</head>`);
     }
 
     res.setHeader("Content-Type", "text/html; charset=utf-8");
