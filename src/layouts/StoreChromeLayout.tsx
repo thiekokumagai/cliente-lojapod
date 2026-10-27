@@ -11,6 +11,7 @@ import WhatsAppButton from "@/components/WhatsAppButton";
 import StoreNotFound from "@/components/StoreNotFound";
 import StoreOffline from "@/components/StoreOffline";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { buildImageUrl } from "@/utils/image-url";
 import { io } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -52,8 +53,32 @@ const StoreChromeLayout = () => {
   useEffect(() => {
     if (!settings) return;
 
+    const updateMetaTag = (attrName: "property" | "name", attrValue: string, content: string) => {
+      let meta = document.querySelector(`meta[${attrName}='${attrValue}']`) as HTMLMetaElement;
+      if (!meta) {
+        meta = document.createElement("meta");
+        meta.setAttribute(attrName, attrValue);
+        document.head.appendChild(meta);
+      }
+      meta.content = content;
+    };
+
     if (settings.storeName) {
       document.title = settings.storeName;
+      updateMetaTag("property", "og:title", `${settings.storeName} | Catálogo Online`);
+      updateMetaTag("name", "twitter:title", `${settings.storeName} | Catálogo Online`);
+      updateMetaTag("property", "og:site_name", settings.storeName);
+      updateMetaTag("name", "author", settings.storeName);
+      updateMetaTag("name", "description", `Acesse o catálogo online da ${settings.storeName}.`);
+      updateMetaTag("property", "og:description", `Acesse o catálogo online da ${settings.storeName}.`);
+    }
+
+    if (settings.logoUrl) {
+      const fullLogoUrl = buildImageUrl(settings.logoUrl);
+      if (fullLogoUrl) {
+        updateMetaTag("property", "og:image", fullLogoUrl);
+        updateMetaTag("name", "twitter:image", fullLogoUrl);
+      }
     }
 
     if (settings.faviconUrl) {

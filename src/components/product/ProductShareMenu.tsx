@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import whatsappIcon from "@/assets/whatsapp-original.svg";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 
 interface ProductShareMenuProps {
   productName: string;
@@ -16,10 +17,13 @@ interface ProductShareMenuProps {
 
 const ProductShareMenu = ({ productName, triggerClassName }: ProductShareMenuProps) => {
   const [copied, setCopied] = useState(false);
+  const { data: settings } = useStoreSettings();
+  const storeName = settings?.storeName?.trim();
 
   const handleWhatsAppShare = () => {
     const shareUrl = window.location.href;
-    const message = `Olha esse produto que encontrei: ${productName}\n${shareUrl}`;
+    const storeHeader = storeName ? `🛍️ *${storeName}*\n\n` : "";
+    const message = `${storeHeader}Olha esse produto que encontrei: *${productName}*\n\n${shareUrl}`;
     const encodedText = encodeURIComponent(message);
     const urlApp = `whatsapp://send?text=${encodedText}`;
     const urlWeb = `https://api.whatsapp.com/send?text=${encodedText}`;
