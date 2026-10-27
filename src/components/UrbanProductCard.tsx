@@ -139,6 +139,25 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
                   dangerouslySetInnerHTML={{ __html: product.description }}
                 />
               )}
+
+              {/* Badges de Variações */}
+              {storeSettings?.showVariationsOnCard !== false && allGroups.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1">
+                  {allGroups[0].options.slice(0, 3).map((opt) => (
+                    <span
+                      key={opt.label}
+                      className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-medium text-slate-600"
+                    >
+                      {opt.label}
+                    </span>
+                  ))}
+                  {allGroups[0].options.length > 3 && (
+                    <span className="text-[10px] text-slate-400 self-center">
+                      +{allGroups[0].options.length - 3}
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Preços */}

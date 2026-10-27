@@ -1,9 +1,11 @@
 import { useMemo } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { useProducts } from "@/hooks/useProducts";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { cn } from "@/lib/utils";
 
 const NicotineFilter = () => {
+  const { data: storeSettings } = useStoreSettings();
   const {
     selectedCategory,
     selectedCategoryId,
@@ -62,6 +64,7 @@ const NicotineFilter = () => {
     return result;
   }, [allProducts, selectedCategory, selectedCategoryId]);
 
+  if (storeSettings?.showVariationsOnCard === false) return null;
   if (variationGroupSections.length === 0) return null;
 
   return (

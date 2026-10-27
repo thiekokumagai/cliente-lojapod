@@ -76,6 +76,7 @@ interface StoreSettings {
   defaultProductSort?: string | null;
   autoHideOutOfStock?: boolean;
   enableStockAlertNotification?: boolean;
+  showVariationsOnCard?: boolean;
 }
 
 function buildSettingsImageUrl(path?: string | null) {

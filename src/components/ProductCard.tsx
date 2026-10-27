@@ -264,9 +264,9 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
             </Link>
           )}
 
-          {allGroups.length > 0 && (
+          {allGroups.length > 0 && ((storeSettings?.showVariationsOnCard !== false) || hasVariationInCart) && (
             <div className="mt-3 space-y-2">
-              {allGroups.map((group) => (
+              {storeSettings?.showVariationsOnCard !== false && allGroups.map((group) => (
                 <div key={group.name}>
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                     {group.name}

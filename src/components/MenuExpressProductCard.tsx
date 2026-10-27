@@ -108,7 +108,7 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
             </div>
 
             {/* Badges de Peso/Unidade ou Serve X pessoas se houver nas variações */}
-            {allGroups.length > 0 && (
+            {storeSettings?.showVariationsOnCard !== false && allGroups.length > 0 && (
               <div className="mt-1 flex flex-wrap gap-1">
                 {allGroups[0].options.slice(0, 2).map((opt) => (
                   <span
