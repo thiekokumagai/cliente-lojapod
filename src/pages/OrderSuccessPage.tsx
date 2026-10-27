@@ -3,6 +3,7 @@ import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { CheckCircle2, Clock, MapPin, MessageCircle, ArrowLeft, Loader2, CreditCard } from "lucide-react";
 import { ordersService } from "@/services/orders";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { formatWhatsAppNumber } from "@/utils/phone";
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
 
 export default function OrderSuccessPage() {
@@ -66,7 +67,7 @@ export default function OrderSuccessPage() {
   const handleOpenWhatsApp = () => {
     if (!order) return;
 
-    const storePhone = storeSettings?.phone?.replace(/\D/g, "") || "";
+    const storePhone = formatWhatsAppNumber(storeSettings?.phone);
     if (!storePhone) {
       window.open(`https://wa.me/?text=${encodeURIComponent(buildWhatsAppText())}`, "_blank");
       return;

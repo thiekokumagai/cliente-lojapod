@@ -1,5 +1,6 @@
 import { MessageCircle } from "lucide-react";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { formatWhatsAppNumber } from "@/utils/phone";
 
 interface ProductContactProps {
   isDesktop?: boolean;
@@ -8,7 +9,7 @@ interface ProductContactProps {
 
 const ProductContact = ({ isDesktop = false, productName }: ProductContactProps) => {
   const { data: settings } = useStoreSettings();
-  const phone = settings?.phone?.replace(/\D/g, "");
+  const phone = formatWhatsAppNumber(settings?.phone);
   
   if (!phone) return null;
 

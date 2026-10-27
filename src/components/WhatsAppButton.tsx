@@ -3,6 +3,7 @@ import { useLocation } from "react-router-dom";
 import whatsappIcon from "@/assets/whatsapp-original.svg";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useProduct } from "@/hooks/useProducts";
+import { formatWhatsAppNumber } from "@/utils/phone";
 
 const WhatsAppButton = () => {
   const { totalItems, selectedCategory } = useCart();
@@ -13,7 +14,7 @@ const WhatsAppButton = () => {
   const { data: product } = useProduct(productId);
 
   const { data: settings } = useStoreSettings();
-  const phone = settings?.phone?.replace(/\D/g, "");
+  const phone = formatWhatsAppNumber(settings?.phone);
 
   if (!phone) return null;
 

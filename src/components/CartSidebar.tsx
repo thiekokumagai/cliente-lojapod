@@ -36,6 +36,7 @@ import {
   getProductAvailableStock,
   validateCartStockAllocation,
 } from "@/utils/cart-stock";
+import { formatWhatsAppNumber } from "@/utils/phone";
 
 
 import AddressSearch, { type StructuredAddress } from "@/components/checkout/AddressSearch";
@@ -1302,7 +1303,7 @@ const CartSidebar = () => {
   };
 
   const handleSendWhatsApp = () => {
-    const numero = storeSettings?.phone?.replace(/\D/g, "");
+    const numero = formatWhatsAppNumber(storeSettings?.phone);
     if (!numero) return;
     const urlApp = `whatsapp://send?phone=${numero}&text=${checkoutMessage}`;
     const urlWeb = `https://wa.me/${numero}?text=${checkoutMessage}`;
