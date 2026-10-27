@@ -27,7 +27,7 @@ export default function MenuExpressHeader() {
       <StoreHoursTopBar />
       {/* Banner de Capa (se houver) */}
       {bannerUrl && (
-        <div className="w-full h-36 md:h-52 overflow-hidden relative bg-muted">
+        <div className="w-full overflow-hidden relative bg-muted">
           <img src={bannerUrl} alt="Capa da Loja" className="w-full h-full object-cover" />
           <div className="absolute inset-0" />
         </div>
