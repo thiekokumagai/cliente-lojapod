@@ -107,20 +107,43 @@ const server = http.createServer(async (req, res) => {
 
     let html = fs.readFileSync(indexPath, "utf8");
 
-    // Identificar domínio da requisição tratando proxy e múltiplos hosts
-    const fwdHost = (req.headers["x-forwarded-host"] || req.headers.host || "").toString().toLowerCase();
-    const rawHost = fwdHost.split(",")[0].trim();
-    const cleanHost = rawHost.split(":")[0].replace(/^www\./, "");
+    // Identificar domínio da requisição tratando proxy, Cloudflare Worker e Railway
+    let detectedHost = (
+      req.headers["x-custom-domain"] ||
+      req.headers["x-store-domain"] ||
+      req.headers["x-store-subdomain"] ||
+      ""
+    ).toString().toLowerCase().trim();
 
-    const settings = await getStoreSettings(cleanHost);
+    if (!detectedHost) {
+      const fwdHost = (req.headers["x-forwarded-host"] || "").toString().toLowerCase();
+      const firstHost = fwdHost.split(",")[0].trim().split(":")[0];
+      if (firstHost && !firstHost.includes(".up.railway.app") && !firstHost.includes("railway.app")) {
+        detectedHost = firstHost;
+      }
+    }
+
+    if (!detectedHost) {
+      const hostHeader = (req.headers.host || "").toString().toLowerCase().split(":")[0];
+      if (hostHeader && !hostHeader.includes(".up.railway.app") && !hostHeader.includes("railway.app")) {
+        detectedHost = hostHeader;
+      }
+    }
+
+    const cleanHost = (detectedHost || "").split(",")[0].trim().split(":")[0].replace(/^www\./, "");
+    console.log(`[SSR] Host detectado: '${cleanHost}' | X-Custom-Domain: '${req.headers["x-custom-domain"]}' | Host: '${req.headers.host}'`);
+
+    const settings = cleanHost ? await getStoreSettings(cleanHost) : null;
 
     const storeName = settings?.storeName?.trim() || "Loja Online";
     const title = settings ? `${storeName} | Catálogo Online` : "Catálogo digital";
     const description = settings
       ? `Acesse o catálogo online da ${storeName} e confira nossos produtos a pronta entrega!`
       : "Confira nossos produtos a pronta entrega!";
-    const logoUrl = settings ? buildFullLogoUrl(settings.logoUrl) : `https://${cleanHost}/placeholder.svg`;
-    const canonicalUrl = `https://${cleanHost}${pathname}`;
+    
+    const rawLogoUrl = settings?.logoUrl ? buildFullLogoUrl(settings.logoUrl) : "";
+    const canonicalHost = cleanHost || (req.headers.host || "").toString().toLowerCase().split(":")[0];
+    const canonicalUrl = `https://${canonicalHost}${pathname}`;
 
     // Injeção de tags dinâmicas
     html = html.replace(/<title>.*?<\/title>/i, `<title>${title}</title>`);
@@ -131,9 +154,13 @@ const server = http.createServer(async (req, res) => {
     html = html.replace(/<meta\s+name=["']twitter:description["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:description" content="${description}" />`);
     html = html.replace(/<meta\s+name=["']author["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="author" content="${storeName}" />`);
 
-    if (logoUrl) {
-      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:image" content="${logoUrl}" />`);
-      html = html.replace(/<meta\s+name=["']twitter:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:image" content="${logoUrl}" />`);
+    if (rawLogoUrl) {
+      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta property="og:image" content="${rawLogoUrl}" />`);
+      html = html.replace(/<meta\s+name=["']twitter:image["']\s+content=["'].*?["']\s*\/?>/i, `<meta name="twitter:image" content="${rawLogoUrl}" />`);
+    } else {
+      // Se não houver logo configurada, remove og:image com .svg para o Facebook não dar erro de formato inválido
+      html = html.replace(/<meta\s+property=["']og:image["']\s+content=["'].*?["']\s*\/?>/i, "");
+      html = html.replace(/<meta\s+name=["']twitter:image["']\s+content=["'].*?["']\s*\/?>/i, "");
     }
 
     if (html.includes("og:site_name")) {
