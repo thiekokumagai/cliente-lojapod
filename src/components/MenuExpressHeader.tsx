@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, ShoppingCart, Clock, AlertCircle, MapPin, Phone, Instagram, X } from "lucide-react";
+import { Search, ShoppingCart, Clock, AlertCircle, MapPin, Phone, Instagram, X, Truck, Store } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useBusinessStatus } from "@/hooks/useBusinessStatus";
@@ -21,6 +21,11 @@ export default function MenuExpressHeader() {
   const { isOpen, nextOpenDateStr, businessHours, closingTimeStr } = useBusinessStatus(settings?.businessHours);
 
   const bannerUrl = settings?.bannerUrls && settings.bannerUrls.length > 0 ? settings.bannerUrls[0] : null;
+
+  const isNoFee = settings?.deliveryType === "NO_FEE" || Boolean(settings?.freeShippingEnabled);
+  const isFixedFee = settings?.deliveryType === "FIXED_FEE";
+  const fixedFeeValue = settings?.deliveryFixedFee;
+  const showStorePickup = Boolean(settings?.storePickupEnabled);
 
   return (
     <header className="w-full bg-background border-b border-border-subtle">
@@ -56,13 +61,13 @@ export default function MenuExpressHeader() {
                 {settings?.storeName || "Minha Loja"}
               </h1>
               
-              {/* Badges de Status */}
+              {/* Badges de Status e Serviços */}
               <div className="flex flex-wrap items-center gap-2">
                 {!isLoading && (
                   isOpen ? (
                     <button
                       onClick={() => setHoursModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 hover:bg-emerald-200 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 hover:bg-emerald-200 transition-colors shrink-0"
                     >
                       <Clock className="h-3.5 w-3.5" />
                       <span>Aberto {closingTimeStr ? `até ${closingTimeStr}` : ''}</span>
@@ -70,7 +75,7 @@ export default function MenuExpressHeader() {
                   ) : (
                     <button
                       onClick={() => setHoursModalOpen(true)}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 hover:bg-red-200 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 hover:bg-red-200 transition-colors shrink-0"
                     >
                       <AlertCircle className="h-3.5 w-3.5" />
                       <span>Fechado {nextOpenDateStr ? `(Reabre ${nextOpenDateStr.toLowerCase()})` : ''}</span>
@@ -78,9 +83,37 @@ export default function MenuExpressHeader() {
                   )
                 )}
 
+                {/* Destaque de Frete Grátis */}
+                {isNoFee && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 shrink-0">
+                    <Truck className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>
+                      {settings?.freeShippingMinValue
+                        ? `Frete grátis acima de R$ ${Number(settings.freeShippingMinValue).toFixed(2).replace('.', ',')}`
+                        : 'Frete grátis'}
+                    </span>
+                  </span>
+                )}
+
+                {/* Destaque de Taxa Fixa */}
+                {!isNoFee && isFixedFee && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-xs font-semibold text-emerald-700 shrink-0">
+                    <Truck className="h-3.5 w-3.5 text-emerald-600" />
+                    <span>Taxa fixa{fixedFeeValue ? `: R$ ${Number(fixedFeeValue).toFixed(2).replace('.', ',')}` : ''}</span>
+                  </span>
+                )}
+
+                {/* Retirada na Loja */}
+                {showStorePickup && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700 shrink-0">
+                    <Store className="h-3.5 w-3.5 text-blue-600" />
+                    <span>Retirada</span>
+                  </span>
+                )}
+
                 {!settings?.hideAddress ? (
                   (settings?.street || settings?.city) && (
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                       <MapPin className="h-3.5 w-3.5 shrink-0" />
                       {settings?.street
                         ? `${settings.street}${settings.number ? `, ${settings.number}` : ''}${settings.neighborhood ? ` - ${settings.neighborhood}` : ''}${settings.city ? `, ${settings.city}` : ''}${settings.state ? ` - ${settings.state}` : ''}`
@@ -89,7 +122,7 @@ export default function MenuExpressHeader() {
                   )
                 ) : (
                   settings?.city && (
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                       <MapPin className="h-3.5 w-3.5 shrink-0" />
                       {settings.city}, {settings.state}
                     </span>
