@@ -177,8 +177,8 @@ const AllProductsSection = () => {
   const visible = sortedProducts.slice(0, visibleCount);
 
   return (
-    <section id="produtos" className="py-12 md:py-16">
-      <div className="mx-auto max-w-7xl px-4 md:px-8">
+    <section id="produtos" className={isUrban ? "py-6 md:py-10" : "py-12 md:py-16"}>
+      <div className={cn(isUrban ? "w-full px-0" : "mx-auto max-w-7xl px-4 md:px-8")}>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Package className="h-6 w-6 text-primary" />
@@ -214,7 +214,7 @@ const AllProductsSection = () => {
           className={cn(
             "mt-8 grid gap-3.5",
             isUrban
-              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-2 lg:gap-4"
+              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
               : isMenuExpress
                 ? "grid-cols-1 md:grid-cols-2 lg:gap-4"
                 : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 md:gap-4"

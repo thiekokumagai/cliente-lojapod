@@ -188,7 +188,7 @@ const Index = () => {
         <UrbanHeader onOpenCategoriesMenu={() => setIsCategoryDrawerOpen(true)} />
         
         {/* Main Content Area */}
-        <div className="mx-auto max-w-7xl px-3 sm:px-6 lg:px-8 py-4 sm:py-6">
+        <div className="mx-auto max-w-7xl px-2 sm:px-6 lg:px-8 py-3 sm:py-6">
           <div className="flex gap-6 lg:gap-8 items-start">
             
             {/* Desktop Left Sidebar */}

@@ -69,8 +69,8 @@ const PromotionsSection = () => {
   const isUrban = settings?.templateId === "urban" || settings?.templateId === "urban";
 
   return (
-    <section id="promocoes" className="py-8 md:py-12">
-      <div className="mx-auto max-w-7xl px-4 md:px-8">
+    <section id="promocoes" className={isUrban ? "py-4 md:py-6" : "py-8 md:py-12"}>
+      <div className={cn(isUrban ? "w-full px-0" : "mx-auto max-w-7xl px-4 md:px-8")}>
         <div className="flex items-center gap-3 mb-6">
           <Flame className="h-6 w-6 text-red-500" />
           <h2 className="font-display text-2xl font-bold text-foreground md:text-3xl">
@@ -85,7 +85,7 @@ const PromotionsSection = () => {
           className={cn(
             "grid gap-3.5",
             isUrban
-              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-2 lg:gap-4"
+              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
               : isMenuExpress
                 ? "grid-cols-1 md:grid-cols-2 lg:gap-4"
                 : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 md:gap-4"

@@ -99,91 +99,122 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
   };
 
   const cardInner = (
-    <div className="group relative flex flex-col sm:flex-row items-stretch justify-between gap-3 sm:gap-4 w-full h-full bg-white p-3.5 sm:p-4 rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer">
-        <div className="flex gap-3 sm:gap-4 flex-1 min-w-0">
-          {/* Thumbnail com Badge de Desconto */}
-          <div className="relative shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-slate-100 flex items-center justify-center">
-            {discountPercentage > 0 && (
-              <span className="absolute top-1 left-1 z-10 bg-red-500 text-white font-black text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md shadow-xs">
-                -{discountPercentage}%
-              </span>
-            )}
+    <div className="group relative flex flex-row items-stretch justify-between gap-3 sm:gap-3.5 w-full bg-white p-2.5 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all cursor-pointer">
+      {/* Thumbnail que preenche a altura inteira do quadro */}
+      <div className="relative shrink-0 w-[112px] sm:w-[120px] self-stretch min-h-[118px] sm:min-h-[120px] rounded-xl overflow-hidden bg-white sm:bg-slate-50 flex items-center justify-center border border-slate-100">
+        {discountPercentage > 0 && (
+          <span className="absolute top-1 left-1 z-10 bg-red-500 text-white font-black text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md shadow-xs">
+            -{discountPercentage}%
+          </span>
+        )}
 
-            {productImage ? (
-              <img
-                src={productImage}
-                alt={product.name}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                loading="lazy"
-              />
-            ) : (
-              <div className="text-slate-300 text-xs">Sem imagem</div>
-            )}
-          </div>
+        {productImage ? (
+          <img
+            src={productImage}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            loading="lazy"
+          />
+        ) : (
+          <div className="text-slate-300 text-xs">Sem imagem</div>
+        )}
+      </div>
 
-          {/* Info do Produto */}
-          <div className="flex-1 flex flex-col justify-between min-w-0">
-            <div>
-              {product.category && (
-                <span className="text-[11px] font-semibold text-primary uppercase tracking-wider block mb-0.5 truncate">
-                  {product.category}
+      {/* Info do Produto, Preços e Botões */}
+      <div className="flex-1 flex flex-col justify-between min-w-0 self-stretch py-0.5">
+        <div>
+          {product.category && (
+            <span className="hidden sm:block text-[11px] font-semibold text-primary uppercase tracking-wider mb-0.5 truncate">
+              {product.category}
+            </span>
+          )}
+          <h3 className="font-bold text-slate-900 text-sm sm:text-[15px] leading-snug line-clamp-2">
+            {product.name}
+          </h3>
+
+          {/* Badges de Variações em telas maiores */}
+          {storeSettings?.showVariationsOnCard !== false && allGroups.length > 0 && (
+            <div className="hidden sm:flex mt-1.5 flex-wrap gap-1">
+              {allGroups[0].options.slice(0, 3).map((opt) => (
+                <span
+                  key={opt.label}
+                  className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-medium text-slate-600"
+                >
+                  {opt.label}
                 </span>
-              )}
-              <h3 className="font-bold text-slate-900 text-sm sm:text-base leading-snug line-clamp-2">
-                {product.name}
-              </h3>
-
-              {product.description && (
-                <div
-                  className="mt-1 text-xs text-slate-500 line-clamp-2 leading-relaxed [&>p]:inline [&>p]:after:content-['\a'] [&>p]:after:whitespace-pre"
-                  dangerouslySetInnerHTML={{ __html: product.description }}
-                />
-              )}
-
-              {/* Badges de Variações */}
-              {storeSettings?.showVariationsOnCard !== false && allGroups.length > 0 && (
-                <div className="mt-1.5 flex flex-wrap gap-1">
-                  {allGroups[0].options.slice(0, 3).map((opt) => (
-                    <span
-                      key={opt.label}
-                      className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-[10px] font-medium text-slate-600"
-                    >
-                      {opt.label}
-                    </span>
-                  ))}
-                  {allGroups[0].options.length > 3 && (
-                    <span className="text-[10px] text-slate-400 self-center">
-                      +{allGroups[0].options.length - 3}
-                    </span>
-                  )}
-                </div>
+              ))}
+              {allGroups[0].options.length > 3 && (
+                <span className="text-[10px] text-slate-400 self-center">
+                  +{allGroups[0].options.length - 3}
+                </span>
               )}
             </div>
+          )}
+        </div>
 
-            {/* Preços */}
-            <div className="mt-2 flex items-baseline gap-2 flex-wrap">
-              {product.oldPrice && (
-                <span className="text-xs text-slate-400 line-through">
-                  {formatPrice(product.oldPrice)}
-                </span>
-              )}
+        {/* Linha Inferior: Preço na esquerda e Botão Desktop '+' no canto direito */}
+        <div className="mt-2 flex items-end justify-between gap-2 w-full">
+          {/* Preços */}
+          <div>
+            {product.oldPrice && (
+              <span className="block text-xs text-slate-300 font-semibold line-through leading-none mb-1">
+                {formatPrice(product.oldPrice)}
+              </span>
+            )}
+            <div className="flex items-baseline gap-1.5">
               <span
-                className="text-base sm:text-lg font-black"
+                className="text-base sm:text-lg font-black leading-none"
                 style={{ color: "var(--price-color, var(--primary-custom, #0f172a))" }}
               >
                 {formatPrice(product.price)}
               </span>
               {product.isPromo && (
-                <span className="text-xs font-semibold text-primary">
+                <span className="text-xs font-semibold text-primary sm:hidden">
                   no PIX
                 </span>
               )}
             </div>
           </div>
+
+          {/* Botão Desktop: Quadrado preto com '+' no canto inferior direito */}
+          <div className="hidden sm:flex items-center justify-end shrink-0">
+            {isUnavailable ? (
+              storeSettings?.enableStockAlertNotification !== false ? (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setShowNotificationModal(true);
+                  }}
+                  className="flex items-center justify-center h-9 px-3 rounded-xl text-white font-bold text-xs hover:opacity-90 transition-all shadow-xs gap-1.5"
+                  style={{ backgroundColor: "#ea580c" }}
+                  title="Avise-me quando chegar"
+                >
+                  <BellRing className="h-4 w-4" />
+                  <span>Avise-me</span>
+                </button>
+              ) : (
+                <span className="text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-1.5 rounded-lg">
+                  Esgotado
+                </span>
+              )
+            ) : (
+              <button
+                type="button"
+                onClick={handleBuy}
+                className="flex items-center justify-center h-9 w-9 rounded-xl text-white font-bold hover:opacity-90 active:scale-95 transition-all shadow-xs shrink-0 cursor-pointer"
+                style={{ backgroundColor: "var(--primary-custom, #000000)" }}
+                aria-label="Adicionar ao carrinho"
+              >
+                <Plus className="h-5 w-5 stroke-[2.5]" />
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Botão de Adição ou Avise-me */}
-        <div className="flex items-end justify-end sm:self-center shrink-0">
+        {/* Botão Maior Mobile (Embaixo do Preço) */}
+        <div className="mt-2.5 sm:hidden w-full">
           {isUnavailable ? (
             storeSettings?.enableStockAlertNotification !== false ? (
               <button
@@ -193,31 +224,32 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
                   e.stopPropagation();
                   setShowNotificationModal(true);
                 }}
-                className="flex items-center justify-center h-8 px-2.5 rounded-lg text-white font-bold text-xs hover:opacity-90 transition-all shadow-xs shrink-0 gap-1"
+                className="flex items-center justify-center w-full h-9 rounded-xl text-white font-bold text-xs shadow-xs gap-1.5 active:scale-[0.98] transition-all"
                 style={{ backgroundColor: "#ea580c" }}
                 title="Avise-me quando chegar"
               >
-                <BellRing className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Avise-me</span>
+                <BellRing className="h-4 w-4" />
+                <span>Avise-me quando chegar</span>
               </button>
             ) : (
-              <span className="text-xs font-semibold text-muted-foreground bg-muted px-2 py-1 rounded">
+              <div className="flex items-center justify-center w-full h-9 rounded-xl bg-muted text-muted-foreground font-semibold text-xs">
                 Esgotado
-              </span>
+              </div>
             )
           ) : (
             <button
               type="button"
               onClick={handleBuy}
-              className="flex items-center justify-center h-7 w-7 sm:h-8 sm:w-8 rounded-lg text-white font-bold hover:opacity-90 transition-all shadow-xs shrink-0"
+              className="flex items-center justify-center w-full h-9 rounded-xl text-white font-bold text-sm tracking-wide hover:opacity-90 active:scale-[0.98] transition-all shadow-xs gap-2"
               style={{ backgroundColor: "var(--primary-custom, #000000)" }}
-              aria-label="Adicionar ao carrinho"
             >
-              <Plus className="h-4 w-4 stroke-[2.5]" />
+              <Plus className="h-4 w-4 stroke-[3]" />
+              <span>Adicionar</span>
             </button>
           )}
         </div>
       </div>
+    </div>
   );
 
   return (
