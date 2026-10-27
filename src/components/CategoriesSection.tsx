@@ -193,15 +193,23 @@ const CategoriesSection = () => {
           >
             <div className="flex min-w-max gap-2 px-1 pb-2 md:gap-6">
               {isLoading ? (
-                // Skeleton loading state
-                Array.from({ length: 6 }).map((_, i) => (
-                  <div key={i} className="flex w-[88px] shrink-0 flex-col items-center gap-2 md:w-[104px]">
-                    <div className="overflow-hidden rounded-full border-2 border-transparent bg-secondary p-1">
-                      <div className="aspect-square w-20 rounded-full bg-zinc-800/50 animate-pulse md:w-24" />
+                isMenuExpress ? (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="h-8 w-24 rounded-full bg-muted/80 animate-pulse shrink-0 border border-border"
+                    />
+                  ))
+                ) : (
+                  Array.from({ length: 6 }).map((_, i) => (
+                    <div key={i} className="flex w-[88px] shrink-0 flex-col items-center gap-2 md:w-[104px]">
+                      <div className="overflow-hidden rounded-full border-2 border-transparent bg-secondary p-1">
+                        <div className="aspect-square w-20 rounded-full bg-zinc-800/50 animate-pulse md:w-24" />
+                      </div>
+                      <div className="h-4 w-16 bg-zinc-800/50 animate-pulse rounded-md mt-1" />
                     </div>
-                    <div className="h-4 w-16 bg-zinc-800/50 animate-pulse rounded-md mt-1" />
-                  </div>
-                ))
+                  ))
+                )
               ) : (
                 categories.map((cat) => {
                   const isActive = selectedCategory === cat.name;

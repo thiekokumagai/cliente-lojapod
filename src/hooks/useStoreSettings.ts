@@ -89,10 +89,24 @@ function buildSettingsImageUrl(path?: string | null) {
   return `${import.meta.env.VITE_MINIO_PUBLIC_URL}/${import.meta.env.VITE_MINIO_BUCKET || "lojapod"}/${path}`;
 }
 
+function getCachedSettings(subdomain: string): StoreSettings | undefined {
+  try {
+    const raw = localStorage.getItem(`store_settings_cache_${subdomain}`);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    // ignore
+  }
+  return undefined;
+}
+
 export function useStoreSettings() {
   const subdomain = getSubdomain();
   return useQuery({
     queryKey: ["store-settings", subdomain],
+    initialData: () => getCachedSettings(subdomain),
+    initialDataUpdatedAt: 0,
     queryFn: async (): Promise<StoreSettings> => {
       const response = await fetch(
         `${import.meta.env.VITE_ADMIN_API}/store/settings`,
@@ -140,7 +154,7 @@ export function useStoreSettings() {
         searchSuffix = ", Brasil";
       }
 
-      return {
+      const result: StoreSettings = {
         ...data,
         searchCity,
         searchSuffix,
@@ -153,9 +167,19 @@ export function useStoreSettings() {
           imageUrl: buildSettingsImageUrl(link.imageUrl),
         })),
       };
+
+      try {
+        localStorage.setItem(`store_settings_cache_${subdomain}`, JSON.stringify(result));
+      } catch (e) {
+        // ignore
+      }
+
+      return result;
     },
+    staleTime: 0,
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
     retry: false,
-    staleTime: 60 * 60 * 1000, // 1 hour
     gcTime: 24 * 60 * 60 * 1000,
   });
 }

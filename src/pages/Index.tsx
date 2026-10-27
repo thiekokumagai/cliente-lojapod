@@ -33,7 +33,7 @@ const Index = () => {
     setSelectedNicotineStrength,
   } = useCart();
   const mobileBottom = useStoreMobilePadding("home");
-  const { data: settings } = useStoreSettings();
+  const { data: settings, isLoading: isSettingsLoading } = useStoreSettings();
   const { data: allProducts = [], isLoading } = useProducts(selectedCategoryId);
   const { data: apiCategories = [] } = useCategories();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -169,6 +169,14 @@ const Index = () => {
       timeouts.forEach(t => clearTimeout(t));
     };
   }, [isLoading]);
+
+  if (isSettingsLoading && !settings) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
+  }
 
   const isMenuExpress = settings?.templateId === "menu-express";
   const isUrban = settings?.templateId === "urban" || settings?.templateId === "podify";

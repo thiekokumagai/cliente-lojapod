@@ -36,6 +36,14 @@ const StoreChromeLayout = () => {
       queryClient.invalidateQueries({ queryKey: ["api-products-category"] });
     });
 
+    socket.on('settings.refresh', () => {
+      queryClient.invalidateQueries({ queryKey: ["store-settings"] });
+    });
+
+    socket.on('store.refresh', () => {
+      queryClient.invalidateQueries({ queryKey: ["store-settings"] });
+    });
+
     return () => {
       socket.disconnect();
     };
@@ -112,6 +120,14 @@ const StoreChromeLayout = () => {
       return <StoreOffline />;
     }
     return <StoreNotFound />;
+  }
+
+  if (isLoading && !settings) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+      </div>
+    );
   }
 
   if (!settings && !isLoading) {
