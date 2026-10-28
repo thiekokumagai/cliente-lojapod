@@ -92,9 +92,9 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
   };
 
   const cardInner = (
-    <div className="group relative flex justify-between gap-3 w-full h-full bg-card p-3.5 rounded-2xl border border-border/80 shadow-xs hover:shadow-md transition-all cursor-pointer">
+    <div className="group relative flex items-stretch justify-between w-full h-full bg-card rounded-2xl border border-border/80 shadow-xs hover:shadow-md transition-all cursor-pointer overflow-hidden">
         {/* Lado Esquerdo: Nome, Variações/Peso, Preço e Descrição */}
-        <div className="flex-1 flex flex-col justify-between min-w-0 pr-1">
+        <div className="flex-1 flex flex-col justify-between min-w-0 p-3 sm:p-3.5 pr-2 sm:pr-3">
           <div>
             {product.category && (
               <span className="text-[11px] font-semibold text-primary uppercase tracking-wider block mb-0.5 truncate">
@@ -102,7 +102,7 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
               </span>
             )}
             <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className="font-semibold text-sm md:text-base text-foreground leading-snug truncate">
+              <h3 className="font-semibold text-sm md:text-base text-foreground leading-snug line-clamp-2">
                 {product.name}
               </h3>
             </div>
@@ -150,8 +150,8 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
           </div>
         </div>
 
-        {/* Lado Direito: Imagem quadrada com Botão Rosa/Primário de Adição de Carrinho */}
-        <div className="relative shrink-0 w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden bg-muted">
+        {/* Lado Direito: Imagem sangrada ocupando toda a altura e lateral do card */}
+        <div className="relative shrink-0 w-28 sm:w-36 self-stretch min-h-[110px] bg-muted overflow-hidden">
           {isBestSeller && (
             <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-bold py-0.5 px-1 text-center shadow-xs z-10 uppercase tracking-tight">
               🔥 Mais vendido
@@ -162,7 +162,7 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
             <img
               src={productImage}
               alt={product.name}
-              className="w-full h-full object-cover transition-transform group-hover:scale-105"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
@@ -180,7 +180,7 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
                   e.stopPropagation();
                   setShowNotificationModal(true);
                 }}
-                className="absolute bottom-1.5 right-1.5 h-7 w-7 rounded-full text-white shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
+                className="absolute bottom-2 right-2 h-7 w-7 rounded-full text-white shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
                 style={{ backgroundColor: "#ea580c" }}
                 title="Avise-me quando chegar"
               >
@@ -190,7 +190,7 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
           ) : (
             <button
               onClick={handleBuy}
-              className="absolute bottom-1.5 right-1.5 h-7 w-7 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
+              className="absolute bottom-2 right-2 h-7 w-7 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
               title="Adicionar ao carrinho"
             >
               <Plus className="h-4 w-4" />

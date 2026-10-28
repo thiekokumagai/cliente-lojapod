@@ -99,11 +99,11 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
   };
 
   const cardInner = (
-    <div className="group relative flex flex-row items-stretch justify-between gap-3 sm:gap-3.5 w-full bg-white p-2.5 sm:p-3.5 rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all cursor-pointer">
-      {/* Thumbnail que preenche a altura inteira do quadro */}
-      <div className="relative shrink-0 w-[112px] sm:w-[120px] self-stretch min-h-[118px] sm:min-h-[120px] rounded-xl overflow-hidden bg-white sm:bg-slate-50 flex items-center justify-center border border-slate-100">
+    <div className="group relative flex flex-row items-stretch justify-between w-full bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all cursor-pointer overflow-hidden">
+      {/* Thumbnail que preenche a altura inteira do quadro sangrada na esquerda */}
+      <div className="relative shrink-0 w-[115px] sm:w-[130px] self-stretch min-h-[120px] bg-slate-50 flex items-center justify-center overflow-hidden">
         {discountPercentage > 0 && (
-          <span className="absolute top-1 left-1 z-10 bg-red-500 text-white font-black text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md shadow-xs">
+          <span className="absolute top-2 left-2 z-10 bg-red-500 text-white font-black text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md shadow-xs">
             -{discountPercentage}%
           </span>
         )}
@@ -121,7 +121,7 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
       </div>
 
       {/* Info do Produto, Preços e Botões */}
-      <div className="flex-1 flex flex-col justify-between min-w-0 self-stretch py-0.5">
+      <div className="flex-1 flex flex-col justify-between min-w-0 self-stretch p-3 sm:p-3.5 pl-3 sm:pl-3.5">
         <div>
           {product.category && (
             <span className="hidden sm:block text-[11px] font-semibold text-primary uppercase tracking-wider mb-0.5 truncate">
@@ -187,12 +187,12 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
                     e.stopPropagation();
                     setShowNotificationModal(true);
                   }}
-                  className="flex items-center justify-center h-9 px-3 rounded-xl text-white font-bold text-xs hover:opacity-90 transition-all shadow-xs gap-1.5"
+                  className="flex items-center justify-center h-9 w-9 rounded-xl text-white font-bold hover:opacity-90 active:scale-95 transition-all shadow-xs shrink-0 cursor-pointer"
                   style={{ backgroundColor: "#ea580c" }}
                   title="Avise-me quando chegar"
+                  aria-label="Avise-me quando chegar"
                 >
-                  <BellRing className="h-4 w-4" />
-                  <span>Avise-me</span>
+                  <BellRing className="h-4.5 w-4.5" />
                 </button>
               ) : (
                 <span className="text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-1.5 rounded-lg">
