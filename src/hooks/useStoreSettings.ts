@@ -69,6 +69,8 @@ interface StoreSettings {
   }[];
   searchSuffix?: string;
   searchCity?: string;
+  searchState?: string;
+  restrictToCity?: boolean;
   templateId?: 'classic' | 'menu-express' | 'urban' | 'urban';
   primaryColor?: string;
   secondaryColor?: string;
@@ -123,41 +125,50 @@ export function useStoreSettings() {
       if (!response.ok) throw new Error("Failed to fetch store settings");
       const data = await response.json();
       
-      let searchCity = "Campo Grande";
-      let searchSuffix = ", Campo Grande, MS, Brasil";
+      let searchCity = data.city || "";
+      let searchState = data.state || "";
 
-      // Se maxDeliveryKm estiver configurado (> 0), restringir a busca de endereços para a cidade da loja.
-      // Se estiver vazio (null/undefined/0), permitir buscar endereços de outras cidades/estados no Brasil.
-      const hasStrictMaxKm =
-        data.deliveryRanges?.maxDeliveryKm !== undefined &&
-        data.deliveryRanges?.maxDeliveryKm !== null &&
-        Number(data.deliveryRanges?.maxDeliveryKm) > 0;
+      const cepToLookup = (data.deliveryOriginCep || data.cep || "").replace(/\D/g, "");
 
-      const allowNationwide = !hasStrictMaxKm;
-
-      if (data.deliveryOriginCep) {
+      if ((!searchCity || !searchState) && cepToLookup.length >= 8) {
         try {
-          const cleanCep = data.deliveryOriginCep.replace(/\D/g, "");
-          const viaCepRes = await fetch(`https://viacep.com.br/ws/${cleanCep}/json/`);
+          const viaCepRes = await fetch(`https://viacep.com.br/ws/${cepToLookup}/json/`);
           const viaCepData = await viaCepRes.json();
           if (!viaCepData.erro) {
-            searchCity = viaCepData.localidade;
-            const state = viaCepData.uf;
-            searchSuffix = allowNationwide ? ", Brasil" : `, ${searchCity}, ${state}, Brasil`;
-          } else if (allowNationwide) {
-            searchSuffix = ", Brasil";
+            searchCity = searchCity || viaCepData.localidade;
+            searchState = searchState || viaCepData.uf;
           }
         } catch (e) {
-          if (allowNationwide) searchSuffix = ", Brasil";
+          // ignore
         }
-      } else if (allowNationwide) {
-        searchSuffix = ", Brasil";
       }
+
+      if (!searchCity) {
+        searchCity = "Campo Grande";
+        searchState = "MS";
+      }
+
+      // Se houver restrição de raio de entrega (maxDeliveryKm > 0 ou faixas de distância configuradas sem allowAboveMax),
+      // restringir estritamente a busca para a cidade/estado da loja.
+      const customMaxKm = data.deliveryRanges?.maxDeliveryKm !== undefined && data.deliveryRanges?.maxDeliveryKm !== null
+        ? Number(data.deliveryRanges.maxDeliveryKm)
+        : 0;
+      const hasRanges = Array.isArray(data.deliveryRanges?.ranges) && data.deliveryRanges.ranges.length > 0;
+      const allowAboveMax = Boolean(data.deliveryRanges?.allowAboveMax);
+
+      const hasRadiusRestriction = customMaxKm > 0 || (hasRanges && !allowAboveMax) || (!allowAboveMax && data.deliveryType === "DISTANCE");
+      const restrictToCity = hasRadiusRestriction;
+
+      const searchSuffix = restrictToCity
+        ? `, ${searchCity}, ${searchState}, Brasil`
+        : ", Brasil";
 
       const result: StoreSettings = {
         ...data,
         searchCity,
+        searchState,
         searchSuffix,
+        restrictToCity,
         logoUrl: buildSettingsImageUrl(data.logoUrl),
         whiteLogoUrl: buildSettingsImageUrl(data.whiteLogoUrl),
         faviconUrl: buildSettingsImageUrl(data.faviconUrl),
