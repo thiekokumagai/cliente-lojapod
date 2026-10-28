@@ -8,7 +8,13 @@ import { matchesProductSearch } from "@/utils/search";
 
 const BestSellersSection = () => {
   const [showAll, setShowAll] = useState(false);
-  const { selectedCategory, searchTerm, selectedNicotineStrength, selectedVariationFilters } = useCart();
+  const {
+    selectedCategory,
+    selectedCategoryId,
+    searchTerm,
+    selectedNicotineStrength,
+    selectedVariationFilters,
+  } = useCart();
   const { data: allProducts = [] } = useProducts();
   const { data: settings } = useStoreSettings();
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -27,13 +33,18 @@ const BestSellersSection = () => {
     const hasAvailableVariations =
       groups.length > 0
         ? groups.some((group) => group.options.some((option) => option.available))
-        : true;
+        : (product.stock ?? 0) > 0;
 
     const isAvailableOrNotifiable =
       product.isCombo
         ? (product.stock ?? 0) > 0 || allowsNotification
         : hasAvailableVariations || allowsNotification;
-    const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
+    const matchesCategory =
+      selectedCategoryId
+        ? product.categoryId === selectedCategoryId
+        : selectedCategory
+          ? product.category === selectedCategory
+          : true;
     const matchesSearch = matchesProductSearch(searchTerm, product);
 
     const activeFilters =
@@ -48,7 +59,9 @@ const BestSellersSection = () => {
         ? activeFilters.every((filterOption) =>
             groups.some((group) =>
               group.options.some(
-                (option) => option.available && option.label === filterOption
+                (option) =>
+                  (allowsNotification || option.available) &&
+                  option.label === filterOption
               )
             )
           )

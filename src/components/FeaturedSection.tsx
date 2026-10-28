@@ -9,7 +9,14 @@ import useEmblaCarousel from "embla-carousel-react";
 import { useCallback, useEffect, useState } from "react";
 
 const FeaturedSection = () => {
-  const { selectedCategory, searchTerm, selectedNicotineStrength, selectedVariationFilters, sortOption } = useCart();
+  const {
+    selectedCategory,
+    selectedCategoryId,
+    searchTerm,
+    selectedNicotineStrength,
+    selectedVariationFilters,
+    sortOption,
+  } = useCart();
   const { data: allProducts = [] } = useProducts();
   const { data: apiCategories = [] } = useCategories();
   const normalizedSearch = searchTerm.trim().toLowerCase();
@@ -41,14 +48,19 @@ const FeaturedSection = () => {
     const hasAvailableVariations =
       groups.length > 0
         ? groups.some((group) => group.options.some((option) => option.available))
-        : true;
+        : (product.stock ?? 0) > 0;
 
     const isAvailableOrNotifiable =
       product.isCombo
         ? (product.stock ?? 0) > 0 || allowsNotification
         : hasAvailableVariations || allowsNotification;
 
-    const matchesCategory = selectedCategory ? product.category === selectedCategory : true;
+    const matchesCategory =
+      selectedCategoryId
+        ? product.categoryId === selectedCategoryId
+        : selectedCategory
+          ? product.category === selectedCategory
+          : true;
     const matchesSearch = matchesProductSearch(searchTerm, product);
 
     const activeFilters =
@@ -63,7 +75,9 @@ const FeaturedSection = () => {
         ? activeFilters.every((filterOption) =>
             groups.some((group) =>
               group.options.some(
-                (option) => option.available && option.label === filterOption
+                (option) =>
+                  (allowsNotification || option.available) &&
+                  option.label === filterOption
               )
             )
           )

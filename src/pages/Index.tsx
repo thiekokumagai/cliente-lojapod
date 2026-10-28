@@ -83,6 +83,8 @@ const Index = () => {
   const normalizedSearch = searchTerm.trim().toLowerCase();
   const showBanner = !selectedCategory && !normalizedSearch && !selectedNicotineStrength && selectedVariationFilters.length === 0;
 
+  const allowsNotification = settings?.enableStockAlertNotification !== false;
+
   const hasResults = allProducts.some((product) => {
     const groups =
       product.variationGroups && product.variationGroups.length > 0
@@ -94,7 +96,12 @@ const Index = () => {
     const hasAvailableVariations =
       groups.length > 0
         ? groups.some((group) => group.options.some((option) => option.available))
-        : true;
+        : (product.stock ?? 0) > 0;
+
+    const isAvailableOrNotifiable =
+      product.isCombo
+        ? (product.stock ?? 0) > 0 || allowsNotification
+        : hasAvailableVariations || allowsNotification;
 
     const matchesSearch = matchesProductSearch(searchTerm, product);
 
@@ -110,13 +117,15 @@ const Index = () => {
         ? activeFilters.every((filterOption) =>
             groups.some((group) =>
               group.options.some(
-                (option) => option.available && option.label === filterOption
+                (option) =>
+                  (allowsNotification || option.available) &&
+                  option.label === filterOption
               )
             )
           )
         : true;
 
-    return hasAvailableVariations && matchesSearch && matchesNicotine;
+    return isAvailableOrNotifiable && matchesSearch && matchesNicotine;
   });
 
   const handleClearSearch = () => {

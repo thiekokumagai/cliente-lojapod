@@ -43,7 +43,7 @@ const NicotineFilter = () => {
         const optionSet = groupMap.get(groupName)!;
 
         group.options?.forEach((option) => {
-          if (option.available) {
+          if (option.available || storeSettings?.enableStockAlertNotification !== false) {
             optionSet.add(option.label);
           }
         });

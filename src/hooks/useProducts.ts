@@ -181,20 +181,9 @@ export function useProducts(categoryId?: string | null) {
       const products = productList.map(transformNewApiProduct);
 
       const filteredProducts = products.filter((p) => {
-        if (p.isVisible === false) return false;
-
-        const groups =
-          p.variationGroups && p.variationGroups.length > 0
-            ? p.variationGroups
-            : p.variationGroup
-              ? [p.variationGroup]
-              : [];
-
-        if (groups.length === 0) {
-          return true;
-        }
-        return groups.some((g) => g.options.some((o) => o.available));
+        return p.isVisible !== false;
       });
+
 
       // Mapear combos retornados para o catálogo da loja
       let comboProducts: Product[] = [];

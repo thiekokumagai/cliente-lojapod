@@ -78,7 +78,7 @@ const AllProductsSection = () => {
       const hasAvailableVariations =
         groups.length > 0
           ? groups.some((group) => group.options.some((option) => option.available))
-          : true;
+          : (product.stock ?? 0) > 0;
 
       // Se o produto/combo estiver sem estoque ou sem variação disponível,
       // ele só deve ser exibido se a loja permitir a notificação "Avise-me quando chegar"
@@ -102,7 +102,8 @@ const AllProductsSection = () => {
               groups.some((group) =>
                 group.options.some(
                   (option) =>
-                    option.available && option.label === filterOption
+                    (allowsNotification || option.available) &&
+                    option.label === filterOption
                 )
               )
             )
