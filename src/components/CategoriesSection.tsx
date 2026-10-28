@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
 import { useCategories } from "@/hooks/useProducts";
@@ -133,12 +134,19 @@ const CategoriesSection = () => {
           <div className="mb-3 space-y-2.5">
             {/* Logo Centralizada no topo ao fixar */}
             {isSticky && settings?.logoUrl && (
-              <div className="flex items-center justify-center pt-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                <img
-                  src={settings.logoUrl}
-                  alt={settings.storeName || ""}
-                  className="h-14 md:h-16 w-auto max-w-[200px] object-contain drop-shadow-xs"
-                />
+              <div className="flex items-center justify-center py-1 animate-in fade-in slide-in-from-top-2 duration-200">
+                <Link
+                  to="/"
+                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+                  className="cursor-pointer hover:opacity-90 transition-opacity inline-block"
+                  title="Voltar ao início"
+                >
+                  <img
+                    src={settings.logoUrl}
+                    alt={settings.storeName || ""}
+                    className="h-20 sm:h-24 md:h-28 w-auto max-w-[260px] sm:max-w-[320px] object-contain drop-shadow-sm transition-all"
+                  />
+                </Link>
               </div>
             )}
 

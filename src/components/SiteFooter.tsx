@@ -70,13 +70,20 @@ const SiteFooter = () => {
 
         <div className="mt-10 flex flex-col items-center gap-10 text-center md:grid md:grid-cols-[1fr_minmax(320px,1.4fr)_1fr] md:items-start md:text-left">
           <div className="flex flex-col items-center space-y-4 md:items-start">
-            <div className="flex items-center justify-center gap-2 md:justify-start">
-              {settings?.logoUrl && (
-                <img src={settings?.logoUrl} alt={storeName} className="h-12 w-12 object-contain" />
-              )}
-              <span className="font-display text-lg font-bold text-foreground">
-                {storeName}
-              </span>
+            <div className="flex items-center justify-center md:justify-start">
+              <Link to="/" className="inline-block hover:opacity-90 transition-opacity" title={storeName || "Início"}>
+                {settings?.logoUrl ? (
+                  <img
+                    src={settings.logoUrl}
+                    alt={storeName}
+                    className="h-16 md:h-20 w-auto max-w-[260px] md:max-w-[320px] object-contain"
+                  />
+                ) : (
+                  <span className="font-display text-lg font-bold text-foreground">
+                    {storeName}
+                  </span>
+                )}
+              </Link>
             </div>
             {settings?.hideAddress ? (
               city && state && (

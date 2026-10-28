@@ -238,7 +238,7 @@ const ProductPage = () => {
   if (!product || product.isVisible === false) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="hidden lg:block">
+        <div className="hidden md:block">
           {isUrban ? (
             <UrbanHeader />
           ) : isMenuExpress ? (
@@ -367,7 +367,7 @@ const ProductPage = () => {
 
   return (
     <div className={`min-h-screen bg-background md:pb-0 ${mobileBottom}`}>
-      <div className="hidden lg:block">
+      <div className="hidden md:block">
         {isUrban ? (
           <UrbanHeader />
         ) : isMenuExpress ? (

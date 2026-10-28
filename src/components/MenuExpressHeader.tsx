@@ -44,22 +44,26 @@ export default function MenuExpressHeader() {
           
           {/* Logo & Dados da Loja */}
           <div className="flex items-start sm:items-center gap-3 md:gap-4 flex-1 min-w-0">
-            {settings?.logoUrl ? (
-              <img
-                src={settings.logoUrl}
-                alt={settings.storeName || "Logo"}
-                className="h-16 w-16 md:h-20 md:w-20 rounded-2xl object-cover border border-border shadow-sm shrink-0"
-              />
-            ) : (
-              <div className="h-16 w-16 md:h-20 md:w-20 rounded-2xl bg-muted flex items-center justify-center font-bold text-xl text-muted-foreground shrink-0">
-                {settings?.storeName?.charAt(0) || "L"}
-              </div>
-            )}
+            <Link to="/" className="shrink-0 group hover:opacity-95 transition-opacity" title="Ir para a página inicial">
+              {settings?.logoUrl ? (
+                <img
+                  src={settings.logoUrl}
+                  alt={settings.storeName || "Logo"}
+                  className="h-20 w-20 md:h-24 md:w-24 rounded-2xl object-contain bg-white border border-border shadow-sm shrink-0 p-1 group-hover:shadow-md transition-shadow cursor-pointer"
+                />
+              ) : (
+                <div className="h-20 w-20 md:h-24 md:w-24 rounded-2xl bg-muted flex items-center justify-center font-bold text-2xl text-muted-foreground shrink-0 cursor-pointer">
+                  {settings?.storeName?.charAt(0) || "L"}
+                </div>
+              )}
+            </Link>
 
             <div className="space-y-1 flex-1 min-w-0">
-              <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground truncate">
-                {settings?.storeName || "Minha Loja"}
-              </h1>
+              <Link to="/" className="block group w-fit max-w-full" title="Ir para a página inicial">
+                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-foreground truncate group-hover:text-primary transition-colors cursor-pointer">
+                  {settings?.storeName || "Minha Loja"}
+                </h1>
+              </Link>
               
               {/* Badges de Status e Serviços */}
               <div className="flex flex-wrap items-center gap-2">
