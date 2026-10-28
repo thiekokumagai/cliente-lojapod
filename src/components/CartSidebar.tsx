@@ -1086,8 +1086,8 @@ const CartSidebar = () => {
         cep: deliveryModality === "STORE_PICKUP" ? (storeSettings?.cep || "00000-000") : (structuredAddress?.cep ? structuredAddress.cep : "00000-000"),
         complement: structuredAddress?.complement || "",
         observation: orderNote.trim() || undefined,
-        amountProvided: paymentMethod === 'Dinheiro' ? (needsChange === 'sim' ? parseCurrencyInput(changeFor) : finalTotal) : undefined,
-        changeAmount: paymentMethod === 'Dinheiro' && needsChange === 'sim' ? Math.max(0, parseCurrencyInput(changeFor) - finalTotal) : undefined,
+        amountProvided: paymentMethod === 'Dinheiro' ? (needsChange === 'sim' ? Number(parseCurrencyInput(changeFor).toFixed(2)) : Number(finalTotal.toFixed(2))) : undefined,
+        changeAmount: paymentMethod === 'Dinheiro' && needsChange === 'sim' ? Number(Math.max(0, parseCurrencyInput(changeFor) - finalTotal).toFixed(2)) : undefined,
         items: orderItems.map(item => ({
           productId: item.product.id,
           productName: item.product.name,
