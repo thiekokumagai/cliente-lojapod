@@ -120,7 +120,7 @@ export default function MenuExpressHeader() {
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
                       <MapPin className="h-3.5 w-3.5 shrink-0" />
                       {settings?.street
-                        ? `${settings.street}${settings.number ? `, ${settings.number}` : ''}${settings.neighborhood ? ` - ${settings.neighborhood}` : ''}${settings.city ? `, ${settings.city}` : ''}${settings.state ? ` - ${settings.state}` : ''}`
+                        ? `${settings.street}${settings.number ? `, ${settings.number}` : ''}${settings.complement ? ` - ${settings.complement}` : ''}${settings.neighborhood ? ` - ${settings.neighborhood}` : ''}${settings.city ? `, ${settings.city}` : ''}${settings.state ? ` - ${settings.state}` : ''}`
                         : `${settings?.city || ''}${settings?.state ? ` - ${settings.state}` : ''}`}
                     </span>
                   )

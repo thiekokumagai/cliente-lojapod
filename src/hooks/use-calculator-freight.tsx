@@ -103,10 +103,16 @@ export function useFreight() {
                 return null;
             }
 
-            // Fallback origin if missing
-            const cep = (storeSettings?.deliveryOriginCep || storeSettings?.cep || "79000-000").replace(/\D/g, "");
+            // Origem da loja para cálculo de rota
+            const street = (storeSettings?.street || "").trim();
             const num = (storeSettings?.deliveryOriginNumber || storeSettings?.number || "").trim();
-            const originAddress = `CEP ${cep}, ${num}, Brasil`;
+            const city = (storeSettings?.city || "").trim();
+            const state = (storeSettings?.state || "").trim();
+            const cep = (storeSettings?.deliveryOriginCep || storeSettings?.cep || "79000-000").replace(/\D/g, "");
+
+            const originAddress = street
+                ? `${street}${num ? `, ${num}` : ""}${city ? `, ${city}` : ""}${state ? ` - ${state}` : ""}, CEP ${cep}, Brasil`
+                : (num ? `CEP ${cep}, ${num}, Brasil` : `CEP ${cep}, Brasil`);
 
             const route = await fetchRoute(originAddress, destination);
 

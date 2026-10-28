@@ -98,7 +98,7 @@ const SiteFooter = () => {
                   <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
                   <span className="leading-tight">
                     {settings?.street
-                      ? `${settings.street}${settings.number ? `, ${settings.number}` : ''}${settings.neighborhood ? ` - ${settings.neighborhood}` : ''}${city ? `, ${city}` : ''}${state ? ` - ${state}` : ''}`
+                      ? `${settings.street}${settings.number ? `, ${settings.number}` : ''}${settings.complement ? ` - ${settings.complement}` : ''}${settings.neighborhood ? ` - ${settings.neighborhood}` : ''}${city ? `, ${city}` : ''}${state ? ` - ${state}` : ''}`
                       : `${city} - ${state}`}
                   </span>
                 </div>

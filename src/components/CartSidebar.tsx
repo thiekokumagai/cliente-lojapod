@@ -1007,7 +1007,18 @@ const CartSidebar = () => {
 
     lines.push(`Pagamento: ${pagamentoType}`);
     
-    lines.push(`Para entregar em: ${checkoutDeliveryModality === "STORE_PICKUP" ? "Retirada na loja" : (checkoutAddress || "-")}`);
+    if (checkoutDeliveryModality === "STORE_PICKUP") {
+      const pickupAddress = [
+        storeSettings?.street,
+        storeSettings?.number,
+        storeSettings?.complement,
+        storeSettings?.neighborhood,
+        storeSettings?.city,
+      ].filter(Boolean).join(", ");
+      lines.push(`Para entregar em: Retirada na loja${pickupAddress ? ` (${pickupAddress})` : ""}`);
+    } else {
+      lines.push(`Para entregar em: ${checkoutAddress || "-"}`);
+    }
     
     if (checkoutNote && checkoutNote.trim() !== "") {
        lines.push(`Observação do Pedido: ${checkoutNote.trim()}`);
@@ -1084,7 +1095,7 @@ const CartSidebar = () => {
         city: deliveryModality === "STORE_PICKUP" ? (storeSettings?.city || storeSettings?.searchCity || "Campo Grande") : (structuredAddress?.city || storeSettings?.searchCity || "Campo Grande"),
         state: deliveryModality === "STORE_PICKUP" ? (storeSettings?.state || "MS") : (structuredAddress?.state || "MS"),
         cep: deliveryModality === "STORE_PICKUP" ? (storeSettings?.cep || "00000-000") : (structuredAddress?.cep ? structuredAddress.cep : "00000-000"),
-        complement: structuredAddress?.complement || "",
+        complement: deliveryModality === "STORE_PICKUP" ? (storeSettings?.complement || "") : (structuredAddress?.complement || ""),
         observation: orderNote.trim() || undefined,
         amountProvided: paymentMethod === 'Dinheiro' ? (needsChange === 'sim' ? Number(parseCurrencyInput(changeFor).toFixed(2)) : Number(finalTotal.toFixed(2))) : undefined,
         changeAmount: paymentMethod === 'Dinheiro' && needsChange === 'sim' ? Number(Math.max(0, parseCurrencyInput(changeFor) - finalTotal).toFixed(2)) : undefined,
