@@ -180,20 +180,22 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
                   e.stopPropagation();
                   setShowNotificationModal(true);
                 }}
-                className="absolute bottom-2 right-2 h-7 w-7 rounded-full text-white shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
+                className="absolute bottom-2.5 right-2.5 h-9 w-9 sm:h-9.5 sm:w-9.5 rounded-full text-white shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
                 style={{ backgroundColor: "#ea580c" }}
                 title="Avise-me quando chegar"
+                aria-label="Avise-me quando chegar"
               >
-                <BellRing className="h-3.5 w-3.5" />
+                <BellRing className="h-4.5 w-4.5" />
               </button>
             ) : null
           ) : (
             <button
               onClick={handleBuy}
-              className="absolute bottom-2 right-2 h-7 w-7 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
+              className="absolute bottom-2.5 right-2.5 h-9 w-9 sm:h-9.5 sm:w-9.5 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
               title="Adicionar ao carrinho"
+              aria-label="Adicionar ao carrinho"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-5 w-5 stroke-[2.5]" />
             </button>
           )}
         </div>
