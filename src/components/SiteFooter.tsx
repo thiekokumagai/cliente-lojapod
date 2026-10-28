@@ -5,7 +5,7 @@ import { useBusinessStatus, getTodayWeekdayName } from "@/hooks/useBusinessStatu
 
 const SiteFooter = () => {
   const { data: settings } = useStoreSettings();
-  const { isOpen, todayRules } = useBusinessStatus(settings?.businessHours);
+  const { isOpen, todayRules, todayWeekdayName } = useBusinessStatus(settings?.businessHours);
 
   const storeName = settings?.storeName || "";
   const instagram = settings?.instagram;
@@ -122,7 +122,7 @@ const SiteFooter = () => {
             <div className="text-sm text-muted-foreground flex flex-col items-center md:items-end">
               <div className="flex items-center justify-center gap-2 md:justify-end mb-2">
                 <Clock className="h-5 w-5 shrink-0 text-primary" />
-                <p className="font-semibold text-foreground">{getTodayWeekdayName()}</p>
+                <p className="font-semibold text-foreground">{todayWeekdayName || getTodayWeekdayName()}</p>
                 {!isOpen && (
                   <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
                     Fechado

@@ -22,7 +22,7 @@ export default function StoreHoursTopBar() {
     <>
       <div className="w-full z-[50]">
         {isOpen ? (
-          <div className="bg-emerald-600 text-white text-[11px] sm:text-xs font-semibold py-1.5 px-4 text-center flex items-center justify-center gap-1.5 w-full shadow-xs">
+          <div className="bg-green-600 text-white text-[11px] sm:text-xs font-semibold py-1.5 px-4 text-center flex items-center justify-center gap-1.5 w-full shadow-xs">
             <Clock className="h-3.5 w-3.5 shrink-0 text-white" />
             <span className="truncate">
               A loja está aberta. {closingTimeStr ? `Atendendo até às ${closingTimeStr}!` : 'Recebendo pedidos normalmente!'}
