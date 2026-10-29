@@ -279,6 +279,7 @@ const CartSidebar = () => {
   const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [blockedPhoneError, setBlockedPhoneError] = useState<string | null>(null);
   const [finalizedOrder, setFinalizedOrder] = useState<FinalizedOrder | null>(null);
   const [redeemedReward, setRedeemedReward] = useState<{ rewardType: string; rewardTitle: string } | null>(null);
   const [loyaltyDiscount, setLoyaltyDiscount] = useState<number>(0);
