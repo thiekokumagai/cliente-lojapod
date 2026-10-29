@@ -43,7 +43,7 @@ const CategoriesSection = () => {
     setCanScrollRight(container.scrollLeft < maxScrollLeft - 4);
   };
 
-  const [isSticky, setIsSticky] = useState(false);
+  const [isScrolledPastScreen, setIsScrolledPastScreen] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -51,11 +51,8 @@ const CategoriesSection = () => {
     const container = scrollRef.current;
 
     const handleWindowScroll = () => {
-      if (sectionRef.current) {
-        const rect = sectionRef.current.getBoundingClientRect();
-        // Quando o topo da seção encosta no topo da viewport (<= 10px)
-        setIsSticky(rect.top <= 10);
-      }
+      // Fixa o menu depois que der scroll do tamanho da tela (window.innerHeight)
+      setIsScrolledPastScreen(window.scrollY >= window.innerHeight);
     };
 
     window.addEventListener("scroll", handleWindowScroll, { passive: true });
@@ -76,6 +73,16 @@ const CategoriesSection = () => {
       setSelectedCategory(category, categoryId);
     }
     setSelectedNicotineStrength(null);
+
+    // No tema menu express ou classic, quando trocar de categoria sobe a página suavemente até o catálogo
+    requestAnimationFrame(() => {
+      const target = document.getElementById("produtos") || document.getElementById("categorias");
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    });
   };
 
   const scrollByAmount = (direction: "left" | "right") => {
@@ -96,13 +103,16 @@ const CategoriesSection = () => {
       id="categorias"
       className={cn(
         isMenuExpress
-          ? "sticky top-0 z-30 bg-background/95 backdrop-blur-md border-b border-border-subtle py-3 shadow-xs transition-all"
+          ? cn(
+              "z-30 bg-background/95 backdrop-blur-md border-b border-border-subtle py-3 shadow-xs transition-all",
+              isScrolledPastScreen ? "fixed top-0 left-0 right-0 animate-in fade-in slide-in-from-top-2 duration-200" : "relative"
+            )
           : "pb-10 md:pb-14",
         !isMenuExpress && (hasBanner ? "pt-6 sm:pt-8 md:pt-10" : "pt-4 sm:pt-6 md:pt-8")
       )}
     >
       {/* Barra de Status no topo ao fixar no scroll (100% da largura da tela) */}
-      {isMenuExpress && isSticky && (
+      {isMenuExpress && isScrolledPastScreen && (
         <div className="w-full -mt-3 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
           <StoreHoursTopBar />
         </div>
@@ -129,27 +139,9 @@ const CategoriesSection = () => {
           </div>
         )}
 
-        {/* Topo do Header Fixo no Menu Express (Logo acima da busca SOMENTE após fixar o menu no scroll) */}
+        {/* Topo do Header no Menu Express */}
         {isMenuExpress && (
           <div className="mb-3 space-y-2.5">
-            {/* Logo Centralizada no topo ao fixar */}
-            {isSticky && settings?.logoUrl && (
-              <div className="flex items-center justify-center pt-1 animate-in fade-in slide-in-from-top-2 duration-200">
-                <Link
-                  to="/"
-                  onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-                  className="cursor-pointer hover:opacity-90 transition-opacity inline-block"
-                  title="Voltar ao início"
-                >
-                  <img
-                    src={settings.logoUrl}
-                    alt={settings.storeName || ""}
-                    className="h-14 md:h-16 w-auto max-w-[200px] object-contain drop-shadow-xs"
-                  />
-                </Link>
-              </div>
-            )}
-
             {/* Input de Busca */}
             <div className="relative flex items-center">
               <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground" />

@@ -175,6 +175,57 @@ const AllProductsSection = () => {
 
   if (sortedProducts.length === 0) return null;
 
+  // Se estiver ordenado por categoria (e sem filtro específico de busca ou categoria única)
+  const isGroupedByCategory =
+    sortOption === "category" &&
+    !selectedCategory &&
+    !normalizedSearch &&
+    !selectedNicotineStrength;
+
+  // Agrupamento por categoria preservando a paginação visível
+  const categoryGroups = isGroupedByCategory
+    ? (() => {
+        // Mapeia na ordem das categorias da API ou como surgem nos produtos
+        const groupsMap = new Map<string, { categoryName: string; categoryId?: string; products: typeof sortedProducts }>();
+
+        // Inicializa com as categorias conhecidas para manter a ordem da loja
+        apiCategories.forEach((cat) => {
+          const catName = cat.nome.trim();
+          if (!groupsMap.has(catName)) {
+            groupsMap.set(catName, { categoryName: catName, categoryId: cat.id, products: [] });
+          }
+        });
+
+        // Adiciona produtos aos seus respectivos grupos
+        sortedProducts.forEach((product) => {
+          const catName = (product.category || "Outros").trim();
+          if (!groupsMap.has(catName)) {
+            groupsMap.set(catName, { categoryName: catName, categoryId: product.categoryId, products: [] });
+          }
+          groupsMap.get(catName)!.products.push(product);
+        });
+
+        // Retorna apenas grupos que possuem produtos, fatiando até o visibleCount total acumulado
+        let count = 0;
+        const result: { categoryName: string; categoryId?: string; products: typeof sortedProducts }[] = [];
+
+        for (const group of groupsMap.values()) {
+          if (group.products.length === 0) continue;
+          if (count >= visibleCount) break;
+
+          const remaining = visibleCount - count;
+          const slicedProducts = group.products.slice(0, remaining);
+          result.push({
+            ...group,
+            products: slicedProducts,
+          });
+          count += slicedProducts.length;
+        }
+
+        return result;
+      })()
+    : [];
+
   const visible = sortedProducts.slice(0, visibleCount);
 
   return (
@@ -188,7 +239,9 @@ const AllProductsSection = () => {
                 ? "Resultados encontrados"
                 : selectedCategory
                   ? selectedCategory
-                  : "Todos os Produtos"}
+                  : isGroupedByCategory
+                    ? "Cardápio por Categorias"
+                    : "Todos os Produtos"}
             </h2>
           </div>
           
@@ -210,40 +263,94 @@ const AllProductsSection = () => {
           </div>
         </div>
 
-        {/* Grid de Produtos */}
-        <div
-          className={cn(
-            "mt-8 grid gap-3.5",
-            isUrban
-              ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
-              : isMenuExpress
-                ? "grid-cols-1 md:grid-cols-2 lg:gap-4"
-                : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 md:gap-4"
-          )}
-        >
-          {visible.map((product, i) =>
-            isUrban ? (
-              <UrbanProductCard
-                key={product.id}
-                product={product}
-                isBestSeller={Boolean(product.isBestSeller)}
-              />
-            ) : isMenuExpress ? (
-              <MenuExpressProductCard
-                key={product.id}
-                product={product}
-                isBestSeller={Boolean(product.isBestSeller)}
-              />
-            ) : (
-              <ProductCard
-                key={product.id}
-                product={product}
-                index={i}
-                isBestSeller={Boolean(product.isBestSeller)}
-              />
-            )
-          )}
-        </div>
+        {/* Exibição dos Produtos */}
+        {isGroupedByCategory ? (
+          <div className="mt-8 space-y-10">
+            {categoryGroups.map((group) => (
+              <div
+                key={group.categoryName}
+                id={`categoria-${group.categoryName}`}
+                className="scroll-mt-28 space-y-4"
+              >
+                {/* Título da Categoria */}
+                <div className="flex items-center gap-2 border-b border-border/60 pb-2">
+                  <h3 className="font-display text-xl font-bold tracking-tight text-foreground md:text-2xl">
+                    {group.categoryName}
+                  </h3>
+                </div>
+
+                {/* Grid de Produtos da Categoria */}
+                <div
+                  className={cn(
+                    "grid gap-3.5",
+                    isUrban
+                      ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
+                      : isMenuExpress
+                        ? "grid-cols-1 md:grid-cols-2 lg:gap-4"
+                        : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 md:gap-4"
+                  )}
+                >
+                  {group.products.map((product, i) =>
+                    isUrban ? (
+                      <UrbanProductCard
+                        key={product.id}
+                        product={product}
+                        isBestSeller={Boolean(product.isBestSeller)}
+                      />
+                    ) : isMenuExpress ? (
+                      <MenuExpressProductCard
+                        key={product.id}
+                        product={product}
+                        isBestSeller={Boolean(product.isBestSeller)}
+                      />
+                    ) : (
+                      <ProductCard
+                        key={product.id}
+                        product={product}
+                        index={i}
+                        isBestSeller={Boolean(product.isBestSeller)}
+                      />
+                    )
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            className={cn(
+              "mt-8 grid gap-3.5",
+              isUrban
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4"
+                : isMenuExpress
+                  ? "grid-cols-1 md:grid-cols-2 lg:gap-4"
+                  : "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 md:gap-4"
+            )}
+          >
+            {visible.map((product, i) =>
+              isUrban ? (
+                <UrbanProductCard
+                  key={product.id}
+                  product={product}
+                  isBestSeller={Boolean(product.isBestSeller)}
+                />
+              ) : isMenuExpress ? (
+                <MenuExpressProductCard
+                  key={product.id}
+                  product={product}
+                  isBestSeller={Boolean(product.isBestSeller)}
+                />
+              ) : (
+                <ProductCard
+                  key={product.id}
+                  product={product}
+                  index={i}
+                  isBestSeller={Boolean(product.isBestSeller)}
+                />
+              )
+            )}
+          </div>
+        )}
 
         {hasMore && (
           <div ref={loaderRef} className="flex justify-center py-8">
