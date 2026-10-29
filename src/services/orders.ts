@@ -54,4 +54,12 @@ export const ordersService = {
   async checkPaymentStatus(orderId: string, transactionNsu?: string, slug?: string) {
     return api.post<{ paid: boolean; status: string; paymentStatus: string }>(`/payments/check-status/${orderId}`, { transactionNsu, slug });
   },
+  async checkPhoneBlocked(phone: string) {
+    try {
+      const res = await api.get<{ isBlocked: boolean }>(`/store/orders/check-blocked?phone=${encodeURIComponent(phone)}`);
+      return res.data;
+    } catch {
+      return { isBlocked: false };
+    }
+  },
 };

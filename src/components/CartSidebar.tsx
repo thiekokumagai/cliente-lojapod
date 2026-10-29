@@ -24,6 +24,7 @@ import {
   Info,
   Truck,
   QrCode,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCart } from "@/contexts/CartContext";
@@ -285,6 +286,26 @@ const CartSidebar = () => {
   const [loyaltyDiscount, setLoyaltyDiscount] = useState<number>(0);
   const [deliveryModality, setDeliveryModality] = useState<"DELIVERY" | "STORE_PICKUP">("DELIVERY");
   const previousTotalItems = useRef(totalItems);
+
+  // Verifica se o telefone está na block list
+  useEffect(() => {
+    const rawDigits = phone.replace(/\D/g, "");
+    if (rawDigits.length >= 10 && step === "confirmation") {
+      let isMounted = true;
+      ordersService.checkPhoneBlocked(phone).then(res => {
+        if (isMounted) {
+          if (res?.isBlocked) {
+            setBlockedPhoneError("Não foi possível finalizar o pedido. Este número de telefone está bloqueado para compras.");
+          } else {
+            setBlockedPhoneError(null);
+          }
+        }
+      }).catch(() => {});
+      return () => { isMounted = false; };
+    } else if (rawDigits.length < 10) {
+      setBlockedPhoneError(null);
+    }
+  }, [phone, step]);
 
   const effectiveItems = useMemo(() => {
     if (paymentMethod === "PIX" || paymentMethod === null) {
@@ -1274,7 +1295,12 @@ const CartSidebar = () => {
           origem_anuncio: !!adData
         });
     } catch (error: any) {
-      toast.error(error.message || "Erro ao criar pedido.");
+      const errorMsg = error?.response?.data?.message || error?.message || "Erro ao criar pedido.";
+      const msgStr = Array.isArray(errorMsg) ? errorMsg.join(" ") : String(errorMsg);
+      if (msgStr.toLowerCase().includes("bloqueado") || msgStr.toLowerCase().includes("block list")) {
+        setBlockedPhoneError("Não foi possível finalizar o pedido. Este número de telefone está bloqueado para compras.");
+      }
+      toast.error(msgStr);
     } finally {
       setIsSubmitting(false);
     }
@@ -2281,21 +2307,39 @@ const CartSidebar = () => {
               )}
 
               {step === "confirmation" && (
-                <button
-                  type="button"
-                  onClick={finalizeOrder}
-                  disabled={isSubmitting}
-                  className="flex w-full items-center justify-center rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground disabled:opacity-70"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processando...
-                    </>
-                  ) : (
-                    "Finalizar"
+                <>
+                  {blockedPhoneError && (
+                    <div className="mb-3 p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-3 text-left animate-in fade-in">
+                      <AlertCircle className="h-5 w-5 text-rose-600 shrink-0 mt-0.5" />
+                      <div className="space-y-0.5">
+                        <h4 className="text-xs font-bold text-rose-900">Telefone Bloqueado</h4>
+                        <p className="text-xs text-rose-700 leading-relaxed">
+                          {blockedPhoneError}
+                        </p>
+                      </div>
+                    </div>
                   )}
-                </button>
+
+                  <button
+                    type="button"
+                    onClick={finalizeOrder}
+                    disabled={isSubmitting || Boolean(blockedPhoneError)}
+                    className={`flex w-full items-center justify-center rounded-2xl py-3.5 text-sm font-bold text-white transition-all ${
+                      blockedPhoneError
+                        ? "bg-rose-500/80 cursor-not-allowed opacity-90 shadow-none"
+                        : "bg-primary text-primary-foreground disabled:opacity-70"
+                    }`}
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processando...
+                      </>
+                    ) : (
+                      "Finalizar"
+                    )}
+                  </button>
+                </>
               )}
             </div>
           </div>
