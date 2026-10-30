@@ -21,6 +21,8 @@ const SiteFooter = () => {
   const acceptsDeliveryCard = !!(settings?.payOnDeliveryCardDebit || settings?.payOnDeliveryCardCredit);
   const acceptsPix = settings?.pixEnabled;
   const acceptsCash = settings?.payOnDeliveryCash;
+  const acceptsMealVoucher = !!settings?.payOnDeliveryMealVoucher;
+  const acceptsFoodVoucher = !!settings?.payOnDeliveryFoodVoucher;
 
   const PaymentMethods = () => (
     <>
@@ -38,6 +40,18 @@ const SiteFooter = () => {
           </span>
         </div>
       )}
+      {acceptsMealVoucher && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <CreditCard className="h-7 w-7" />
+          <span className="text-sm font-medium">Vale Refeição</span>
+        </div>
+      )}
+      {acceptsFoodVoucher && (
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <CreditCard className="h-7 w-7" />
+          <span className="text-sm font-medium">Vale Alimentação</span>
+        </div>
+      )}
       {acceptsPix && (
         <div className="flex items-center gap-2 text-[#32BCAD]">
           <BadgeDollarSign className="h-7 w-7" />
@@ -50,7 +64,7 @@ const SiteFooter = () => {
           <span className="text-sm font-medium">Dinheiro</span>
         </div>
       )}
-      {!acceptsOnlineCard && !acceptsDeliveryCard && !acceptsPix && !acceptsCash && (
+      {!acceptsOnlineCard && !acceptsDeliveryCard && !acceptsPix && !acceptsCash && !acceptsMealVoucher && !acceptsFoodVoucher && (
         <div className="flex items-center gap-2 text-muted-foreground">
           <span className="text-sm font-medium">Consulte as opções no checkout</span>
         </div>

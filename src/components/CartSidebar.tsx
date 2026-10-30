@@ -109,7 +109,7 @@ const parseCurrencyInput = (value: string) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-type PaymentMethod = "PIX" | "Cartão de Débito" | "Cartão de Crédito" | "Cartão de Crédito Online" | "Dinheiro";
+type PaymentMethod = "PIX" | "Cartão de Débito" | "Cartão de Crédito" | "Cartão de Crédito Online" | "Dinheiro" | "Vale refeição" | "Vale alimentação";
 type CheckoutStep = "cart" | "delivery" | "payment" | "confirmation";
 type CreditMode = "avista" | "parcelado";
 
@@ -425,6 +425,8 @@ const CartSidebar = () => {
     const debitEnabled = storeSettings ? storeSettings.payOnDeliveryCardDebit : true;
     const creditEnabled = storeSettings ? storeSettings.payOnDeliveryCardCredit : true;
     const cashEnabled = storeSettings ? storeSettings.payOnDeliveryCash : true;
+    const mealVoucherEnabled = storeSettings ? !!(storeSettings as any).payOnDeliveryMealVoucher : false;
+    const foodVoucherEnabled = storeSettings ? !!(storeSettings as any).payOnDeliveryFoodVoucher : false;
 
     if (pixEnabled) {
       options.push({
@@ -475,6 +477,22 @@ const CartSidebar = () => {
         title: "Dinheiro",
         subtitle: "Leve troco se precisar",
         icon: Receipt,
+      });
+    }
+    if (mealVoucherEnabled) {
+      options.push({
+        value: "Vale refeição",
+        title: "Vale refeição",
+        subtitle: "Pague na entrega (Maquininha)",
+        icon: CreditCard,
+      });
+    }
+    if (foodVoucherEnabled) {
+      options.push({
+        value: "Vale alimentação",
+        title: "Vale alimentação",
+        subtitle: "Pague na entrega (Maquininha)",
+        icon: CreditCard,
       });
     }
     return options;
@@ -643,7 +661,11 @@ const CartSidebar = () => {
             ? "Cartão de Crédito Online (InfinitePay)"
             : paymentMethod === "Dinheiro"
               ? "Dinheiro"
-              : "-";
+              : paymentMethod === "Vale refeição"
+                ? "Vale refeição (Entrega)"
+                : paymentMethod === "Vale alimentação"
+                  ? "Vale alimentação (Entrega)"
+                  : "-";
 
   const persistAddresses = (addresses: StructuredAddress[]) => {
     setSavedAddresses(addresses);
@@ -951,6 +973,8 @@ const CartSidebar = () => {
     const isDebit = checkoutPaymentMethod === "Cartão de Débito";
     const isPix = checkoutPaymentMethod === "PIX";
     const isCash = checkoutPaymentMethod === "Dinheiro";
+    const isMealVoucher = checkoutPaymentMethod === "Vale refeição";
+    const isFoodVoucher = checkoutPaymentMethod === "Vale alimentação";
 
     const paymentLabelFormat = isPix 
       ? `PIX`
@@ -958,15 +982,21 @@ const CartSidebar = () => {
         ? `Cartão de Débito`
         : isCash
           ? `Dinheiro`
-          : checkoutCreditMode === "parcelado"
-            ? `Cartão de Crédito - ${checkoutCreditInstallments}x ${formatPrice(checkoutTotal / checkoutCreditInstallments)}`
-            : `Cartão de Crédito - 1x ${formatPrice(checkoutTotal)}`;
+          : isMealVoucher
+            ? `Vale refeição`
+            : isFoodVoucher
+              ? `Vale alimentação`
+              : checkoutCreditMode === "parcelado"
+                ? `Cartão de Crédito - ${checkoutCreditInstallments}x ${formatPrice(checkoutTotal / checkoutCreditInstallments)}`
+                : `Cartão de Crédito - 1x ${formatPrice(checkoutTotal)}`;
 
     const pagamentoType = isPix 
       ? `Online`
       : isCash 
         ? `Presencial (Dinheiro)` 
-        : `Presencial (Máquina de cartão)`;
+        : (isMealVoucher || isFoodVoucher)
+          ? `Presencial (Voucher na maquininha)`
+          : `Presencial (Máquina de cartão)`;
         
     const finishOrderNumber = finalizedOrder ? finalizedOrder.orderNumber : Date.now().toString().slice(-4);
     const lines = [
@@ -1108,7 +1138,7 @@ const CartSidebar = () => {
         totalOrder: Number(finalTotal.toFixed(2)),
         totalReceived: Number(finalTotal.toFixed(2)),
         paymentType: (paymentMethod === 'PIX' || paymentMethod === 'Cartão de Crédito Online') ? 'online' : 'entrega',
-        paymentMethod: (paymentMethod === 'PIX') ? 'pix' : (paymentMethod === 'Cartão de Crédito' || paymentMethod === 'Cartão de Crédito Online') ? 'credit' : (paymentMethod === 'Cartão de Débito') ? 'debit' : (paymentMethod === 'Dinheiro') ? 'cash' : paymentMethod,
+        paymentMethod: (paymentMethod === 'PIX') ? 'pix' : (paymentMethod === 'Cartão de Crédito' || paymentMethod === 'Cartão de Crédito Online') ? 'credit' : (paymentMethod === 'Cartão de Débito') ? 'debit' : (paymentMethod === 'Dinheiro') ? 'cash' : (paymentMethod === 'Vale refeição') ? 'meal_voucher' : (paymentMethod === 'Vale alimentação') ? 'food_voucher' : paymentMethod,
         installments: (paymentMethod === 'Cartão de Crédito' || paymentMethod === 'Cartão de Crédito Online') ? effectiveCreditInstallments : 1,
         deliveryModality: deliveryModality,
         street: deliveryModality === "STORE_PICKUP" ? (storeSettings?.street || "Retirada na loja") : (structuredAddress?.mainText || savedAddressDisplay),
