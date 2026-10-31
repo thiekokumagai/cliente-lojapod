@@ -23,7 +23,10 @@ const PromotionsSection = () => {
   const { data: settings } = useStoreSettings();
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
-  const promoProducts = allProducts.filter((p) => p.isPromo);
+  const isProductInPromo = (p: (typeof allProducts)[0]) =>
+    Boolean(p.isPromo || (p.oldPrice !== undefined && p.oldPrice > 0 && p.price < p.oldPrice));
+
+  const promoProducts = allProducts.filter(isProductInPromo);
 
   const filteredProducts = promoProducts.filter((product) => {
     const groups =

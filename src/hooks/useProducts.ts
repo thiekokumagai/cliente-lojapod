@@ -123,10 +123,10 @@ export function transformNewApiProduct(
 
   const totalStock = raw.items?.reduce((acc, item) => acc + (item?.stock || 0), 0) || 0;
 
-  const promoPriceNum = raw.promotionalPrice
-    ? Number(raw.promotionalPrice)
-    : undefined;
+  const rawPromo = raw.promotionalPrice ? Number(raw.promotionalPrice) : 0;
   const priceNum = raw.price ? Number(raw.price) : 0;
+  const isPromo = rawPromo > 0 && (priceNum === 0 || rawPromo < priceNum);
+  const promoPriceNum = isPromo ? rawPromo : undefined;
 
   const images = raw.images?.map((img) => buildImageUrl(img.url)) || [];
 
@@ -138,8 +138,8 @@ export function transformNewApiProduct(
     category: raw.category?.title || raw.categoryId,
     description: raw.description || raw.descriptionFormated || "",
     price: promoPriceNum || priceNum,
-    oldPrice: promoPriceNum ? priceNum : undefined,
-    isPromo: !!promoPriceNum,
+    oldPrice: isPromo && priceNum > 0 ? priceNum : undefined,
+    isPromo,
     stock: totalStock,
     variationGroup,
     variationGroups,

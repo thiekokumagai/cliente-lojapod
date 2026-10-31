@@ -62,8 +62,11 @@ const AllProductsSection = () => {
     setVisibleCount(ITEMS_PER_PAGE);
   }, [sortOption]);
 
+  const isProductInPromo = (p: (typeof allProducts)[0]) =>
+    Boolean(p.isPromo || (p.oldPrice !== undefined && p.oldPrice > 0 && p.price < p.oldPrice));
+
   const filteredProducts = allProducts
-    .filter((p) => !p.isPromo || p.isCombo)
+    .filter((p) => !isProductInPromo(p))
     .filter((product) => {
       const groups =
         product.variationGroups && product.variationGroups.length > 0

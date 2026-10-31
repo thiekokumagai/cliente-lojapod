@@ -19,7 +19,10 @@ const BestSellersSection = () => {
   const { data: settings } = useStoreSettings();
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
-  const nonPromoProducts = allProducts.filter((p) => !p.isPromo);
+  const isProductInPromo = (p: (typeof allProducts)[0]) =>
+    Boolean(p.isPromo || (p.oldPrice !== undefined && p.oldPrice > 0 && p.price < p.oldPrice));
+
+  const nonPromoProducts = allProducts.filter((p) => !isProductInPromo(p));
 
   const filteredProducts = nonPromoProducts.filter((product) => {
     const groups =
