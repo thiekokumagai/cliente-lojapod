@@ -47,6 +47,9 @@ import LoyaltyCardWidget from "@/components/LoyaltyCardWidget";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { trackEvent, trackCustomEvent } from "@/components/FacebookPixel";
 import { generatePixPayload } from "@/utils/pix";
+import type { Product } from "@/data/products";
+import { OrderBumpSection } from "@/components/cart/OrderBumpSection";
+import ProductVariationModal from "@/components/ProductVariationModal";
 
 const SESSION_ADDRESS_KEY = "podemais-checkout-address";
 const SESSION_ADDRESSES_KEY = "podemais-checkout-addresses";
@@ -285,6 +288,7 @@ const CartSidebar = () => {
   const [redeemedReward, setRedeemedReward] = useState<{ rewardType: string; rewardTitle: string } | null>(null);
   const [loyaltyDiscount, setLoyaltyDiscount] = useState<number>(0);
   const [deliveryModality, setDeliveryModality] = useState<"DELIVERY" | "STORE_PICKUP">("DELIVERY");
+  const [bumpProductModal, setBumpProductModal] = useState<Product | null>(null);
   const previousTotalItems = useRef(totalItems);
 
   // Verifica se o telefone está na block list
@@ -1500,7 +1504,8 @@ const CartSidebar = () => {
                         <p className="text-center text-sm">Adicione produtos para iniciar o checkout.</p>
                       </div>
                     ) : (
-                      <div className="space-y-3">
+                      <>
+                        <div className="space-y-3">
                         {items.map((item, itemIdx) => {
                           const isAtLimit = (() => {
                             if (item.product.isCombo) {
@@ -1627,7 +1632,9 @@ const CartSidebar = () => {
                         );
                       })}
                     </div>
-                    )}
+                    <OrderBumpSection onOpenVariationModal={(prod) => setBumpProductModal(prod)} />
+                  </>
+                )}
                   </div>
                 </div>
               )}
@@ -2950,6 +2957,15 @@ const CartSidebar = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {bumpProductModal && (
+        <ProductVariationModal
+          product={bumpProductModal}
+          selectedOption={null}
+          onSelect={() => {}}
+          onClose={() => setBumpProductModal(null)}
+        />
       )}
     </>
   );
