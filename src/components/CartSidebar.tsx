@@ -289,6 +289,7 @@ const CartSidebar = () => {
   const [loyaltyDiscount, setLoyaltyDiscount] = useState<number>(0);
   const [deliveryModality, setDeliveryModality] = useState<"DELIVERY" | "STORE_PICKUP">("DELIVERY");
   const [bumpProductModal, setBumpProductModal] = useState<Product | null>(null);
+  const [bumpSelectedVariation, setBumpSelectedVariation] = useState<string | null>(null);
   const previousTotalItems = useRef(totalItems);
 
   // Verifica se o telefone está na block list
@@ -1634,7 +1635,12 @@ const CartSidebar = () => {
                         );
                       })}
                     </div>
-                    <OrderBumpSection onOpenVariationModal={(prod) => setBumpProductModal(prod)} />
+                    <OrderBumpSection
+                      onOpenVariationModal={(prod) => {
+                        setBumpSelectedVariation(null);
+                        setBumpProductModal(prod);
+                      }}
+                    />
                   </>
                 )}
                   </div>
@@ -2964,9 +2970,13 @@ const CartSidebar = () => {
       {bumpProductModal && (
         <ProductVariationModal
           product={bumpProductModal}
-          selectedOption={null}
-          onSelect={() => {}}
-          onClose={() => setBumpProductModal(null)}
+          selectedOption={bumpSelectedVariation}
+          onSelect={setBumpSelectedVariation}
+          onClose={() => {
+            setBumpProductModal(null);
+            setBumpSelectedVariation(null);
+          }}
+          customConfirmLabel="Adicionar à sacola"
         />
       )}
     </>
