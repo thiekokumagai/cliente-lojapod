@@ -83,6 +83,11 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
       }
     }
 
+    const rawPrice = Number(raw.price);
+    const rawOrig = Number(raw.originalPrice);
+    const finalPrice = rawPrice > 0 ? rawPrice : (rawOrig > 0 ? rawOrig : 0);
+    const hasDiscount = !!raw.hasDiscount && rawOrig > finalPrice;
+
     return {
       id: raw.id,
       name: raw.title,
@@ -90,9 +95,9 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
       images: raw.imageUrl ? [buildImageUrl(raw.imageUrl)] : [],
       category: "",
       description: "",
-      price: raw.price,
-      oldPrice: raw.hasDiscount ? raw.originalPrice : undefined,
-      isPromo: raw.hasDiscount,
+      price: finalPrice,
+      oldPrice: hasDiscount ? rawOrig : undefined,
+      isPromo: hasDiscount,
       stock: raw.totalStock,
       variationGroups: variationGroups.length > 0 ? variationGroups : undefined,
       items: (raw.items || []).map((it) => ({
