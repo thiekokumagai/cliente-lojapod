@@ -96,7 +96,8 @@ export default function OrderSuccessPage() {
     const itemsFormatted = (order.items || [])
       .map((item: any) => {
         const isCombo = item.isCombo || !!item.comboId;
-        const prefix = isCombo ? "[COMBO] " : "";
+        const isBump = !!(item.isOrderBump || item.orderBumpId);
+        const prefix = isCombo ? "[COMBO] " : isBump ? "[PEÇA TAMBÉM] " : "";
         const name = item.productName || item.product?.name || "Produto";
         let qtyStr = `${item.quantity} x ${prefix}${name}: ${formatPrice(Number(item.price) * item.quantity)}`;
         if (item.variation) {

@@ -956,7 +956,8 @@ const CartSidebar = () => {
   const checkoutMessage = useMemo(() => {
     const itemsFormatted = checkoutItems.map(item => {
       const isCombo = item.product.isCombo;
-      const prefix = isCombo ? "[COMBO] " : "";
+      const isBump = !!((item as any).isOrderBump || (item.product as any).isOrderBump);
+      const prefix = isCombo ? "[COMBO] " : isBump ? "[PEÇA TAMBÉM] " : "";
       const categoryStr = item.product.category ? ` [${item.product.category}]` : "";
       let qtyStr = `${item.quantity} x ${prefix}${item.product.name}${categoryStr}: ${formatPrice(item.product.price * item.quantity)}`;
       if (item.selectedVariation) {
