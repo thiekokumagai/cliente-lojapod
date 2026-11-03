@@ -12,6 +12,7 @@ interface ProductDesktopGalleryProps {
   isBestSeller?: boolean;
   isPromo?: boolean;
   discount?: number;
+  isUnavailable?: boolean;
 }
 
 const ProductDesktopGallery = ({
@@ -24,6 +25,7 @@ const ProductDesktopGallery = ({
   isBestSeller,
   isPromo,
   discount,
+  isUnavailable,
 }: ProductDesktopGalleryProps) => {
   return (
     <div className={`grid items-start gap-4 pt-16 grid-cols-[82px_1fr]`}>
@@ -48,13 +50,17 @@ const ProductDesktopGallery = ({
       )}
 
       <div className="relative w-full bg-[#f6f5f3] max-w-[440px] rounded-[14px]">
-        {isPromo && discount && (
+        {isUnavailable ? (
+          <span className="absolute left-4 top-4 z-10 rounded-md bg-rose-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white shadow-md">
+            Esgotado
+          </span>
+        ) : isPromo && discount ? (
           <span className="absolute left-4 top-4 z-10 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-md">
             -{discount}%
           </span>
-        )}
+        ) : null}
 
-        {isBestSeller && (
+        {isBestSeller && !isUnavailable && (
           <img
             src={seloMaisVendido}
             alt="Selo Mais Vendido"

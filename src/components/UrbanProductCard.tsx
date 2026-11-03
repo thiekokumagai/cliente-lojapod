@@ -102,11 +102,15 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
     <div className="group relative flex flex-row items-stretch justify-between w-full bg-white rounded-2xl border border-slate-200/90 shadow-xs hover:shadow-md transition-all cursor-pointer overflow-hidden">
       {/* Thumbnail que preenche a altura inteira do quadro sangrada na esquerda */}
       <div className="relative shrink-0 w-[115px] sm:w-[130px] self-stretch min-h-[120px] bg-slate-50 flex items-center justify-center overflow-hidden">
-        {discountPercentage > 0 && (
+        {isUnavailable ? (
+          <span className="absolute top-2 left-2 z-10 bg-rose-600 text-white font-black text-[10px] sm:text-[11px] px-2 py-0.5 rounded-md shadow-sm uppercase tracking-wider">
+            Esgotado
+          </span>
+        ) : discountPercentage > 0 ? (
           <span className="absolute top-2 left-2 z-10 bg-red-500 text-white font-black text-[10px] sm:text-[11px] px-1.5 py-0.5 rounded-md shadow-xs">
             -{discountPercentage}%
           </span>
-        )}
+        ) : null}
 
         {productImage ? (
           <img

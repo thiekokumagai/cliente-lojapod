@@ -10,7 +10,7 @@ const ProductStickyBar = ({
   onAddToCart,
 }: ProductStickyBarProps) => {
   const buttonLabel = isUnavailable
-    ? "Indisponível"
+    ? "Esgotado"
     : canAddToCart
       ? "Adicionar ao Pedido"
       : "Selecione";

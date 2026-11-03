@@ -205,14 +205,18 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   const cardContent = (
     <>
       <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-surface-subtle">
-        {isBestSeller && (
+        {isUnavailable ? (
+          <span className="absolute top-2 left-2 z-10 inline-flex items-center px-2 py-0.5 rounded-md bg-rose-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm">
+            Esgotado
+          </span>
+        ) : isBestSeller ? (
           <img
             src={seloMaisVendido}
             alt="Selo Mais Vendido"
             className="absolute left-2 top-2 z-10 h-10 w-10 object-contain drop-shadow-md transition-transform group-hover:scale-105"
           />
-        )}
-        {discountPercentage > 0 && (
+        ) : null}
+        {discountPercentage > 0 && !isUnavailable && (
           <span className="absolute right-2 top-2 z-10 rounded-full bg-[#DE2839] px-2 py-0.5 text-[10px] font-bold text-white shadow-md">
             -{discountPercentage}%
           </span>

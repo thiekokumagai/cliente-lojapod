@@ -10,6 +10,7 @@ interface ProductMobileGalleryProps {
   isBestSeller?: boolean;
   isPromo?: boolean;
   discount?: number;
+  isUnavailable?: boolean;
 }
 
 const ProductMobileGallery = ({
@@ -21,16 +22,21 @@ const ProductMobileGallery = ({
   isBestSeller,
   isPromo,
   discount,
+  isUnavailable,
 }: ProductMobileGalleryProps) => {
   return (
     <div className="relative bg-[#f5f5f5]">
-      {isPromo && discount && (
+      {isUnavailable ? (
+        <span className="absolute left-16 top-4 z-10 rounded-md bg-rose-600 px-3 py-1 text-xs font-black uppercase tracking-wider text-white shadow-md">
+          Esgotado
+        </span>
+      ) : isPromo && discount ? (
         <span className="absolute left-16 top-4 z-10 rounded-full bg-primary px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-md">
           -{discount}%
         </span>
-      )}
+      ) : null}
       
-      {isBestSeller && (
+      {isBestSeller && !isUnavailable && (
         <div 
           className="absolute right-16 top-1 z-10 flex h-[64px] w-[64px] items-center justify-center drop-shadow-md" 
           style={{ transform: 'rotate(-8deg)' }}

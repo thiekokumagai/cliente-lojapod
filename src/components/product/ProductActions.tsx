@@ -24,7 +24,7 @@ const ProductActions = ({
   onBackToStore,
 }: ProductActionsProps) => {
   const buttonLabel = isUnavailable
-    ? "Indisponível"
+    ? "Esgotado"
     : canAddToCart
       ? "Adicionar ao Pedido"
       : "Selecione";

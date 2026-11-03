@@ -101,11 +101,9 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
                 {product.category}
               </span>
             )}
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <h3 className="font-semibold text-sm md:text-base text-foreground leading-snug line-clamp-2">
-                {product.name}
-              </h3>
-            </div>
+            <h3 className="font-semibold text-sm md:text-base leading-snug line-clamp-2 text-foreground">
+              {product.name}
+            </h3>
 
             {/* Badges de Peso/Unidade ou Serve X pessoas se houver nas variações */}
             {storeSettings?.showVariationsOnCard !== false && allGroups.length > 0 && (
@@ -132,8 +130,8 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
 
           <div className="mt-2 flex items-baseline gap-2 flex-wrap">
             <span
-              className="text-base md:text-lg font-bold"
-              style={{ color: "var(--price-color, var(--primary-custom, #16a34a))" }}
+              className={`text-base md:text-lg font-bold ${isUnavailable ? "opacity-75" : ""}`}
+              style={{ color: isUnavailable ? "#94a3b8" : "var(--price-color, var(--primary-custom, #16a34a))" }}
             >
               {formatPrice(product.price)}
             </span>
@@ -152,11 +150,18 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
 
         {/* Lado Direito: Imagem sangrada ocupando toda a altura e lateral do card */}
         <div className="relative shrink-0 w-28 sm:w-36 self-stretch min-h-[110px] bg-muted overflow-hidden">
-          {isBestSeller && (
+          {/* Badge Esgotado sobre a imagem */}
+          {isUnavailable ? (
+            <div className="absolute top-2 left-2 z-10">
+              <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-rose-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-sm">
+                Esgotado
+              </span>
+            </div>
+          ) : isBestSeller ? (
             <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-[9px] font-bold py-0.5 px-1 text-center shadow-xs z-10 uppercase tracking-tight">
               🔥 Mais vendido
             </div>
-          )}
+          ) : null}
 
           {productImage ? (
             <img

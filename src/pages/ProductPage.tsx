@@ -388,6 +388,7 @@ const ProductPage = () => {
             isBestSeller={Boolean(product.isBestSeller)}
             isPromo={product.isPromo}
             discount={discount}
+            isUnavailable={isUnavailable || isCombinationUnavailable}
           />
 
           <div className="-mt-6 rounded-t-[28px] bg-background px-5 pb-8 pt-7">
@@ -492,6 +493,7 @@ const ProductPage = () => {
               isBestSeller={Boolean(product.isBestSeller)}
               isPromo={product.isPromo}
               discount={discount}
+              isUnavailable={isUnavailable || isCombinationUnavailable}
             />
 
             <div className="max-w-[420px] pt-16">

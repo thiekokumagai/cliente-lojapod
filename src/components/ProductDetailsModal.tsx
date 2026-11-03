@@ -464,18 +464,22 @@ const ProductDetailsModal = ({
                 ))}
               </div>
               
-              {Boolean(product.isBestSeller) && (
+              {(isUnavailable || isCombinationUnavailable) ? (
+                <span className="absolute left-16 top-5 z-10 rounded-md bg-rose-600 px-2.5 py-1 text-xs font-black uppercase tracking-wider text-white shadow-md">
+                  Esgotado
+                </span>
+              ) : discountPercentage > 0 ? (
+                <span className="absolute left-16 top-5 z-10 rounded-full bg-[#DE2839] px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-md">
+                  -{discountPercentage}%
+                </span>
+              ) : null}
+
+              {Boolean(product.isBestSeller) && !(isUnavailable || isCombinationUnavailable) && (
                 <img
                   src={seloMaisVendido}
                   alt="Selo Mais Vendido"
                   className="absolute right-16 top-4 z-10 h-10 w-10 object-contain drop-shadow-md"
                 />
-              )}
-              
-              {discountPercentage > 0 && (
-                <span className="absolute left-16 top-5 z-10 rounded-full bg-[#DE2839] px-3 py-1 text-xs font-bold uppercase tracking-wider text-white shadow-md">
-                  -{discountPercentage}%
-                </span>
               )}
               {gallery.length > 1 && (
                 <div className="pointer-events-none absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
