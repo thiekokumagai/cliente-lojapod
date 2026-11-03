@@ -3,6 +3,7 @@ import { useCart } from "@/contexts/CartContext";
 import { orderBumpsService, OrderBumpSuggestion } from "@/services/order-bumps";
 import type { Product, ProductVariationGroup } from "@/data/products";
 import { buildImageUrl } from "@/utils/image-url";
+import { Plus } from "lucide-react";
 
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
 
@@ -131,106 +132,97 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
   };
 
   return (
-    <div className="rounded-2xl border border-border/80 bg-slate-50/70 dark:bg-card/50 p-3.5 my-3">
-      {/* Título Clean Sem Ícone */}
-      <div className="flex items-center justify-between mb-2.5">
-        <span className="text-xs font-bold text-foreground uppercase tracking-wider">
-          {sectionTitle}
-        </span>
-      </div>
+    <section className="mt-6 space-y-3" aria-labelledby="order-bump-title">
+      <h3 id="order-bump-title" className="text-base font-semibold text-foreground">
+        {sectionTitle}
+      </h3>
 
-      {/* Carrossel Horizontal de Cards Clean */}
-      <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-none no-scrollbar snap-x">
+      <div
+        className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none no-scrollbar"
+        role="list"
+        aria-label={`Sugestões: ${sectionTitle}`}
+      >
         {suggestions.map((sug) => {
           const cartItem = items.find((ci) => ci.product.id === sug.product.id);
           const inCartQuantity = cartItem ? cartItem.quantity : 0;
           const isAtStockLimit = inCartQuantity >= sug.product.totalStock;
 
           return (
-            <div
+            <article
               key={sug.bumpId}
-              className="min-w-[145px] max-w-[145px] sm:min-w-[160px] sm:max-w-[160px] bg-background rounded-xl p-2.5 border border-border/70 shadow-2xs flex flex-col justify-between shrink-0 snap-start"
+              className="w-[122px] shrink-0 snap-start sm:w-[134px]"
+              role="listitem"
             >
-              <div>
-                {/* Imagem do Produto */}
+              <div className="relative h-[120px] overflow-hidden rounded-3xl bg-muted sm:h-[138px]">
                 {sug.product.imageUrl ? (
                   <img
                     src={buildImageUrl(sug.product.imageUrl)}
                     alt={sug.product.title}
-                    className="w-full h-20 object-cover rounded-lg border border-border/50 mb-2"
+                    loading="lazy"
+                    decoding="async"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-20 rounded-lg bg-muted border border-border/50 mb-2 flex items-center justify-center text-xs text-muted-foreground">
+                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
                     Sem foto
                   </div>
                 )}
 
-                {/* Título */}
-                <h4 className="text-xs font-semibold text-foreground line-clamp-2 leading-tight">
-                  {sug.product.title}
-                </h4>
-              </div>
-
-              {/* Preço e Botão */}
-              <div className="mt-2.5 pt-2 border-t border-border/40 flex items-center justify-between gap-1.5">
-                <div className="flex flex-col min-w-0">
-                  {sug.product.hasDiscount && (
-                    <span className="text-[10px] text-muted-foreground line-through leading-none truncate">
-                      {formatPrice(sug.product.originalPrice)}
-                    </span>
-                  )}
-                  <span className="text-xs font-extrabold text-primary leading-tight truncate">
-                    {formatPrice(sug.product.price)}
-                  </span>
-                </div>
-
-                {sug.product.hasVariations ? (
+                {sug.product.hasVariations || inCartQuantity === 0 ? (
                   <button
                     type="button"
                     onClick={() => handleAdd(sug)}
-                    className="h-7 px-2 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-colors shrink-0"
+                    className="absolute bottom-2.5 right-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-[38px] sm:w-[38px]"
+                    title="Adicionar ao carrinho"
+                    aria-label="Adicionar ao carrinho"
                   >
-                    Opções
+                    <Plus className="h-5 w-5 stroke-[2.5]" aria-hidden="true" />
                   </button>
-                ) : inCartQuantity > 0 ? (
-                  <div className="flex items-center gap-1 bg-muted/60 rounded-lg p-0.5 shrink-0">
+                ) : (
+                  <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-background p-1 shadow-md">
                     <button
                       type="button"
                       onClick={() => updateQuantity(sug.product.id, inCartQuantity - 1)}
-                      className="h-6 w-6 flex items-center justify-center text-xs font-bold text-foreground hover:bg-background rounded-md transition-colors"
+                      aria-label={`Diminuir ${sug.product.title}`}
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
-                      -
+                      <span aria-hidden="true" className="text-xl leading-none">−</span>
                     </button>
-                    <span className="text-xs font-bold px-1 text-foreground">
+                    <span className="min-w-5 text-center text-sm font-semibold tabular-nums text-foreground" aria-live="polite">
                       {inCartQuantity}
                     </span>
                     <button
                       type="button"
                       disabled={isAtStockLimit}
                       onClick={() => updateQuantity(sug.product.id, inCartQuantity + 1)}
-                      className={`h-6 w-6 flex items-center justify-center text-xs font-bold rounded-md transition-colors ${
-                        isAtStockLimit
-                          ? "text-muted-foreground opacity-50 cursor-not-allowed"
-                          : "text-foreground hover:bg-background"
-                      }`}
+                      aria-label={`Aumentar ${sug.product.title}`}
+                      className="flex h-9 w-9 items-center justify-center rounded-full text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
                     >
-                      +
+                      <Plus className="h-5 w-5" aria-hidden="true" />
                     </button>
                   </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleAdd(sug)}
-                    className="h-7 px-2.5 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-colors shrink-0"
-                  >
-                    Adicionar
-                  </button>
                 )}
               </div>
-            </div>
+
+              <div className="pt-2">
+                <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                  <span className="text-sm font-semibold tabular-nums text-primary">
+                    {formatPrice(sug.product.price)}
+                  </span>
+                  {sug.product.hasDiscount && (
+                    <span className="text-xs text-muted-foreground line-through">
+                      {formatPrice(sug.product.originalPrice)}
+                    </span>
+                  )}
+                </div>
+                <h4 className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-foreground">
+                  {sug.product.title}
+                </h4>
+              </div>
+            </article>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }
