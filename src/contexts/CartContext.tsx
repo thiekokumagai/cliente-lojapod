@@ -9,6 +9,8 @@ export interface CartItem {
   quantity: number;
   selectedVariation?: string;
   comboSelections?: ComboComponentSelection[];
+  isOrderBump?: boolean;
+  orderBumpId?: string;
 }
 
 export interface SavedOrder {
@@ -68,7 +70,13 @@ const normalizeItem = (item: Product | SelectedProduct) => {
     return item;
   }
 
-  return { product: item, selectedVariation: undefined, comboSelections: undefined };
+  return {
+    product: item,
+    selectedVariation: undefined,
+    comboSelections: undefined,
+    isOrderBump: (item as any).isOrderBump,
+    orderBumpId: (item as any).orderBumpId,
+  };
 };
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
@@ -237,6 +245,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
               quantity: 1,
               selectedVariation: normalizedItem.selectedVariation,
               comboSelections: normalizedItem.comboSelections,
+              isOrderBump: (normalizedItem as any).isOrderBump,
+              orderBumpId: (normalizedItem as any).orderBumpId,
             },
           ];
 
@@ -245,6 +255,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         quantity: 1,
         selectedVariation: normalizedItem.selectedVariation,
         comboSelections: normalizedItem.comboSelections,
+        isOrderBump: (normalizedItem as any).isOrderBump,
+        orderBumpId: (normalizedItem as any).orderBumpId,
       });
 
       trackEvent('AddToCart', {

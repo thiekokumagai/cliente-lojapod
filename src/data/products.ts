@@ -68,5 +68,7 @@ export interface SelectedProduct {
   product: Product;
   selectedVariation?: string;
   comboSelections?: ComboComponentSelection[];
+  isOrderBump?: boolean;
+  orderBumpId?: string;
 }
 
