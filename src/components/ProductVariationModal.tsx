@@ -221,7 +221,12 @@ const ProductVariationModal = ({
     }
     setDisplayQuantity(1);
     setIsLocked(true);
-    addToCart({ product, selectedVariation: combinedVariation });
+    addToCart({
+      product,
+      selectedVariation: combinedVariation,
+      isOrderBump: (product as any).isOrderBump,
+      orderBumpId: (product as any).orderBumpId,
+    } as any);
     startAutoClose(combinedVariation);
   };
 

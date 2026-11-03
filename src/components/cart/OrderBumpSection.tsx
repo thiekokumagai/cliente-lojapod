@@ -111,9 +111,17 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
     const prod = convertSuggestionToProduct(sug);
 
     if (sug.product.hasVariations && onOpenVariationModal) {
-      onOpenVariationModal(prod);
+      onOpenVariationModal({
+        ...prod,
+        isOrderBump: true,
+        orderBumpId: sug.bumpId,
+      } as any);
     } else {
-      addToCart(prod);
+      addToCart({
+        product: prod,
+        isOrderBump: true,
+        orderBumpId: sug.bumpId,
+      } as any);
     }
   };
 

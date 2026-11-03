@@ -1164,6 +1164,8 @@ const CartSidebar = () => {
           comboId: item.product.isCombo ? item.product.comboId || item.product.id : undefined,
           isCombo: !!item.product.isCombo,
           comboSelections: item.comboSelections || undefined,
+          isOrderBump: (item as any).isOrderBump || false,
+          orderBumpId: (item as any).orderBumpId || undefined,
         })),
         redeemedReward: redeemedReward ? {
           rewardType: redeemedReward.rewardType,
