@@ -65,6 +65,12 @@ export default function LoyaltyCardWidget({
 
   const program = data?.program;
   const card = data?.card;
+  const pointsPerReal = Number(program?.pointsPerReal ?? 1);
+  const pointRedemptionValue = Number(program?.pointsRedemptionValue ?? 0.05);
+  const pointRedemptionValueLabel = new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(pointRedemptionValue);
 
   const isCardExpired =
     card?.status === "EXPIRED" ||
@@ -135,7 +141,7 @@ export default function LoyaltyCardWidget({
       program.type === "CASHBACK"
         ? `Ganhe ${program.cashbackPercent || 5}% de volta em saldo a cada compra!`
         : program.type === "POINTS_DISCOUNT"
-        ? `Cada R$ 1 gasto vira pontos para trocar por dinheiro de desconto.`
+        ? `Ganhe ${pointsPerReal} ponto(s) a cada R$ 1,00 gasto. Cada ponto vale ${pointRedemptionValueLabel} em desconto.`
         : program.type === "PROGRESSIVE_DISCOUNT"
         ? `Quanto mais pedidos você fizer, maior será seu desconto exclusivo em cada compra.`
         : program.type === "HYBRID"
@@ -296,7 +302,7 @@ export default function LoyaltyCardWidget({
                 : progType === "CASHBACK"
                 ? `Ganhe ${program.cashbackPercent || 5}% de volta em cada compra!`
                 : progType === "POINTS_DISCOUNT"
-                ? `Acumule pontos (${Number(program.pointsPerReal || 1)} pt/R$ 1).`
+                ? `Ganhe ${pointsPerReal} ponto(s) por R$ 1,00 gasto. Cada ponto vale ${pointRedemptionValueLabel} em desconto.`
                 : progType === "PROGRESSIVE_DISCOUNT"
                 ? nextTier
                   ? `Mais ${nextTier.minOrders - currentStamps} pedidos para ${nextTier.discountPercent}% OFF!`
