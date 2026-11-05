@@ -204,7 +204,12 @@ export function useProducts(categoryId?: string | null) {
                   isCombo: true,
                   name: c.name,
                   image: img,
-                  images: img ? [img] : [],
+                  images:
+                    Array.isArray(c.images) && c.images.length > 0
+                      ? c.images.map((u: string) => buildImageUrl(u)).filter(Boolean)
+                      : img
+                      ? [img]
+                      : [],
                   category: c.categoryTitle || "Combos",
                   categoryId: c.categoryId,
                   description: c.description || "",
@@ -284,7 +289,12 @@ export function useProduct(id?: string) {
               isCombo: true,
               name: c.name,
               image: img,
-              images: img ? [img] : [],
+              images:
+                Array.isArray(c.images) && c.images.length > 0
+                  ? c.images.map((u: string) => buildImageUrl(u)).filter(Boolean)
+                  : img
+                  ? [img]
+                  : [],
               category: c.categoryTitle || "Combos",
               categoryId: c.categoryId,
               description: c.description || "",
