@@ -36,6 +36,8 @@ interface StoreSettings {
   payOnDeliveryMealVoucher: boolean;
   payOnDeliveryFoodVoucher: boolean;
   paymentGateways?: any;
+  /** Formas de pagamento que mantêm o preço promocional. Padrão: ["pix"] */
+  promoPaymentMethods?: string[];
   paymentRules?: {
     id: string;
     paymentMethod: string;
