@@ -651,11 +651,24 @@ const CartSidebar = () => {
     return (totalAfterCoupon + effectiveDeliveryFee) * (debitFeePercent / 100);
   }, [paymentMethod, debitFeePercent, totalAfterCoupon, effectiveDeliveryFee]);
 
+  const voucherFeePercent = useMemo(() => {
+    if (paymentMethod !== "Vale refeição" && paymentMethod !== "Vale alimentação") return 0;
+    const method = paymentMethod === "Vale refeição" ? 'meal_voucher' : 'food_voucher';
+    const rule = storeSettings?.paymentRules?.find((r) => r.paymentMethod === method && r.type === 'charge');
+    return (rule && rule.passedToCustomer !== false) ? rule.value : 0;
+  }, [storeSettings, paymentMethod]);
+
+  const voucherInterestAmount = useMemo(() => {
+    if (voucherFeePercent <= 0) return 0;
+    return (totalAfterCoupon + effectiveDeliveryFee) * (voucherFeePercent / 100);
+  }, [voucherFeePercent, totalAfterCoupon, effectiveDeliveryFee]);
+
   const cardSurchargeAmount = useMemo(() => {
     if (paymentMethod === "Cartão de Crédito") return creditInterestAmount;
     if (paymentMethod === "Cartão de Débito") return debitInterestAmount;
+    if (paymentMethod === "Vale refeição" || paymentMethod === "Vale alimentação") return voucherInterestAmount;
     return 0;
-  }, [paymentMethod, creditInterestAmount, debitInterestAmount]);
+  }, [paymentMethod, creditInterestAmount, debitInterestAmount, voucherInterestAmount]);
 
   const discountedProductsTotal = useMemo(() => {
     if (paymentMethod === "PIX") return totalWithPixDiscount;
@@ -1065,8 +1078,9 @@ const CartSidebar = () => {
       lines.push(`Desconto PIX: ${formatPrice(checkoutPixDiscount)}`);
     }
 
-    const checkoutCardSurcharge = isCredit ? checkoutCreditInterest : (isDebit ? debitFeePercent : 0);
-    if ((isCredit || isDebit) && checkoutCardSurcharge > 0) {
+    const isVoucher = isMealVoucher || isFoodVoucher;
+    const checkoutCardSurcharge = isCredit ? checkoutCreditInterest : (isDebit ? debitFeePercent : (isVoucher ? voucherFeePercent : 0));
+    if ((isCredit || isDebit || isVoucher) && checkoutCardSurcharge > 0) {
       const baseForCredit = checkoutSubtotal - (couponData?.discountAmount || 0) + (checkoutDeliveryFee || 0);
       const interestAmt = checkoutTotal - baseForCredit;
       if (interestAmt > 0) {
@@ -1166,7 +1180,7 @@ const CartSidebar = () => {
         itemsTotal: Number(effectiveTotalPrice.toFixed(2)),
         freight: deliveryModality === "STORE_PICKUP" || isFreeShippingApplicable ? 0 : (deliveryFee === null ? -1 : Number(deliveryFee.toFixed(2))),
         paymentDiscount: paymentMethod === 'PIX' ? Number(pixDiscount.toFixed(2)) : 0,
-        installmentSurcharge: (paymentMethod === 'Cartão de Crédito' || paymentMethod === 'Cartão de Débito') ? Number(cardSurchargeAmount.toFixed(2)) : 0,
+        installmentSurcharge: (paymentMethod === 'Cartão de Crédito' || paymentMethod === 'Cartão de Débito' || paymentMethod === 'Vale refeição' || paymentMethod === 'Vale alimentação') ? Number(cardSurchargeAmount.toFixed(2)) : 0,
         couponTitle: savedCouponCode || undefined,
         couponDiscount: couponData?.type !== 'FREE_SHIPPING' ? Number(computedCouponDiscount.toFixed(2)) : 0,
         couponFreightDiscount: isFreeShippingByCoupon ? (deliveryFee === null ? 0 : Number(deliveryFee.toFixed(2))) : 0,
@@ -2104,6 +2118,12 @@ const CartSidebar = () => {
                           <span className="font-medium">+{debitFeePercent.toFixed(2).replace(".", ",")}%</span>
                         </div>
                       )}
+                      {(paymentMethod === "Vale refeição" || paymentMethod === "Vale alimentação") && voucherFeePercent > 0 && (
+                        <div className="flex justify-between text-primary">
+                          <span>Taxa ({paymentMethod})</span>
+                          <span className="font-medium">+{voucherFeePercent.toFixed(2).replace(".", ",")}%</span>
+                        </div>
+                      )}
                       <div className="flex justify-between">
                         <span className="text-muted-foreground">Entrega</span>
                         <span className="font-medium text-foreground">
@@ -2291,6 +2311,12 @@ const CartSidebar = () => {
                         <div className="flex justify-between text-primary">
                           <span>Taxa do cartão (débito)</span>
                           <span className="font-medium">+{debitFeePercent.toFixed(2).replace(".", ",")}%</span>
+                        </div>
+                      )}
+                      {(paymentMethod === "Vale refeição" || paymentMethod === "Vale alimentação") && voucherFeePercent > 0 && (
+                        <div className="flex justify-between text-primary">
+                          <span>Taxa ({paymentMethod})</span>
+                          <span className="font-medium">+{voucherFeePercent.toFixed(2).replace(".", ",")}%</span>
                         </div>
                       )}
                       <div className="flex justify-between">
