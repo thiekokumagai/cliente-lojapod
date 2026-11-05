@@ -108,6 +108,8 @@ const AddressSearch = ({ onSave, onCancel, initialAddress }: AddressSearchProps)
   const [reference, setReference] = useState(initialAddress?.reference || "");
   const [noNumber, setNoNumber] = useState(false);
   const [noComplement, setNoComplement] = useState(initialAddress?.noComplement || false);
+  const [confirmNoComplement, setConfirmNoComplement] = useState(false);
+  const complementInputRef = useRef<HTMLInputElement>(null);
   const [manualEditAddress, setManualEditAddress] = useState(false);
   const [selectionMode, setSelectionMode] = useState<"manual" | "location" | null>(null);
   const [hasExtractedNumber, setHasExtractedNumber] = useState(false);
@@ -295,11 +297,17 @@ const AddressSearch = ({ onSave, onCancel, initialAddress }: AddressSearchProps)
     }
   };
 
-  const handleSave = () => {
+  const handleSave = (confirmedNoComplement = false) => {
     if (!selected) return;
 
     if (!number.trim() && !noNumber) {
       toast.error("Informe o número");
+      return;
+    }
+
+    const finalNoComplement = noComplement || confirmedNoComplement;
+    if (!complement.trim() && !finalNoComplement) {
+      setConfirmNoComplement(true);
       return;
     }
 
@@ -341,15 +349,13 @@ const AddressSearch = ({ onSave, onCancel, initialAddress }: AddressSearchProps)
       cep,
       city,
       state,
-      noComplement,
+      noComplement: finalNoComplement,
     });
   };
   if (phase === "details" && selected) {
     const isLocationMode = selectionMode === "location";
     const showNumberField = true;
-    const canSave = showNumberField
-      ? (number || noNumber) && (complement || noComplement)
-      : (complement || noComplement);
+    const canSave = showNumberField ? Boolean(number || noNumber) : true;
 
     return (
       <div className="flex h-full flex-col bg-background">
@@ -436,12 +442,13 @@ const AddressSearch = ({ onSave, onCancel, initialAddress }: AddressSearchProps)
 
           <div>
             <input
+              ref={complementInputRef}
               value={complement}
               onChange={(e) => {
                 setComplement(e.target.value);
                 if (e.target.value) setNoComplement(false);
               }}
-              placeholder="Complemento *"
+              placeholder="Complemento (ex: Apto 12, Bloco B)"
               disabled={noComplement}
               className="h-14 w-full rounded-2xl border border-border bg-background px-4 text-base text-foreground placeholder:text-muted-foreground outline-none focus:outline-none disabled:opacity-50"
             />
@@ -480,7 +487,7 @@ const AddressSearch = ({ onSave, onCancel, initialAddress }: AddressSearchProps)
             </button>
             <button
               type="button"
-              onClick={handleSave}
+              onClick={() => handleSave()}
               disabled={!canSave}
               className={`flex flex-1 items-center justify-center gap-2 rounded-2xl py-3 text-sm font-semibold ${canSave ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
                 }`}
@@ -490,6 +497,40 @@ const AddressSearch = ({ onSave, onCancel, initialAddress }: AddressSearchProps)
             </button>
           </div>
         </div>
+
+        {confirmNoComplement && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 px-4">
+            <div className="w-full max-w-sm rounded-2xl bg-background p-5 shadow-xl">
+              <p className="text-base font-semibold text-foreground">O endereço é sem complemento?</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Ex: apartamento, bloco, casa dos fundos, sala.
+              </p>
+              <div className="mt-5 flex flex-col gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmNoComplement(false);
+                    setNoComplement(true);
+                    handleSave(true);
+                  }}
+                  className="w-full rounded-2xl bg-primary py-3 text-sm font-semibold text-primary-foreground"
+                >
+                  Sim, não tem complemento
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setConfirmNoComplement(false);
+                    setTimeout(() => complementInputRef.current?.focus(), 0);
+                  }}
+                  className="w-full rounded-2xl border border-border bg-background py-3 text-sm font-medium text-foreground"
+                >
+                  Não, vou informar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
