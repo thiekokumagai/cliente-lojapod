@@ -312,38 +312,8 @@ const CartSidebar = () => {
     }
   }, [phone, step]);
 
-  const promoMethodLabels: Record<string, string> = {
-    pix: "PIX",
-    debit: "Cartão de Débito",
-    credit: "Cartão de Crédito",
-    cash: "Dinheiro",
-    meal_voucher: "Vale refeição",
-    food_voucher: "Vale alimentação",
-  };
-  const promoPaymentMethods = storeSettings?.promoPaymentMethods ?? ["pix"];
-  const promoMethodNames = promoPaymentMethods.map((m) => promoMethodLabels[m]).filter(Boolean);
-  const promoMethodsText =
-    promoMethodNames.length === 0
-      ? "em nenhuma forma de pagamento"
-      : promoMethodNames.length === 1
-        ? `apenas no ${promoMethodNames[0]}`
-        : `em ${promoMethodNames.slice(0, -1).join(", ")} e ${promoMethodNames[promoMethodNames.length - 1]}`;
-
-  // O preço promocional é mantido se a forma de pagamento estiver permitida pela loja
-  const isPromoAllowedFor = (method: PaymentMethod | null) => {
-    if (method === null) return true;
-    const key =
-      method === "PIX" ? "pix"
-      : method === "Cartão de Débito" ? "debit"
-      : method === "Cartão de Crédito" || method === "Cartão de Crédito Online" ? "credit"
-      : method === "Dinheiro" ? "cash"
-      : method === "Vale refeição" ? "meal_voucher"
-      : "food_voucher";
-    return promoPaymentMethods.includes(key);
-  };
-
   const effectiveItems = useMemo(() => {
-    if (isPromoAllowedFor(paymentMethod)) {
+    if (paymentMethod === "PIX" || paymentMethod === null) {
       return items;
     }
     return items.map(item => {
@@ -360,7 +330,7 @@ const CartSidebar = () => {
       }
       return item;
     });
-  }, [items, paymentMethod, storeSettings?.promoPaymentMethods]);
+  }, [items, paymentMethod]);
 
   const effectiveTotalPrice = useMemo(() => {
     return effectiveItems.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
@@ -1962,7 +1932,7 @@ const CartSidebar = () => {
                       <div className="mb-4 flex items-start gap-2 rounded-xl bg-amber-500/10 p-3 text-sm text-amber-600 dark:text-amber-500">
                         <Info className="mt-0.5 h-4 w-4 shrink-0" />
                         <p>
-                          Desconto promocional válido <strong>{promoMethodsText}</strong>.
+                          Desconto promocional válido <strong>apenas no PIX</strong>.
                         </p>
                       </div>
                     )}
