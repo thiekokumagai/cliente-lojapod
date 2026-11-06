@@ -149,7 +149,7 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
         </div>
 
         {/* Lado Direito: Imagem sangrada ocupando toda a altura e lateral do card */}
-        <div className="relative shrink-0 w-28 sm:w-36 self-stretch min-h-[110px] bg-muted overflow-hidden">
+        <div className="relative shrink-0 w-36 sm:w-48 md:w-52 self-stretch min-h-[170px] sm:min-h-[170px] bg-muted overflow-hidden">
           {/* Badge Esgotado sobre a imagem */}
           {isUnavailable ? (
             <div className="absolute top-2 left-2 z-10">
