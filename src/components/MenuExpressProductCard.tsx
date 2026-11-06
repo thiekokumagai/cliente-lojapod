@@ -9,6 +9,7 @@ import { StockNotificationModal } from "@/components/StockNotificationModal";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
+import { isProductAtStockLimit } from "@/utils/cart-stock";
 
 interface MenuExpressProductCardProps {
   product: Product;
@@ -68,6 +69,18 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
         .reduce((sum, i) => sum + i.quantity, 0),
     [items, product.id]
   );
+
+  // Só simples e combos têm limite calculável sem escolher variação no card
+  const atStockLimit = useMemo(
+    () => (isSimpleProduct || !!product.isCombo) && isProductAtStockLimit(items, product),
+    [items, product, isSimpleProduct]
+  );
+
+  const handleDecrease = () => {
+    const line = items.find((i) => i.product.id === product.id);
+    if (!line) return;
+    updateQuantity(product.id, line.quantity - 1, line.selectedVariation);
+  };
 
   const discountPercent =
     product.oldPrice && product.oldPrice > product.price
@@ -217,7 +230,7 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
                 <BellRing className="h-4.5 w-4.5" />
               </button>
             ) : null
-          ) : isSimpleProduct && cartQty > 0 ? (
+          ) : (isSimpleProduct || product.isCombo) && cartQty > 0 ? (
             <div
               onClick={stop}
               className="absolute bottom-2.5 right-2.5 z-10 flex h-10 items-center rounded-full bg-primary text-primary-foreground shadow-md"
@@ -226,7 +239,7 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
                 type="button"
                 onClick={(e) => {
                   stop(e);
-                  updateQuantity(product.id, cartQty - 1, undefined);
+                  handleDecrease();
                 }}
                 className="flex h-10 w-10 items-center justify-center rounded-full active:scale-90 transition-transform"
                 aria-label="Remover uma unidade"
@@ -236,12 +249,17 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
               <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums">{cartQty}</span>
               <button
                 type="button"
+                disabled={atStockLimit}
                 onClick={(e) => {
                   stop(e);
-                  addToCart(product);
+                  if (atStockLimit) return;
+                  handleBuy(e);
                 }}
-                className="flex h-10 w-10 items-center justify-center rounded-full active:scale-90 transition-transform"
-                aria-label="Adicionar mais uma unidade"
+                className={`flex h-10 w-10 items-center justify-center rounded-full transition-transform ${
+                  atStockLimit ? "opacity-40 cursor-not-allowed" : "active:scale-90"
+                }`}
+                title={atStockLimit ? "Quantidade máxima em estoque atingida" : undefined}
+                aria-label={atStockLimit ? "Quantidade máxima atingida" : "Adicionar mais uma unidade"}
               >
                 <Plus className="h-4 w-4 stroke-[2.5]" />
               </button>
@@ -249,9 +267,14 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
           ) : (
             <button
               onClick={handleBuy}
-              className="absolute bottom-2.5 right-2.5 h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
-              title="Adicionar ao carrinho"
-              aria-label="Adicionar ao carrinho"
+              disabled={atStockLimit}
+              className={`absolute bottom-2.5 right-2.5 h-10 w-10 rounded-full shadow-md flex items-center justify-center transition-transform z-10 ${
+                atStockLimit
+                  ? "bg-muted text-muted-foreground cursor-not-allowed opacity-70"
+                  : "bg-primary text-primary-foreground hover:scale-110 active:scale-95"
+              }`}
+              title={atStockLimit ? "Quantidade máxima em estoque atingida" : "Adicionar ao carrinho"}
+              aria-label={atStockLimit ? "Quantidade máxima atingida" : "Adicionar ao carrinho"}
             >
               <Plus className="h-5 w-5 stroke-[2.5]" />
               {cartQty > 0 && (

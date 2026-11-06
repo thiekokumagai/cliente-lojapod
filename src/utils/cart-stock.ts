@@ -124,6 +124,54 @@ export function getProductAvailableStock(
 }
 
 /**
+ * Indicates whether one more unit of a simple product or combo can no longer be
+ * added to the cart because of stock (including stock reserved by combo components).
+ * Returns false when stock is unknown or when the limit depends on a not-yet-made selection
+ * that still has some variation available.
+ */
+export function isProductAtStockLimit(cartItems: CartItem[], product: Product): boolean {
+  if (!product.isCombo) {
+    const stock = getProductAvailableStock(product);
+    if (stock === null) return false;
+    return getReservedStockInCart(cartItems, product.id) + 1 > stock;
+  }
+
+  return (product.comboItems || []).some((ci) => {
+    const needed = ci.quantity || 1;
+    const cp = ci.componentProduct;
+    if (!cp) return false;
+
+    if (ci.variation) {
+      const stock = getProductAvailableStock(cp, ci.variation);
+      if (stock === null) return false;
+      return getReservedStockInCart(cartItems, ci.productId, ci.variation) + needed > stock;
+    }
+
+    const groups =
+      cp.variationGroups && cp.variationGroups.length > 0
+        ? cp.variationGroups
+        : cp.variationGroup
+          ? [cp.variationGroup]
+          : [];
+
+    if (groups.length === 0) {
+      const stock = getProductAvailableStock(cp);
+      if (stock === null) return false;
+      return getReservedStockInCart(cartItems, ci.productId) + needed > stock;
+    }
+
+    // Variation chosen by the customer: limit reached only if no option can take one more combo
+    const options = groups.flatMap((g) => g.options).filter((o) => o.available);
+    if (options.length === 0) return true;
+    return options.every((o) => {
+      const stock = getProductAvailableStock(cp, o.label);
+      if (stock === null) return false;
+      return getReservedStockInCart(cartItems, ci.productId, o.label) + needed > stock;
+    });
+  });
+}
+
+/**
  * Validates whether an entire cart state has any item/component exceeding available stock.
  * Returns an error message string if any SKU exceeds stock, or null if all valid.
  */
