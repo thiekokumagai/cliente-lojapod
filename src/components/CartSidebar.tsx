@@ -915,12 +915,17 @@ const CartSidebar = () => {
       } else {
         toast.info("Preencha um telefone válido para continuar.");
       }
+      // Leva o cliente direto para o que falta
+      setIsContactModalOpen(true);
       return;
     }
 
     if (deliveryModality !== "STORE_PICKUP") {
       if (!isAddressValid) {
-        toast.info("Selecione um endereço de entrega para continuar.");
+        toast.info("Cadastre o endereço de entrega para continuar.");
+        setEditingAddress(null);
+        setIsShowingSavedAddresses(savedAddresses.length > 0);
+        setIsAddressModalOpen(true);
         return;
       }
 
@@ -1442,10 +1447,6 @@ const CartSidebar = () => {
     }
   };
 
-  const isDeliveryReady =
-    deliveryModality === "STORE_PICKUP" ||
-    (isAddressValid && hasValidDeliveryFee && !isCalculatingFee);
-  const canContinueDelivery = isContactValid && isDeliveryReady && !isEditingContact;
   const finishOrderNumber = finalizedOrder ? finalizedOrder.orderNumber : Date.now().toString().slice(-4);
   const finishDate = finalizedOrder ? new Date(finalizedOrder.createdAt) : new Date();
 
@@ -1721,7 +1722,10 @@ const CartSidebar = () => {
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-border bg-background p-4">
+                    <div
+                      className={`rounded-2xl border border-border bg-background p-4 ${!isContactValid ? "cursor-pointer" : ""}`}
+                      onClick={!isContactValid ? () => setIsContactModalOpen(true) : undefined}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="space-y-2">
                           {name || phone ? (
@@ -1743,8 +1747,15 @@ const CartSidebar = () => {
                         </div>
                         <button
                           type="button"
-                          onClick={() => setIsContactModalOpen(true)}
-                          className="inline-flex items-center gap-1 text-sm font-medium text-primary"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setIsContactModalOpen(true);
+                          }}
+                          className={
+                            name || phone
+                              ? "inline-flex items-center gap-1 text-sm font-medium text-primary"
+                              : "inline-flex shrink-0 items-center rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground"
+                          }
                         >
                           {name || phone ? (
                             <>
@@ -1898,13 +1909,15 @@ const CartSidebar = () => {
                           setIsShowingSavedAddresses(false);
                           setIsAddressModalOpen(true);
                         }}
-                        className="flex w-full items-center justify-between rounded-2xl border border-border bg-background px-4 py-4 text-left"
+                        className="flex w-full items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-4 text-left"
                       >
                         <div>
                           <p className="text-sm font-semibold text-foreground">Cadastrar endereço</p>
                           <p className="text-xs text-muted-foreground">Informe onde deseja receber seu pedido</p>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        <span className="inline-flex shrink-0 items-center rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground">
+                          Adicionar
+                        </span>
                       </button>
                     )}
                   </div>
@@ -2388,11 +2401,13 @@ const CartSidebar = () => {
                 <button
                   type="button"
                   onClick={goToPayment}
-                  disabled={!canContinueDelivery}
-                  className={`w-full rounded-2xl py-3.5 text-sm font-bold ${canContinueDelivery ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                    }`}
+                  className={`w-full rounded-2xl py-3.5 text-sm font-bold bg-primary text-primary-foreground`}
                 >
-                  Ir para pagamento
+                  {!isContactValid
+                    ? "Adicionar seus dados"
+                    : deliveryModality !== "STORE_PICKUP" && !isAddressValid
+                      ? "Cadastrar endereço de entrega"
+                      : "Ir para pagamento"}
                 </button>
               )}
 
