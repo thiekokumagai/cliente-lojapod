@@ -1,4 +1,5 @@
 import { useState } from "react";
+import SearchFilterButton from "./SearchFilterButton";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, ShoppingCart, LayoutGrid, X } from "lucide-react";
 
@@ -68,14 +69,17 @@ const SiteHeader = () => {
         <div className="px-4 pb-3 pt-3">
           <div className="mx-auto max-w-7xl space-y-2.5">
           <div className="flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => setCategoriesOpen(true)}
-              className="rounded-full p-1.5 text-fg-subtle transition-colors hover:bg-muted hover:text-fg-secondary"
-              aria-label="Categorias"
-            >
-              <LayoutGrid className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-0.5">
+              <button
+                type="button"
+                onClick={() => setCategoriesOpen(true)}
+                className="rounded-full p-1.5 text-fg-subtle transition-colors hover:bg-muted hover:text-fg-secondary"
+                aria-label="Categorias"
+              >
+                <LayoutGrid className="h-5 w-5" />
+              </button>
+              <SearchFilterButton className="p-1.5" />
+            </div>
 
             <Link to="/" className="relative">
               {settings?.logoUrl && (
@@ -182,6 +186,8 @@ const SiteHeader = () => {
             >
               <LayoutGrid className="h-5 w-5" />
             </button>
+
+            <SearchFilterButton />
 
             <button
               onClick={() => setIsCartOpen(true)}

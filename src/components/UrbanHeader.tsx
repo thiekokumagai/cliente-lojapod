@@ -1,4 +1,5 @@
 import { Search, X, ShoppingBag, Menu, Truck } from "lucide-react";
+import SearchFilterButton from "./SearchFilterButton";
 import { useCart } from "@/contexts/CartContext";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import StoreHoursTopBar from "./StoreHoursTopBar";
@@ -57,6 +58,8 @@ export default function UrbanHeader({ onOpenCategoriesMenu }: UrbanHeaderProps) 
                   <span>Taxa fixa{fixedFeeValue ? `: R$ ${Number(fixedFeeValue).toFixed(2).replace('.', ',')}` : ''}</span>
                 </div>
               )}
+
+              <SearchFilterButton className="rounded-xl border border-zinc-700/40 bg-zinc-800/90 p-2.5 text-white hover:bg-zinc-700/90 hover:text-white" />
 
               {/* Botão Menu */}
               {onOpenCategoriesMenu && (

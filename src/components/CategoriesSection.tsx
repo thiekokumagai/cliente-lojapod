@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from "react";
+import SearchFilterButton from "@/components/SearchFilterButton";
 import { Link } from "react-router-dom";
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
@@ -126,7 +127,8 @@ const CategoriesSection = () => {
         {isMenuExpress && (
           <div className="mb-3 space-y-2.5">
             {/* Input de Busca */}
-            <div className="relative flex items-center">
+            <div className="flex items-center gap-2">
+            <div className="relative flex flex-1 items-center">
               <Search className="absolute left-3.5 h-4 w-4 text-muted-foreground" />
               <input
                 type="text"
@@ -143,6 +145,8 @@ const CategoriesSection = () => {
                   <X className="h-3.5 w-3.5" />
                 </button>
               )}
+            </div>
+            <SearchFilterButton className="shrink-0 border border-border bg-muted/60 p-2.5" />
             </div>
           </div>
         )}

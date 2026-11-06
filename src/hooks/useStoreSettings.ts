@@ -83,6 +83,7 @@ interface StoreSettings {
   autoHideOutOfStock?: boolean;
   enableStockAlertNotification?: boolean;
   showVariationsOnCard?: boolean;
+  searchFilters?: { id: string; name: string; items: { id: string; label: string; imageUrl?: string }[] }[];
 }
 
 function buildSettingsImageUrl(path?: string | null) {
