@@ -3,6 +3,8 @@ import { useLocation } from "react-router-dom";
 import { api } from "@/services/api";
 import { useCart } from "@/contexts/CartContext";
 import { formatFreightDestinationAddress } from "@/utils/freight-address";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
+import FreeShippingProgress from "./FreeShippingProgress";
 
 const SESSION_ADDRESS_KEY = "podemais-checkout-address";
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
@@ -19,6 +21,7 @@ interface StoredAddress {
 const MobileBottomNav = () => {
   const location = useLocation();
   const { totalPrice, totalItems, setIsCartOpen } = useCart();
+  const { data: settings } = useStoreSettings();
   const [savedAddress, setSavedAddress] = useState<StoredAddress | null>(null);
   const [deliveryFee, setDeliveryFee] = useState(0);
 
@@ -65,6 +68,9 @@ const MobileBottomNav = () => {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[80] border-t border-border bg-background px-4 pb-[calc(env(safe-area-inset-bottom)+10px)] pt-3 md:hidden">
+      {settings?.templateId === "menu-express" && (
+        <FreeShippingProgress className="mx-auto mb-2.5 max-w-md" />
+      )}
       <div className="mx-auto flex max-w-md items-center justify-between gap-3">
         <button
           type="button"

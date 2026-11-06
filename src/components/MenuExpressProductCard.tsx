@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, ShoppingCart, BellRing } from "lucide-react";
+import { Plus, Minus, ShoppingCart, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import ProductVariationModal from "@/components/ProductVariationModal";
@@ -20,7 +20,7 @@ const formatPrice = (price: number) =>
 
 export default function MenuExpressProductCard({ product, isBestSeller }: MenuExpressProductCardProps) {
   const isMobile = useIsMobile();
-  const { items, addToCart } = useCart();
+  const { items, addToCart, updateQuantity } = useCart();
   const { data: storeSettings } = useStoreSettings();
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [showVariationModal, setShowVariationModal] = useState(false);
@@ -59,6 +59,25 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
     }
     return (product.stock ?? 0) <= 0;
   }, [hasVariationGroup, availableOptions.length, product.stock]);
+
+  const isSimpleProduct = !product.isCombo && !hasVariationGroup;
+  const cartQty = useMemo(
+    () =>
+      items
+        .filter((i) => i.product.id === product.id)
+        .reduce((sum, i) => sum + i.quantity, 0),
+    [items, product.id]
+  );
+
+  const discountPercent =
+    product.oldPrice && product.oldPrice > product.price
+      ? Math.round((1 - product.price / product.oldPrice) * 100)
+      : 0;
+
+  const stop = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
 
   const handleBuy = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -145,6 +164,11 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
                 {formatPrice(product.oldPrice)}
               </span>
             )}
+            {discountPercent > 0 && !isUnavailable && (
+              <span className="inline-flex items-center rounded-md bg-emerald-100 px-1.5 py-0.5 text-[11px] font-bold text-emerald-700">
+                -{discountPercent}%
+              </span>
+            )}
           </div>
         </div>
 
@@ -193,14 +217,48 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
                 <BellRing className="h-4.5 w-4.5" />
               </button>
             ) : null
+          ) : isSimpleProduct && cartQty > 0 ? (
+            <div
+              onClick={stop}
+              className="absolute bottom-2.5 right-2.5 z-10 flex h-10 items-center rounded-full bg-primary text-primary-foreground shadow-md"
+            >
+              <button
+                type="button"
+                onClick={(e) => {
+                  stop(e);
+                  updateQuantity(product.id, cartQty - 1, undefined);
+                }}
+                className="flex h-10 w-10 items-center justify-center rounded-full active:scale-90 transition-transform"
+                aria-label="Remover uma unidade"
+              >
+                <Minus className="h-4 w-4 stroke-[2.5]" />
+              </button>
+              <span className="min-w-[1.25rem] text-center text-sm font-bold tabular-nums">{cartQty}</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  stop(e);
+                  addToCart(product);
+                }}
+                className="flex h-10 w-10 items-center justify-center rounded-full active:scale-90 transition-transform"
+                aria-label="Adicionar mais uma unidade"
+              >
+                <Plus className="h-4 w-4 stroke-[2.5]" />
+              </button>
+            </div>
           ) : (
             <button
               onClick={handleBuy}
-              className="absolute bottom-2.5 right-2.5 h-9 w-9 sm:h-9.5 sm:w-9.5 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
+              className="absolute bottom-2.5 right-2.5 h-10 w-10 rounded-full bg-primary text-primary-foreground shadow-md flex items-center justify-center hover:scale-110 active:scale-95 transition-transform z-10"
               title="Adicionar ao carrinho"
               aria-label="Adicionar ao carrinho"
             >
               <Plus className="h-5 w-5 stroke-[2.5]" />
+              {cartQty > 0 && (
+                <span className="absolute -top-1.5 -left-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[11px] font-bold text-primary shadow-sm border border-primary/30">
+                  {cartQty}
+                </span>
+              )}
             </button>
           )}
         </div>

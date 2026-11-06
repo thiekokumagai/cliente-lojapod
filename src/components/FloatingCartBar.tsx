@@ -1,31 +1,39 @@
 import { useCart } from "@/contexts/CartContext";
 import { ShoppingCart } from "lucide-react";
+import FreeShippingProgress from "./FreeShippingProgress";
 
+const formatPrice = (value: number) => `R$ ${value.toFixed(2).replace(".", ",")}`;
+
+/** Barra flutuante do carrinho (desktop). No mobile quem cumpre esse papel é a MobileBottomNav. */
 export default function FloatingCartBar() {
   const { totalItems, totalPrice, setIsCartOpen } = useCart();
 
   if (totalItems === 0) return null;
 
   return (
-    <div className="fixed bottom-4 inset-x-4 z-40 max-w-md mx-auto">
-      <button
-        onClick={() => setIsCartOpen(true)}
-        className="w-full bg-primary text-primary-foreground py-3.5 px-5 rounded-2xl shadow-xl flex items-center justify-between font-medium transition-transform active:scale-[0.98] hover:bg-primary/90"
-      >
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <ShoppingCart className="h-5 w-5" />
-            <span className="absolute -top-2 -right-2 bg-white text-primary font-bold text-[10px] h-4 w-4 rounded-full flex items-center justify-center">
-              {totalItems}
+    <div className="fixed bottom-4 inset-x-4 z-40 mx-auto hidden max-w-md md:block">
+      <div className="overflow-hidden rounded-2xl bg-primary text-primary-foreground shadow-xl">
+        <FreeShippingProgress className="border border-b-0 border-border rounded-t-2xl bg-background px-4 pt-2.5 pb-2" />
+
+        <button
+          onClick={() => setIsCartOpen(true)}
+          className="flex w-full items-center justify-between px-5 py-3.5 font-medium transition-colors hover:bg-primary/90 active:brightness-95"
+        >
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <ShoppingCart className="h-5 w-5" />
+              <span className="absolute -top-2 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-white text-[10px] font-bold text-primary">
+                {totalItems}
+              </span>
+            </div>
+            <span className="text-sm font-semibold">
+              Ver sacola · {totalItems} {totalItems === 1 ? "item" : "itens"}
             </span>
           </div>
-          <span className="text-sm font-semibold">Ver Pedido</span>
-        </div>
 
-        <span className="text-sm font-bold">
-          R$ {totalPrice.toFixed(2).replace(".", ",")}
-        </span>
-      </button>
+          <span className="text-sm font-bold">{formatPrice(totalPrice)}</span>
+        </button>
+      </div>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import whatsappIcon from "@/assets/whatsapp-original.svg";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useProduct } from "@/hooks/useProducts";
 import { formatWhatsAppNumber } from "@/utils/phone";
+import { useCartBarExtraOffset } from "@/hooks/useCartBarExtraOffset";
 
 const WhatsAppButton = () => {
   const { totalItems, selectedCategory } = useCart();
@@ -15,6 +16,7 @@ const WhatsAppButton = () => {
 
   const { data: settings } = useStoreSettings();
   const phone = formatWhatsAppNumber(settings?.phone);
+  const extraOffset = useCartBarExtraOffset();
 
   if (!phone) return null;
 
@@ -29,11 +31,11 @@ const WhatsAppButton = () => {
   // On home mobile: if cart items, bottom nav (~64px)
   let mobileBottom = "bottom-6";
   if (isProductPage && hasCartItems) {
-    mobileBottom = "bottom-[calc(env(safe-area-inset-bottom)+160px)]";
+    mobileBottom = "bottom-[calc(env(safe-area-inset-bottom)+160px+var(--cart-bar-extra,0px))]";
   } else if (isProductPage) {
     mobileBottom = "bottom-[calc(env(safe-area-inset-bottom)+100px)]";
   } else if (hasCartItems) {
-    mobileBottom = "bottom-[calc(env(safe-area-inset-bottom)+80px)]";
+    mobileBottom = "bottom-[calc(env(safe-area-inset-bottom)+80px+var(--cart-bar-extra,0px))]";
   }
 
   const handleClick = (e: React.MouseEvent) => {
@@ -59,6 +61,7 @@ const WhatsAppButton = () => {
     <a
       href={`https://wa.me/${phone}?text=${encodeURIComponent(message)}`}
       onClick={handleClick}
+      style={extraOffset ? ({ "--cart-bar-extra": `${extraOffset}px` } as React.CSSProperties) : undefined}
       target="_blank"
       rel="noopener noreferrer"
       className={`fixed right-4 z-50 flex h-10 w-10 items-center justify-center rounded-full bg-[hsl(142,70%,45%)]  transition-all  md:bottom-6 md:right-6 ${mobileBottom}`}
