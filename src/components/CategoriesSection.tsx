@@ -66,13 +66,24 @@ const CategoriesSection = () => {
     setSelectedNicotineStrength(null);
 
     // No tema menu express ou classic, quando trocar de categoria sobe a página suavemente até o catálogo
+    // Aguarda o re-render (seções de destaque/promo podem surgir ou sumir com a nova categoria)
+    // e rola até a primeira seção visível: destaques → promoções → todos os produtos.
     requestAnimationFrame(() => {
-      const target = document.getElementById("produtos") || document.getElementById("categorias");
-      if (target) {
-        target.scrollIntoView({ behavior: "smooth", block: "start" });
-      } else {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-      }
+      requestAnimationFrame(() => {
+        const target =
+          document.getElementById("destaques") ||
+          document.getElementById("promocoes") ||
+          document.getElementById("produtos");
+        if (!target) {
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+        // No Menu Express a barra de categorias é sticky: desconta a altura dela
+        const stickyOffset =
+          settings?.templateId === "menu-express" ? sectionRef.current?.offsetHeight ?? 0 : 0;
+        const top = target.getBoundingClientRect().top + window.scrollY - stickyOffset;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      });
     });
   };
 
