@@ -6,8 +6,6 @@ import { useCategories } from "@/hooks/useProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { cn } from "@/lib/utils";
 
-import StoreHoursTopBar from "./StoreHoursTopBar";
-
 const CategoriesSection = () => {
   const {
     selectedCategory,
@@ -43,24 +41,16 @@ const CategoriesSection = () => {
     setCanScrollRight(container.scrollLeft < maxScrollLeft - 4);
   };
 
-  const [isScrolledPastScreen, setIsScrolledPastScreen] = useState(false);
   const sectionRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     updateScrollState();
     const container = scrollRef.current;
 
-    const handleWindowScroll = () => {
-      // Fixa o menu depois que der scroll do tamanho da tela (window.innerHeight)
-      setIsScrolledPastScreen(window.scrollY >= window.innerHeight);
-    };
-
-    window.addEventListener("scroll", handleWindowScroll, { passive: true });
     if (container) container.addEventListener("scroll", updateScrollState);
     window.addEventListener("resize", updateScrollState);
 
     return () => {
-      window.removeEventListener("scroll", handleWindowScroll);
       if (container) container.removeEventListener("scroll", updateScrollState);
       window.removeEventListener("resize", updateScrollState);
     };
@@ -102,21 +92,14 @@ const CategoriesSection = () => {
       ref={sectionRef}
       id="categorias"
       className={cn(
+        // sticky mantém o elemento no fluxo: ao chegar no topo ele apenas "gruda",
+        // sem salto de layout nem animação (efeito sutil).
         isMenuExpress
-          ? cn(
-              "z-30 bg-background/95 backdrop-blur-md border-b border-border-subtle py-3 shadow-xs transition-all",
-              isScrolledPastScreen ? "fixed top-0 left-0 right-0 animate-in fade-in slide-in-from-top-2 duration-200" : "relative"
-            )
+          ? "sticky top-0 z-30 bg-background border-b border-border-subtle py-3"
           : "pb-10 md:pb-14",
         !isMenuExpress && (hasBanner ? "pt-6 sm:pt-8 md:pt-10" : "pt-4 sm:pt-6 md:pt-8")
       )}
     >
-      {/* Barra de Status no topo ao fixar no scroll (100% da largura da tela) */}
-      {isMenuExpress && isScrolledPastScreen && (
-        <div className="w-full -mt-3 mb-2 animate-in fade-in slide-in-from-top-2 duration-200">
-          <StoreHoursTopBar />
-        </div>
-      )}
 
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         {!isMenuExpress && (
