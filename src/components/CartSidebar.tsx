@@ -904,8 +904,18 @@ const CartSidebar = () => {
   };
 
   const goToPayment = () => {
-    if (isEditingContact) {
-      toast.info("Salve suas informações de contato para continuar.");
+    if (isEditingContact || !isContactValid) {
+      if (!isContactValid) {
+        toast.info(
+          !isNameValid
+            ? "Preencha seu nome e sobrenome completo para continuar."
+            : "Preencha um telefone válido para continuar."
+        );
+      } else {
+        toast.info("Salve suas informações de contato para continuar.");
+      }
+      // Leva o cliente direto para o preenchimento dos dados
+      setIsContactModalOpen(true);
       return;
     }
 
