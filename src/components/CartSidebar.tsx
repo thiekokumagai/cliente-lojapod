@@ -905,34 +905,13 @@ const CartSidebar = () => {
 
   const goToPayment = () => {
     if (isEditingContact || !isContactValid) {
-      if (!isContactValid) {
-        toast.info(
-          !isNameValid
-            ? "Preencha seu nome e sobrenome completo para continuar."
-            : "Preencha um telefone válido para continuar."
-        );
-      } else {
-        toast.info("Salve suas informações de contato para continuar.");
-      }
       // Leva o cliente direto para o preenchimento dos dados
-      setIsContactModalOpen(true);
-      return;
-    }
-
-    if (!isContactValid) {
-      if (!isNameValid) {
-        toast.info("Preencha seu nome e sobrenome completo para continuar.");
-      } else {
-        toast.info("Preencha um telefone válido para continuar.");
-      }
-      // Leva o cliente direto para o que falta
       setIsContactModalOpen(true);
       return;
     }
 
     if (deliveryModality !== "STORE_PICKUP") {
       if (!isAddressValid) {
-        toast.info("Cadastre o endereço de entrega para continuar.");
         setEditingAddress(null);
         setIsShowingSavedAddresses(savedAddresses.length > 0);
         setIsAddressModalOpen(true);
