@@ -1222,8 +1222,8 @@ const CartSidebar = () => {
       const orderNumber = result.orderNumber;
       const createdAt = new Date().toISOString();
 
-      // Cartão online: o pedido só vale depois do pagamento. Ele fica escondido da loja
-      // até ser pago, então aqui só seguimos para o checkout da operadora.
+      // Cartão online: o pedido já foi criado e aparece para a loja como pagamento pendente;
+      // aqui só seguimos para o checkout da operadora.
       if (paymentMethod === "Cartão de Crédito Online") {
         try {
           const checkoutResponse = await ordersService.createOnlineCheckout(orderId, window.location.origin);

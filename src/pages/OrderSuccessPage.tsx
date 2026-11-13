@@ -242,7 +242,7 @@ export default function OrderSuccessPage() {
             <p className="mt-2 text-sm text-muted-foreground">
               {order.status === "CANCELLED"
                 ? "O prazo para pagar este pedido terminou e ele foi cancelado. Faça um novo pedido na loja."
-                : "Não recebemos a confirmação do pagamento, então o pedido ainda não foi enviado para a loja. Tente pagar de novo ou escolha outra forma de pagamento."}
+                : "Não recebemos a confirmação do pagamento, então o pedido está aguardando pagamento. Tente pagar de novo ou escolha outra forma de pagamento."}
             </p>
             <div className="mt-6 flex w-full flex-col gap-3">
               {order.status !== "CANCELLED" && order.gatewayCheckoutUrl && (
