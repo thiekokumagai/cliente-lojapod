@@ -194,7 +194,10 @@ const StepIndicator = ({ currentStep }: { currentStep: CheckoutStep }) => {
 };
 
 const CartSidebar = () => {
-  const { data: storeSettings } = useStoreSettings();
+  const { data: storeSettings, dataUpdatedAt: storeSettingsUpdatedAt, isFetching: isFetchingStoreSettings } = useStoreSettings();
+  // Formas de pagamento só vêm de configurações confirmadas pela API nesta sessão.
+  // O cache do localStorage tem dataUpdatedAt = 0 e pode estar desatualizado.
+  const paymentSettings = storeSettingsUpdatedAt > 0 ? storeSettings : undefined;
   const { calculate } = useFreight();
   const {
     items,
@@ -455,13 +458,13 @@ const CartSidebar = () => {
       highlight?: string;
     }[] = [];
     
-    // Fallback to true if settings aren't loaded yet to prevent empty screen on slow connections
-    const pixEnabled = storeSettings ? storeSettings.pixEnabled : true;
-    const debitEnabled = storeSettings ? storeSettings.payOnDeliveryCardDebit : true;
-    const creditEnabled = storeSettings ? storeSettings.payOnDeliveryCardCredit : true;
-    const cashEnabled = storeSettings ? storeSettings.payOnDeliveryCash : true;
-    const mealVoucherEnabled = storeSettings ? !!(storeSettings as any).payOnDeliveryMealVoucher : false;
-    const foodVoucherEnabled = storeSettings ? !!(storeSettings as any).payOnDeliveryFoodVoucher : false;
+    // Sem configurações confirmadas, nenhuma forma é exibida (nunca liberar tudo por padrão)
+    const pixEnabled = !!paymentSettings?.pixEnabled;
+    const debitEnabled = !!paymentSettings?.payOnDeliveryCardDebit;
+    const creditEnabled = !!paymentSettings?.payOnDeliveryCardCredit;
+    const cashEnabled = !!paymentSettings?.payOnDeliveryCash;
+    const mealVoucherEnabled = !!(paymentSettings as any)?.payOnDeliveryMealVoucher;
+    const foodVoucherEnabled = !!(paymentSettings as any)?.payOnDeliveryFoodVoucher;
 
     if (pixEnabled) {
       options.push({
@@ -490,7 +493,7 @@ const CartSidebar = () => {
     }
 
     // Verificar se a loja possui gateway de pagamento online ativo
-    const onlineGateways = (storeSettings as any)?.paymentGateways || {};
+    const onlineGateways = (paymentSettings as any)?.paymentGateways || {};
     const onlineCreditEnabled = !!(
       (onlineGateways.infinitepay?.enabled && onlineGateways.infinitepay?.acceptCreditCard) ||
       (onlineGateways.mercadopago?.enabled && onlineGateways.mercadopago?.acceptCreditCard) ||
@@ -531,7 +534,7 @@ const CartSidebar = () => {
       });
     }
     return options;
-  }, [storeSettings, hasPromoItems, pixDiscountPercent]);
+  }, [paymentSettings, hasPromoItems, pixDiscountPercent]);
 
   useEffect(() => {
     if (paymentMethod && !paymentOptions?.find(opt => opt.value === paymentMethod)) {
@@ -1218,6 +1221,29 @@ const CartSidebar = () => {
       const orderId = result.id;
       const orderNumber = result.orderNumber;
       const createdAt = new Date().toISOString();
+
+      // Cartão online: o pedido só vale depois do pagamento. Ele fica escondido da loja
+      // até ser pago, então aqui só seguimos para o checkout da operadora.
+      if (paymentMethod === "Cartão de Crédito Online") {
+        try {
+          const checkoutResponse = await ordersService.createOnlineCheckout(orderId, window.location.origin);
+          if (checkoutResponse?.checkoutUrl) {
+            setRedeemedReward(null);
+            setLoyaltyDiscount(0);
+            clearCart();
+            setIsCartOpen(false);
+            toast.info("Redirecionando para o pagamento seguro...");
+            window.location.href = checkoutResponse.checkoutUrl;
+            return;
+          }
+        } catch (checkoutErr: any) {
+          // segue para a mensagem abaixo
+        }
+        // Sem link de pagamento: o carrinho continua e o pedido não pago é cancelado sozinho
+        toast.error("Não foi possível iniciar o pagamento com cartão. Tente novamente ou escolha outra forma de pagamento.");
+        return;
+      }
+
       addOrder({
         id: orderId,
         createdAt,
@@ -1262,21 +1288,6 @@ const CartSidebar = () => {
       clearCart();
       setHasCopiedPix(paymentMethod !== "PIX");
       setIsCartOpen(false);
-
-      // Se o método for Cartão de Crédito Online, gerar link do checkout da InfinitePay
-      if (paymentMethod === "Cartão de Crédito Online") {
-        try {
-          const originUrl = window.location.origin;
-          const checkoutResponse = await ordersService.createOnlineCheckout(orderId, originUrl);
-          if (checkoutResponse?.checkoutUrl) {
-            toast.info("Redirecionando para o pagamento seguro na InfinitePay...");
-            window.location.href = checkoutResponse.checkoutUrl;
-            return;
-          }
-        } catch (checkoutErr: any) {
-          toast.error("Erro ao gerar link de pagamento online. Verifique com a loja.");
-        }
-      }
 
       setIsFinishModalOpen(true);
 
@@ -2001,6 +2012,20 @@ const CartSidebar = () => {
                     </button>
 
                     <div className="space-y-3">
+                      {paymentOptions.length === 0 && (
+                        <div className="rounded-xl border border-dashed p-4 text-center text-sm text-muted-foreground">
+                          {!paymentSettings && isFetchingStoreSettings ? (
+                            <span className="inline-flex items-center gap-2">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Carregando formas de pagamento...
+                            </span>
+                          ) : !paymentSettings ? (
+                            "Não foi possível carregar as formas de pagamento. Verifique sua conexão e atualize a página."
+                          ) : (
+                            "Esta loja ainda não configurou formas de pagamento."
+                          )}
+                        </div>
+                      )}
                       {paymentOptions.map((option) => {
                         const Icon = option.icon;
                         const isSelected = paymentMethod === option.value;

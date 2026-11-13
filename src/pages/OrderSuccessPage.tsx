@@ -64,6 +64,26 @@ export default function OrderSuccessPage() {
     };
   }, [id, transactionId, slug]);
 
+  // A confirmação da operadora pode chegar alguns segundos depois do retorno.
+  // Consulta de novo por até ~2 minutos antes de dizer que o pagamento não foi aprovado.
+  const [pollAttempts, setPollAttempts] = useState(0);
+  const MAX_POLL_ATTEMPTS = 30;
+  const awaitingPayment = !!order && order.paymentStatus !== "PAID" && order.status !== "CANCELLED";
+
+  useEffect(() => {
+    if (!id || !awaitingPayment || pollAttempts >= MAX_POLL_ATTEMPTS) return;
+    const timer = setTimeout(async () => {
+      try {
+        const statusRes: any = await ordersService.checkPaymentStatus(id, transactionId || undefined, slug || undefined);
+        if (statusRes?.order) setOrder(statusRes.order);
+      } catch (e) {
+        // tenta de novo no próximo ciclo
+      }
+      setPollAttempts((n) => n + 1);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [id, awaitingPayment, pollAttempts, transactionId, slug]);
+
   const handleOpenWhatsApp = () => {
     if (!order) return;
 
@@ -199,6 +219,63 @@ export default function OrderSuccessPage() {
   }
 
   const isPaid = order.paymentStatus === "PAID";
+
+  // Sem pagamento aprovado o pedido não existe para a loja: não mostra "sucesso" nem WhatsApp
+  if (!isPaid) {
+    const stillChecking = order.status !== "CANCELLED" && pollAttempts < MAX_POLL_ATTEMPTS;
+    return (
+      <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center p-6 text-center">
+        {stillChecking ? (
+          <>
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            <h2 className="mt-4 text-xl font-bold text-foreground">Aguardando confirmação do pagamento</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Estamos confirmando o pagamento do pedido #{order.orderNumber} com a operadora do cartão. Não feche esta página.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+              <CreditCard className="h-8 w-8" />
+            </div>
+            <h2 className="text-xl font-bold text-foreground">Pagamento não aprovado</h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {order.status === "CANCELLED"
+                ? "O prazo para pagar este pedido terminou e ele foi cancelado. Faça um novo pedido na loja."
+                : "Não recebemos a confirmação do pagamento, então o pedido ainda não foi enviado para a loja. Tente pagar de novo ou escolha outra forma de pagamento."}
+            </p>
+            <div className="mt-6 flex w-full flex-col gap-3">
+              {order.status !== "CANCELLED" && order.gatewayCheckoutUrl && (
+                <a
+                  href={order.gatewayCheckoutUrl}
+                  className="w-full rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+                >
+                  Tentar pagar novamente
+                </a>
+              )}
+              {order.status !== "CANCELLED" && (
+                <button
+                  type="button"
+                  onClick={() => setPollAttempts(0)}
+                  className="w-full rounded-2xl border border-border bg-background px-6 py-3 text-sm font-semibold text-foreground"
+                >
+                  Já paguei, verificar de novo
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate("/")}
+                className="w-full rounded-2xl border border-border bg-background px-6 py-3 text-sm font-semibold text-foreground"
+              >
+                Voltar para a loja
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
+
   const orderDate = new Date(order.createdAt || Date.now());
 
   return (
