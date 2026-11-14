@@ -198,6 +198,8 @@ const CartSidebar = () => {
   // Formas de pagamento só vêm de configurações confirmadas pela API nesta sessão.
   // O cache do localStorage tem dataUpdatedAt = 0 e pode estar desatualizado.
   const paymentSettings = storeSettingsUpdatedAt > 0 ? storeSettings : undefined;
+  // Pix na maquininha: o cliente não vê chave, titular, copia e cola nem QR; paga na entrega ou retirada.
+  const pixOnTerminal = paymentSettings?.paymentGateways?.pixOnTerminal === true;
   const { calculate } = useFreight();
   const {
     items,
@@ -470,7 +472,9 @@ const CartSidebar = () => {
       options.push({
         value: "PIX",
         title: "Pix",
-        subtitle: pixDiscountPercent > 0 ? `Pagamento instantâneo com ${pixDiscountPercent}% de desconto` : "Pagamento instantâneo",
+        subtitle: pixOnTerminal
+          ? (pixDiscountPercent > 0 ? `Pague no Pix na maquininha, com ${pixDiscountPercent}% de desconto` : "Pague no Pix na maquininha, na entrega ou retirada")
+          : (pixDiscountPercent > 0 ? `Pagamento instantâneo com ${pixDiscountPercent}% de desconto` : "Pagamento instantâneo"),
         icon: Wallet,
         highlight: pixDiscountPercent > 0 ? `${pixDiscountPercent}% OFF` : undefined,
       });
@@ -534,7 +538,7 @@ const CartSidebar = () => {
       });
     }
     return options;
-  }, [paymentSettings, hasPromoItems, pixDiscountPercent]);
+  }, [paymentSettings, hasPromoItems, pixDiscountPercent, pixOnTerminal]);
 
   useEffect(() => {
     if (paymentMethod && !paymentOptions?.find(opt => opt.value === paymentMethod)) {
@@ -1036,8 +1040,8 @@ const CartSidebar = () => {
                 ? `Cartão de Crédito - ${checkoutCreditInstallments}x ${formatPrice(checkoutTotal / checkoutCreditInstallments)}`
                 : `Cartão de Crédito - 1x ${formatPrice(checkoutTotal)}`;
 
-    const pagamentoType = isPix 
-      ? `Online`
+    const pagamentoType = isPix
+      ? (pixOnTerminal ? `Presencial (Pix na maquininha)` : `Online`)
       : isCash 
         ? `Presencial (Dinheiro)` 
         : (isMealVoucher || isFoodVoucher)
@@ -1096,7 +1100,7 @@ const CartSidebar = () => {
       }
     }
 
-    if (isPix) {
+    if (isPix && !pixOnTerminal) {
       const rawPixKey = storeSettings?.pixKey || PIX_KEY;
       const cleanPixKey = unmaskPixKey(rawPixKey, storeSettings?.pixKeyType);
       const translatedType = translatePixKeyType(storeSettings?.pixKeyType);
@@ -1152,6 +1156,7 @@ const CartSidebar = () => {
     checkoutRedeemedReward,
     couponData,
     finalizedOrder,
+    pixOnTerminal,
     storeSettings
   ]);
 
@@ -1184,7 +1189,7 @@ const CartSidebar = () => {
         receiptDiscount: loyaltyDiscount > 0 ? Number(loyaltyDiscount.toFixed(2)) : 0,
         totalOrder: Number(finalTotal.toFixed(2)),
         totalReceived: Number(finalTotal.toFixed(2)),
-        paymentType: (paymentMethod === 'PIX' || paymentMethod === 'Cartão de Crédito Online') ? 'online' : 'entrega',
+        paymentType: ((paymentMethod === 'PIX' && !pixOnTerminal) || paymentMethod === 'Cartão de Crédito Online') ? 'online' : 'entrega',
         paymentMethod: (paymentMethod === 'PIX') ? 'pix' : (paymentMethod === 'Cartão de Crédito' || paymentMethod === 'Cartão de Crédito Online') ? 'credit' : (paymentMethod === 'Cartão de Débito') ? 'debit' : (paymentMethod === 'Dinheiro') ? 'cash' : (paymentMethod === 'Vale refeição') ? 'meal_voucher' : (paymentMethod === 'Vale alimentação') ? 'food_voucher' : paymentMethod,
         installments: (paymentMethod === 'Cartão de Crédito' || paymentMethod === 'Cartão de Crédito Online') ? effectiveCreditInstallments : 1,
         deliveryModality: deliveryModality,
@@ -1286,7 +1291,7 @@ const CartSidebar = () => {
       setRedeemedReward(null);
       setLoyaltyDiscount(0);
       clearCart();
-      setHasCopiedPix(paymentMethod !== "PIX");
+      setHasCopiedPix(paymentMethod !== "PIX" || pixOnTerminal);
       setIsCartOpen(false);
 
       setIsFinishModalOpen(true);
@@ -2543,7 +2548,7 @@ const CartSidebar = () => {
       <Dialog
         open={isFinishModalOpen}
         onOpenChange={(open) => {
-          if (paymentMethod === "PIX" && !hasCopiedPix && !open) {
+          if (paymentMethod === "PIX" && !pixOnTerminal && !hasCopiedPix && !open) {
             return;
           }
           setIsFinishModalOpen(open);
@@ -2553,10 +2558,10 @@ const CartSidebar = () => {
           showCloseButton={false}
           className="z-[120] h-full w-screen max-w-none rounded-none border-0 bg-[#5d5d5d]/85 p-0 shadow-none sm:h-auto sm:w-full sm:max-w-md sm:rounded-[32px] sm:border sm:border-border sm:bg-background sm:p-0 sm:shadow-2xl"
           onPointerDownOutside={(event) => {
-            if (paymentMethod === "PIX" && !hasCopiedPix) event.preventDefault();
+            if (paymentMethod === "PIX" && !pixOnTerminal && !hasCopiedPix) event.preventDefault();
           }}
           onEscapeKeyDown={(event) => {
-            if (paymentMethod === "PIX" && !hasCopiedPix) event.preventDefault();
+            if (paymentMethod === "PIX" && !pixOnTerminal && !hasCopiedPix) event.preventDefault();
           }}
         >
           <div className="flex h-full w-full flex-col sm:items-center sm:justify-center p-0 sm:p-0 overflow-auto">
@@ -2714,7 +2719,7 @@ const CartSidebar = () => {
 
                 <div className="mt-6 space-y-1 text-[15px] text-[#666666]">
                   <p>
-                    Pagamento: <span className="font-medium">{checkoutPaymentMethod === "PIX" ? "Online" : "Na Entrega"}</span>
+                    Pagamento: <span className="font-medium">{checkoutPaymentMethod === "PIX" && !pixOnTerminal ? "Online" : "Na Entrega"}</span>
                   </p>
                   <p>
                     Forma de pagamento: <span className="font-medium">{checkoutPaymentLabel}</span>
@@ -2729,7 +2734,13 @@ const CartSidebar = () => {
                       </p>
                     </>
                   )}
-                  {checkoutPaymentMethod === "PIX" && (
+                  {checkoutPaymentMethod === "PIX" && pixOnTerminal && (
+                    <div className="mt-4 flex items-center justify-center gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-4 text-center text-sm font-medium text-gray-600">
+                      <QrCode className="h-4 w-4 shrink-0 text-primary" />
+                      Pague no Pix na maquininha, na entrega ou retirada
+                    </div>
+                  )}
+                  {checkoutPaymentMethod === "PIX" && !pixOnTerminal && (
                     <div className="hidden sm:flex flex-col items-center justify-center mt-4 rounded-2xl bg-gray-50 border border-gray-100 p-4 text-center space-y-2">
                       <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 flex items-center gap-1.5">
                         <QrCode className="h-4 w-4 text-primary" /> Escaneie o QR Code com seu banco
@@ -2764,7 +2775,7 @@ const CartSidebar = () => {
               </div>
 
               <div className="border-t border-[#e6e6e6] px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-4 sm:px-8 sm:pb-6">
-                {checkoutPaymentMethod === "PIX" && !hasCopiedPix ? (
+                {checkoutPaymentMethod === "PIX" && !pixOnTerminal && !hasCopiedPix ? (
                   <button
                     type="button"
                     onClick={handleCopyPix}
