@@ -47,6 +47,7 @@ import LoyaltyCardWidget from "@/components/LoyaltyCardWidget";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { trackEvent, trackCustomEvent } from "@/components/FacebookPixel";
 import { generatePixPayload } from "@/utils/pix";
+import { sendCartContact } from "@/services/analytics";
 import type { Product } from "@/data/products";
 import { OrderBumpSection } from "@/components/cart/OrderBumpSection";
 import ProductVariationModal from "@/components/ProductVariationModal";
@@ -690,6 +691,17 @@ const CartSidebar = () => {
     return words.length >= 2 && words.filter((w) => w.length >= 2).length >= 2;
   }, [name]);
   const isContactValid = isNameValid && phone.replace(/\D/g, "").length >= 10;
+
+  // Carrinho abandonado: com nome e telefone já confirmados (não a cada tecla) e itens no carrinho,
+  // a loja recebe o contato para poder chamar no WhatsApp. O servidor valida e guarda.
+  useEffect(() => {
+    if (isEditingContact || !isContactValid || totalItems === 0) return;
+    const timer = setTimeout(() => {
+      void sendCartContact(name.trim(), phone);
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [isEditingContact, isContactValid, name, phone, totalItems]);
+
   const isAddressValid = deliveryModality === "STORE_PICKUP" || structuredAddress !== null;
   const hasValidDeliveryFee =
     deliveryModality === "STORE_PICKUP" ||

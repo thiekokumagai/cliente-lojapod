@@ -36,6 +36,19 @@ export async function syncCartAnalytics(cartItems: any[], totalAmount: number) {
   }
 }
 
+/**
+ * Avisa a loja do contato que o cliente confirmou no checkout (nome e telefone), ligado ao
+ * carrinho desta sessão. Quem guarda e valida é o servidor.
+ */
+export async function sendCartContact(name: string, phone: string) {
+  const sessionId = getSessionId();
+  try {
+    await api.post('/analytics/cart/contact', { sessionId, name, phone });
+  } catch (err) {
+    console.error('Failed to send cart contact:', err);
+  }
+}
+
 export function initAnalytics() {
   // Ping immediately
   pingSession();
