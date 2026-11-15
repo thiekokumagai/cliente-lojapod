@@ -1,4 +1,5 @@
 import { useMemo, useState, useCallback, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   X,
   Minus,
@@ -31,6 +32,7 @@ import { useCart } from "@/contexts/CartContext";
 import { useFreight } from "@/hooks/use-calculator-freight";
 import { formatFreightDestinationAddress } from "@/utils/freight-address";
 import { ordersService } from "@/services/orders";
+import { rememberOrder } from "@/utils/my-orders";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import {
   getReservedStockInCart,
@@ -195,6 +197,7 @@ const StepIndicator = ({ currentStep }: { currentStep: CheckoutStep }) => {
 };
 
 const CartSidebar = () => {
+  const navigate = useNavigate();
   const { data: storeSettings, dataUpdatedAt: storeSettingsUpdatedAt, isFetching: isFetchingStoreSettings } = useStoreSettings();
   // Formas de pagamento só vêm de configurações confirmadas pela API nesta sessão.
   // O cache do localStorage tem dataUpdatedAt = 0 e pode estar desatualizado.
@@ -205,6 +208,8 @@ const CartSidebar = () => {
   const {
     items,
     isCartOpen,
+    isFinishModalOpen,
+    setIsFinishModalOpen,
     setIsCartOpen,
     updateQuantity,
     removeFromCart,
@@ -286,7 +291,6 @@ const CartSidebar = () => {
   const [isEditingCoupon, setIsEditingCoupon] = useState(false);
   const [couponData, setCouponData] = useState<{ discountAmount: number; type: string; coupon?: any } | null>(null);
   const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
-  const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [hasCopiedPix, setHasCopiedPix] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [blockedPhoneError, setBlockedPhoneError] = useState<string | null>(null);
@@ -1143,6 +1147,9 @@ const CartSidebar = () => {
       lines.push(`Estimativa de entrega: ${checkoutEstimatedTime}`);
     }
     lines.push(`Número do pedido: ${finishOrderNumber}`);
+    if (finalizedOrder?.id) {
+      lines.push(`Acompanhe seu pedido: ${window.location.origin}/pedido/${finalizedOrder.id}`);
+    }
     
     lines.push(`--------`);
     lines.push(`Pedido feito na ${storeSettings?.storeName || ""}`);
@@ -1238,6 +1245,11 @@ const CartSidebar = () => {
       const orderId = result.id;
       const orderNumber = result.orderNumber;
       const createdAt = new Date().toISOString();
+      // Cartão online segue direto para a operadora. Nos demais, o pedido só entra em "Meus pedidos de hoje"
+      // depois do clique em "Enviar via WhatsApp" (ou já aqui, se a loja não tem WhatsApp para receber).
+      if (paymentMethod === "Cartão de Crédito Online" || !storeSettings?.phone?.replace(/\D/g, "")) {
+        rememberOrder({ id: orderId, orderNumber, createdAt });
+      }
 
       // Cartão online: o pedido já foi criado e aparece para a loja como pagamento pendente;
       // aqui só seguimos para o checkout da operadora.
@@ -1452,6 +1464,14 @@ const CartSidebar = () => {
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     setIsFinishModalOpen(false);
     setIsCartOpen(false);
+    if (finalizedOrder?.id) {
+      rememberOrder({
+        id: finalizedOrder.id,
+        orderNumber: finalizedOrder.orderNumber,
+        createdAt: finalizedOrder.createdAt,
+      });
+      navigate(`/pedido/${finalizedOrder.id}`);
+    }
     if (isMobile) {
       window.location.href = urlApp;
       setTimeout(() => {
@@ -2786,7 +2806,7 @@ const CartSidebar = () => {
                 </p>
               </div>
 
-              <div className="border-t border-[#e6e6e6] px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-4 sm:px-8 sm:pb-6">
+              <div className="border-t border-[#e6e6e6] px-6 pb-[calc(env(safe-area-inset-bottom)+24px)] pt-4 sm:px-8 sm:pb-6 space-y-2.5">
                 {checkoutPaymentMethod === "PIX" && !pixOnTerminal && !hasCopiedPix ? (
                   <button
                     type="button"
@@ -2800,12 +2820,13 @@ const CartSidebar = () => {
                   <button
                     type="button"
                     onClick={handleSendWhatsApp}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f766e] py-4 text-base font-bold text-white"
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#0f766e] py-4 text-base font-bold text-white shadow-md shadow-[#0f766e]/20 hover:brightness-105 active:scale-[0.99] transition-all"
                   >
                     <MessageCircle className="h-5 w-5" />
                     Enviar via WhatsApp
                   </button>
                 ) : null}
+
               </div>
             </div>
           </div>

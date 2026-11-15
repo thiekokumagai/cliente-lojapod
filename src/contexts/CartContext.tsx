@@ -36,6 +36,9 @@ interface CartContextType {
   totalPrice: number;
   isCartOpen: boolean;
   setIsCartOpen: (open: boolean) => void;
+  /** Modal "Enviar via WhatsApp" aberto (usado para esconder o botão "Meus pedidos de hoje"). */
+  isFinishModalOpen: boolean;
+  setIsFinishModalOpen: (open: boolean) => void;
   lastAdded: CartItem | null;
   showAddedModal: boolean;
   setShowAddedModal: (show: boolean) => void;
@@ -82,6 +85,7 @@ const normalizeItem = (item: Product | SelectedProduct) => {
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [isFinishModalOpen, setIsFinishModalOpen] = useState(false);
   const [lastAdded, setLastAdded] = useState<CartItem | null>(null);
   const [showAddedModal, setShowAddedModal] = useState(false);
   const [selectedCategory, setSelectedCategoryState] = useState<string | null>(null);
@@ -389,6 +393,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         totalPrice,
         isCartOpen,
         setIsCartOpen,
+        isFinishModalOpen,
+        setIsFinishModalOpen,
         lastAdded,
         showAddedModal,
         setShowAddedModal,

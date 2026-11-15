@@ -1,10 +1,44 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { CheckCircle2, Clock, MapPin, MessageCircle, ArrowLeft, Loader2, CreditCard } from "lucide-react";
+import {
+  CheckCircle2,
+  Clock,
+  MapPin,
+  MessageCircle,
+  ArrowLeft,
+  Loader2,
+  CreditCard,
+  Package,
+  Truck,
+  Store,
+  Check,
+  XCircle,
+} from "lucide-react";
 import { ordersService } from "@/services/orders";
+import { subscribeToOrderStatus } from "@/services/order-socket";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { formatWhatsAppNumber } from "@/utils/phone";
+
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
+
+// Retirada na loja não tem etapa de despacho: "Pronto para Retirada" = CONFIRMED ("Separado" no admin).
+const getStepStatusIndex = (status?: string, isStorePickup = false) => {
+  if (isStorePickup) {
+    return status === "COMPLETED" ? 2 : status === "PENDING" || !status ? 0 : 1;
+  }
+  switch (status) {
+    case "PENDING":
+      return 0;
+    case "CONFIRMED":
+      return 1;
+    case "DISPATCHED":
+      return 2;
+    case "COMPLETED":
+      return 3;
+    default:
+      return 0;
+  }
+};
 
 export default function OrderSuccessPage() {
   const { id } = useParams<{ id: string }>();
@@ -29,17 +63,19 @@ export default function OrderSuccessPage() {
         setLoading(true);
 
         let loadedOrder = null;
-        try {
-          const statusRes = await ordersService.checkPaymentStatus(id, transactionId || undefined, slug || undefined);
-          if (statusRes && (statusRes as any).order) {
-            loadedOrder = (statusRes as any).order;
+        if (transactionId || slug) {
+          try {
+            const statusRes = await ordersService.checkPaymentStatus(id!, transactionId || undefined, slug || undefined);
+            if (statusRes && (statusRes as any).order) {
+              loadedOrder = (statusRes as any).order;
+            }
+          } catch (e) {
+            // Fallback
           }
-        } catch (e) {
-          // Fallback
         }
 
         if (!loadedOrder) {
-          loadedOrder = await ordersService.getStoreOrder(id);
+          loadedOrder = await ordersService.getStoreOrder(id!);
         }
 
         if (isMounted) {
@@ -64,11 +100,11 @@ export default function OrderSuccessPage() {
     };
   }, [id, transactionId, slug]);
 
-  // A confirmação da operadora pode chegar alguns segundos depois do retorno.
-  // Consulta de novo por até ~2 minutos antes de dizer que o pagamento não foi aprovado.
+  // A confirmação da operadora pode chegar alguns segundos depois do retorno para cartão online
   const [pollAttempts, setPollAttempts] = useState(0);
   const MAX_POLL_ATTEMPTS = 30;
-  const awaitingPayment = !!order && order.paymentStatus !== "PAID" && order.status !== "CANCELLED";
+  const isCreditOnline = order?.paymentMethod === "Cartão de Crédito Online";
+  const awaitingPayment = !!order && isCreditOnline && order.paymentStatus !== "PAID" && order.status !== "CANCELLED";
 
   useEffect(() => {
     if (!id || !awaitingPayment || pollAttempts >= MAX_POLL_ATTEMPTS) return;
@@ -83,6 +119,60 @@ export default function OrderSuccessPage() {
     }, 4000);
     return () => clearTimeout(timer);
   }, [id, awaitingPayment, pollAttempts, transactionId, slug]);
+
+  // Atualização ao vivo pelo websocket da loja: o servidor avisa só quem entrou na sala deste pedido.
+  // Sem polling: busca de novo apenas ao reconectar o socket e ao voltar para a aba.
+  const orderStatus = order?.status;
+  const orderPaymentStatus = order?.paymentStatus;
+  const latestRef = useRef({ isCreditOnline, orderStatus, orderPaymentStatus });
+  latestRef.current = { isCreditOnline, orderStatus, orderPaymentStatus };
+
+  useEffect(() => {
+    if (!id) return;
+    let isMounted = true;
+
+    const refetch = async () => {
+      const latest = latestRef.current;
+      if (latest.orderStatus === "COMPLETED" || latest.orderStatus === "CANCELLED") return;
+      try {
+        let updatedOrder = null;
+        if (latest.isCreditOnline && latest.orderPaymentStatus !== "PAID" && (transactionId || slug)) {
+          try {
+            const statusRes: any = await ordersService.checkPaymentStatus(id, transactionId || undefined, slug || undefined);
+            if (statusRes?.order) updatedOrder = statusRes.order;
+          } catch {
+            // fallback
+          }
+        }
+        if (!updatedOrder) updatedOrder = await ordersService.getStoreOrder(id);
+        if (isMounted && updatedOrder) setOrder(updatedOrder);
+      } catch {
+        // Erro transitório de rede: o próximo evento ou volta à aba atualiza
+      }
+    };
+
+    const unsubscribe = subscribeToOrderStatus(
+      [id],
+      (event) => {
+        if (!isMounted) return;
+        setOrder((prev: any) =>
+          prev ? { ...prev, status: event.status, paymentStatus: event.paymentStatus ?? prev.paymentStatus } : prev,
+        );
+      },
+      refetch,
+    );
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") void refetch();
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    return () => {
+      isMounted = false;
+      unsubscribe();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [id, transactionId, slug]);
 
   const handleOpenWhatsApp = () => {
     if (!order) return;
@@ -167,9 +257,13 @@ export default function OrderSuccessPage() {
     }
 
     lines.push(`Valor Total: ${formatPrice(Number(order.totalOrder || 0))}`);
-    lines.push(`Forma de pagamento: Cartão de Crédito Online (Aprovado)`);
-    lines.push(`Status do pagamento: ${order.paymentStatus === 'PAID' ? 'PAGO ✅' : 'Processando'}`);
-    lines.push(`Pagamento: Online`);
+    lines.push(`Forma de pagamento: ${order.paymentMethod || "Não informado"}`);
+    if (order.paymentMethod === "Cartão de Crédito Online") {
+      lines.push(`Status do pagamento: ${order.paymentStatus === "PAID" ? "PAGO ✅" : "Processando"}`);
+      lines.push(`Pagamento: Online`);
+    } else {
+      lines.push(`Status do pedido: ${order.status || "PENDING"}`);
+    }
 
     if (order.deliveryModality === "STORE_PICKUP") {
       lines.push(`Para entregar em: Retirada na loja`);
@@ -185,6 +279,7 @@ export default function OrderSuccessPage() {
 
     lines.push(`Contato: ${order.customerPhone || "-"}`);
     lines.push(`Número do pedido: ${order.orderNumber}`);
+    lines.push(`Acompanhe seu pedido: ${window.location.origin}/pedido/${order.id}`);
     lines.push(`--------`);
     lines.push(`Pedido feito na ${storeSettings?.storeName || ""}`);
 
@@ -195,7 +290,7 @@ export default function OrderSuccessPage() {
     return (
       <div className="flex min-h-[70vh] flex-col items-center justify-center p-4">
         <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="mt-4 text-sm font-medium text-muted-foreground">Confirmando seu pagamento...</p>
+        <p className="mt-4 text-sm font-medium text-muted-foreground">Carregando informações do pedido...</p>
       </div>
     );
   }
@@ -219,10 +314,14 @@ export default function OrderSuccessPage() {
   }
 
   const isPaid = order.paymentStatus === "PAID";
+  const isCancelled = order.status === "CANCELLED";
+  const isStorePickup = order.deliveryModality === "STORE_PICKUP";
+  const currentStepIdx = getStepStatusIndex(order.status, isStorePickup);
+  const isCompleted = order.status === "COMPLETED";
 
-  // Sem pagamento aprovado o pedido não existe para a loja: não mostra "sucesso" nem WhatsApp
-  if (!isPaid) {
-    const stillChecking = order.status !== "CANCELLED" && pollAttempts < MAX_POLL_ATTEMPTS;
+  // Se for cartão online e ainda não confirmou o pagamento, mostra tela de espera/retentativa
+  if (isCreditOnline && !isPaid) {
+    const stillChecking = !isCancelled && pollAttempts < MAX_POLL_ATTEMPTS;
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center p-6 text-center">
         {stillChecking ? (
@@ -240,12 +339,12 @@ export default function OrderSuccessPage() {
             </div>
             <h2 className="text-xl font-bold text-foreground">Pagamento não aprovado</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              {order.status === "CANCELLED"
+              {isCancelled
                 ? "O prazo para pagar este pedido terminou e ele foi cancelado. Faça um novo pedido na loja."
                 : "Não recebemos a confirmação do pagamento, então o pedido está aguardando pagamento. Tente pagar de novo ou escolha outra forma de pagamento."}
             </p>
             <div className="mt-6 flex w-full flex-col gap-3">
-              {order.status !== "CANCELLED" && order.gatewayCheckoutUrl && (
+              {!isCancelled && order.gatewayCheckoutUrl && (
                 <a
                   href={order.gatewayCheckoutUrl}
                   className="w-full rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
@@ -253,7 +352,7 @@ export default function OrderSuccessPage() {
                   Tentar pagar novamente
                 </a>
               )}
-              {order.status !== "CANCELLED" && (
+              {!isCancelled && (
                 <button
                   type="button"
                   onClick={() => setPollAttempts(0)}
@@ -278,26 +377,173 @@ export default function OrderSuccessPage() {
 
   const orderDate = new Date(order.createdAt || Date.now());
 
+  const timelineSteps = [
+    {
+      key: "PENDING",
+      label: "Pedido Recebido",
+      description: "Aguardando confirmação da loja",
+      icon: Clock,
+    },
+    {
+      key: "CONFIRMED",
+      label: isStorePickup ? "Pronto para Retirada" : "Em Preparo",
+      description: isStorePickup
+        ? "Seu pedido foi separado e está pronto para ser retirado na loja"
+        : "Seu pedido está sendo preparado",
+      icon: isStorePickup ? Store : Package,
+    },
+    {
+      key: "DISPATCHED",
+      label: "Saiu para Entrega",
+      description: "O entregador está a caminho do seu endereço",
+      icon: Truck,
+    },
+    {
+      key: "COMPLETED",
+      label: isStorePickup ? "Retirado" : "Entregue",
+      description: isStorePickup
+        ? "Pedido retirado com sucesso na loja"
+        : "Pedido entregue com sucesso",
+      icon: CheckCircle2,
+    },
+  ].filter((step) => !(isStorePickup && step.key === "DISPATCHED"));
+
   return (
     <div className="min-h-screen bg-[#f7f7f7] py-6 sm:py-12">
       <div className="mx-auto max-w-md px-4">
         <div className="overflow-hidden rounded-3xl bg-background p-6 shadow-xl border border-border/60 sm:p-8">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-            <CheckCircle2 className="h-9 w-9" />
+          <div
+            className={`mx-auto flex h-16 w-16 items-center justify-center rounded-full ${
+              isCancelled
+                ? "bg-destructive/10 text-destructive"
+                : isCompleted
+                ? "bg-emerald-100 text-emerald-600"
+                : "bg-primary/10 text-primary"
+            }`}
+          >
+            {isCancelled ? (
+              <XCircle className="h-9 w-9" />
+            ) : (
+              <CheckCircle2 className="h-9 w-9" />
+            )}
           </div>
 
           <div className="mt-4 text-center">
             <h1 className="text-2xl font-bold text-foreground">
-              {isPaid ? "Pagamento Confirmado!" : "Pedido Realizado com Sucesso!"}
+              {isCancelled
+                ? "Pedido Cancelado"
+                : isCompleted
+                ? isStorePickup
+                  ? "Pedido Retirado!"
+                  : "Pedido Entregue!"
+                : isStorePickup && (order.status === "CONFIRMED" || order.status === "DISPATCHED")
+                ? "Pronto para Retirada!"
+                : order.status === "DISPATCHED"
+                ? "Saiu para Entrega!"
+                : order.status === "CONFIRMED"
+                ? "Pedido em Preparo!"
+                : isPaid
+                ? "Pagamento Confirmado!"
+                : "Pedido Realizado com Sucesso!"}
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {isPaid
-                ? "Seu pagamento via cartão online foi aprovado com sucesso."
-                : "Recebemos o seu pedido e estamos processando o pagamento."}
+              {isCancelled
+                ? "Este pedido foi cancelado."
+                : isCompleted
+                ? isStorePickup
+                  ? "Seu pedido foi retirado com sucesso na loja."
+                  : "Seu pedido foi entregue com sucesso."
+                : isStorePickup && (order.status === "CONFIRMED" || order.status === "DISPATCHED")
+                ? "Seu pedido foi separado. Você já pode retirar no estabelecimento."
+                : order.status === "DISPATCHED"
+                ? "O entregador já está a caminho."
+                : order.status === "CONFIRMED"
+                ? "A loja confirmou o pedido e está separando os itens."
+                : isPaid
+                ? "Seu pagamento foi confirmado com sucesso."
+                : "Recebemos o seu pedido e estamos aguardando a confirmação da loja."}
             </p>
           </div>
 
-          <div className="mt-6 rounded-2xl bg-muted/30 p-4 border border-border/40">
+          {/* Linha do Tempo de Status do Pedido */}
+          <div className="mt-6 rounded-2xl bg-muted/30 p-4 sm:p-5 border border-border/40">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+              Acompanhamento do Pedido
+            </h2>
+
+            {isCancelled ? (
+              <div className="flex items-center gap-3 rounded-xl bg-destructive/10 p-3.5 border border-destructive/20 text-destructive">
+                <XCircle className="h-6 w-6 shrink-0" />
+                <div>
+                  <p className="text-sm font-bold">Pedido Cancelado</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Este pedido foi cancelado. Para dúvidas, entre em contato com a loja.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="relative pl-1">
+                {timelineSteps.map((step, idx) => {
+                  const isPast = currentStepIdx > idx || isCompleted;
+                  const isCurrent = currentStepIdx === idx && !isCompleted;
+                  const StepIcon = step.icon;
+
+                  return (
+                    <div key={step.key} className="relative flex items-start gap-3.5 pb-5 last:pb-0">
+                      {idx < timelineSteps.length - 1 && (
+                        <div
+                          className={`absolute left-[15px] top-7 -bottom-1 w-0.5 transition-colors ${
+                            isPast ? "bg-emerald-500" : isCurrent ? "bg-primary/40" : "bg-border/80"
+                          }`}
+                        />
+                      )}
+                      <div
+                        className={`relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold transition-all ${
+                          isPast
+                            ? "bg-emerald-500 text-white shadow-sm shadow-emerald-500/20"
+                            : isCurrent
+                            ? "bg-primary text-primary-foreground ring-4 ring-primary/20"
+                            : "bg-muted text-muted-foreground border border-border/60"
+                        }`}
+                      >
+                        {isPast ? <Check className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
+                      </div>
+                      <div className="min-w-0 flex-1 pt-0.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <p
+                            className={`text-xs sm:text-sm font-semibold ${
+                              isCurrent
+                                ? "text-primary font-bold"
+                                : isPast
+                                ? "text-foreground"
+                                : "text-muted-foreground"
+                            }`}
+                          >
+                            {step.label}
+                          </p>
+                          {isCurrent && (
+                            <span className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary animate-pulse">
+                              Em andamento
+                            </span>
+                          )}
+                          {isPast && (
+                            <span className="inline-flex items-center text-[11px] font-medium text-emerald-600">
+                              Concluído
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                          {step.description}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-5 rounded-2xl bg-muted/30 p-4 border border-border/40">
             <div className="flex items-center justify-between border-b border-border/50 pb-3">
               <div>
                 <p className="text-xs uppercase tracking-wider text-muted-foreground">Número do Pedido</p>
@@ -322,9 +568,14 @@ export default function OrderSuccessPage() {
               </p>
               <p className="text-foreground">
                 <span className="text-muted-foreground">Pagamento: </span>
-                <strong className="font-semibold inline-flex items-center gap-1 text-emerald-600">
+                <strong className="font-semibold inline-flex items-center gap-1 text-foreground">
                   <CreditCard className="h-3.5 w-3.5" />
-                  Cartão Online {isPaid ? "(Aprovado)" : "(Em processamento)"}
+                  {order.paymentMethod || "Não informado"}{" "}
+                  {isPaid
+                    ? "(Aprovado)"
+                    : isCreditOnline
+                    ? "(Em processamento)"
+                    : "(Pendente / Na entrega)"}
                 </strong>
               </p>
               {order.deliveryModality === "STORE_PICKUP" ? (
@@ -372,10 +623,10 @@ export default function OrderSuccessPage() {
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <span>Taxa de Entrega</span>
-                <span>{order.freight > 0 ? formatPrice(Number(order.freight)) : "Grátis"}</span>
+                <span>{Number(order.freight) > 0 ? formatPrice(Number(order.freight)) : "Grátis"}</span>
               </div>
               <div className="flex justify-between text-sm font-bold text-foreground pt-1.5 border-t border-border/40">
-                <span>Total Pago</span>
+                <span>Total Pedido</span>
                 <span className="text-primary text-base">{formatPrice(Number(order.totalOrder || 0))}</span>
               </div>
             </div>

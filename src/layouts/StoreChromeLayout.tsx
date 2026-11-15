@@ -8,6 +8,7 @@ import StoreClosedModal from "@/components/StoreClosedModal";
 import StoreTemporarilyClosedOverlay from "@/components/StoreTemporarilyClosedOverlay";
 import MobileBottomNav from "@/components/MobileBottomNav";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import MyOrdersButton from "@/components/MyOrdersButton";
 import StoreNotFound from "@/components/StoreNotFound";
 import StoreOffline from "@/components/StoreOffline";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -168,6 +169,7 @@ const StoreChromeLayout = () => {
       <StoreTemporarilyClosedOverlay />
       <MobileBottomNav />
       <WhatsAppButton />
+      <MyOrdersButton />
       <BackToTopButton />
     </>
   );

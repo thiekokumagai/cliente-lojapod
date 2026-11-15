@@ -65,4 +65,24 @@ export const api = {
 
     return response.json() as Promise<T>;
   },
+
+  async get<T>(endpoint: string): Promise<T> {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      method: "GET",
+      headers: getApiHeaders(),
+    });
+
+    if (!response.ok) {
+      let errorMessage = "Erro na requisição";
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+      } catch (e) {
+        // ignore
+      }
+      throw Object.assign(new Error(errorMessage), { status: response.status });
+    }
+
+    return response.json() as Promise<T>;
+  },
 };
