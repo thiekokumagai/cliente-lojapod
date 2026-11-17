@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
@@ -18,7 +18,7 @@ interface UrbanProductCardProps {
 const formatPrice = (price: number) =>
   `R$ ${price.toFixed(2).replace(".", ",")}`;
 
-export default function UrbanProductCard({ product, isBestSeller }: UrbanProductCardProps) {
+const UrbanProductCard = memo(function UrbanProductCard({ product, isBestSeller }: UrbanProductCardProps) {
   const isMobile = useIsMobile();
   const { addToCart } = useCart();
   const { data: storeSettings } = useStoreSettings();
@@ -116,8 +116,11 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
           <img
             src={productImage}
             alt={product.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            width={300}
+            height={300}
             loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover [@media(hover:hover)]:group-hover:scale-105 transition-transform duration-300"
           />
         ) : (
           <div className="text-slate-300 text-xs">Sem imagem</div>
@@ -319,4 +322,6 @@ export default function UrbanProductCard({ product, isBestSeller }: UrbanProduct
       )}
     </>
   );
-}
+});
+
+export default UrbanProductCard;

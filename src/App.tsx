@@ -12,6 +12,7 @@ import NotFound from "./pages/NotFound.tsx";
 import LinksPage from "./pages/LinksPage.tsx";
 import ExchangePolicyPage from "./pages/ExchangePolicyPage.tsx";
 import OrderSuccessPage from "./pages/OrderSuccessPage.tsx";
+import MercadoPagoPaymentPage from "./pages/MercadoPagoPaymentPage.tsx";
 
 import FacebookPixel from "@/components/FacebookPixel";
 import { initAnalytics } from "@/services/analytics";
@@ -92,6 +93,7 @@ const App = () => {
           <Routes>
             <Route path="/links" element={<LinksPage />} />
             <Route path="/pedido/:id/sucesso" element={<OrderSuccessPage />} />
+            <Route path="/pedido/:id/pagamento" element={<MercadoPagoPaymentPage />} />
             <Route path="/pedido/:id" element={<OrderSuccessPage />} />
             <Route element={<StoreChromeLayout />}>
               <Route path="/" element={<Index />} />

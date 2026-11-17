@@ -28,6 +28,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getMercadoPagoCheckout } from "@/lib/mercadopago";
 import { useCart } from "@/contexts/CartContext";
 import { useFreight } from "@/hooks/use-calculator-freight";
 import { formatFreightDestinationAddress } from "@/utils/freight-address";
@@ -204,6 +205,8 @@ const CartSidebar = () => {
   const paymentSettings = storeSettingsUpdatedAt > 0 ? storeSettings : undefined;
   // Pix na maquininha: o cliente não vê chave, titular, copia e cola nem QR; paga na entrega ou retirada.
   const pixOnTerminal = paymentSettings?.paymentGateways?.pixOnTerminal === true;
+  // Mercado Pago no checkout online: Pix com QR Code e cartão pela tela do Mercado Pago
+  const mpCheckout = getMercadoPagoCheckout(paymentSettings?.paymentGateways);
   const { calculate } = useFreight();
   const {
     items,
@@ -473,7 +476,7 @@ const CartSidebar = () => {
     const mealVoucherEnabled = !!(paymentSettings as any)?.payOnDeliveryMealVoucher;
     const foodVoucherEnabled = !!(paymentSettings as any)?.payOnDeliveryFoodVoucher;
 
-    if (pixEnabled) {
+    if (pixEnabled || mpCheckout.pix) {
       options.push({
         value: "PIX",
         title: "Pix",
@@ -513,7 +516,7 @@ const CartSidebar = () => {
       options.push({
         value: "Cartão de Crédito Online",
         title: "Cartão de Crédito Online",
-        subtitle: "Pague com segurança agora (InfinitePay)",
+        subtitle: mpCheckout.card ? "Pague com segurança agora (Mercado Pago)" : "Pague com segurança agora (InfinitePay)",
         icon: CreditCard,
         highlight: "Online",
       });
@@ -543,7 +546,7 @@ const CartSidebar = () => {
       });
     }
     return options;
-  }, [paymentSettings, hasPromoItems, pixDiscountPercent, pixOnTerminal]);
+  }, [paymentSettings, hasPromoItems, pixDiscountPercent, pixOnTerminal, mpCheckout.pix, mpCheckout.card]);
 
   useEffect(() => {
     if (paymentMethod && !paymentOptions?.find(opt => opt.value === paymentMethod)) {
@@ -729,7 +732,7 @@ const CartSidebar = () => {
             ? `Cartão de Crédito (Entrega) - ${effectiveCreditInstallments}x`
             : "Cartão de Crédito (Entrega) à vista"
           : paymentMethod === "Cartão de Crédito Online"
-            ? "Cartão de Crédito Online (InfinitePay)"
+            ? `Cartão de Crédito Online (${mpCheckout.card ? "Mercado Pago" : "InfinitePay"})`
             : paymentMethod === "Dinheiro"
               ? "Dinheiro"
               : paymentMethod === "Vale refeição"
@@ -1249,6 +1252,20 @@ const CartSidebar = () => {
       // depois do clique em "Enviar via WhatsApp" (ou já aqui, se a loja não tem WhatsApp para receber).
       if (paymentMethod === "Cartão de Crédito Online" || !storeSettings?.phone?.replace(/\D/g, "")) {
         rememberOrder({ id: orderId, orderNumber, createdAt });
+      }
+
+      // Mercado Pago (Pix QR Code ou cartão): o pagamento acontece na página do pedido, que confirma sozinha.
+      // O valor cobrado é o do pedido gravado no servidor.
+      const paysWithMercadoPagoPix = paymentMethod === "PIX" && mpCheckout.pix;
+      const paysWithMercadoPagoCard = paymentMethod === "Cartão de Crédito Online" && mpCheckout.card;
+      if (paysWithMercadoPagoPix || paysWithMercadoPagoCard) {
+        if (paysWithMercadoPagoPix) rememberOrder({ id: orderId, orderNumber, createdAt });
+        setRedeemedReward(null);
+        setLoyaltyDiscount(0);
+        clearCart();
+        setIsCartOpen(false);
+        navigate(`/pedido/${orderId}/pagamento?metodo=${paysWithMercadoPagoPix ? "pix" : "cartao"}`);
+        return;
       }
 
       // Cartão online: o pedido já foi criado e aparece para a loja como pagamento pendente;

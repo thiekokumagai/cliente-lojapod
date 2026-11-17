@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Minus, ShoppingCart, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
@@ -19,7 +19,7 @@ interface MenuExpressProductCardProps {
 const formatPrice = (price: number) =>
   `R$ ${price.toFixed(2).replace(".", ",")}`;
 
-export default function MenuExpressProductCard({ product, isBestSeller }: MenuExpressProductCardProps) {
+const MenuExpressProductCard = memo(function MenuExpressProductCard({ product, isBestSeller }: MenuExpressProductCardProps) {
   const isMobile = useIsMobile();
   const { items, addToCart, updateQuantity } = useCart();
   const { data: storeSettings } = useStoreSettings();
@@ -204,7 +204,11 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
             <img
               src={productImage}
               alt={product.name}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              width={300}
+              height={300}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover transition-transform duration-300 [@media(hover:hover)]:group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-xs text-muted-foreground">
@@ -346,4 +350,6 @@ export default function MenuExpressProductCard({ product, isBestSeller }: MenuEx
       )}
     </>
   );
-}
+});
+
+export default MenuExpressProductCard;

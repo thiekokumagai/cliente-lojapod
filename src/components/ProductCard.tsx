@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { CheckCircle2, Minus, Plus, ShoppingCart, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
@@ -15,7 +15,8 @@ import { getReservedStockInCart, getProductAvailableStock } from "@/utils/cart-s
 
 interface ProductCardProps {
   product: Product;
-  index: number;
+  index?: number;
+  priority?: boolean;
   isBestSeller?: boolean;
 }
 
@@ -28,7 +29,7 @@ const saveScrollPosition = () => {
   }
 };
 
-const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
+const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProps) => {
   const isMobile = useIsMobile();
   const { data: storeSettings } = useStoreSettings();
   const { items, addToCart, updateQuantity, removeFromCart } = useCart();
@@ -37,6 +38,8 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const productImage = product.image || "";
+  // As duas primeiras imagens visíveis na viewport inicial carregam eagerly; o restante só sob demanda
+  const isEager = priority !== undefined ? priority : (index !== undefined && index < 2);
 
   const {
     startComboFlow,
@@ -213,11 +216,14 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
           <img
             src={seloMaisVendido}
             alt="Selo Mais Vendido"
-            className="absolute left-2 top-2 z-10 h-10 w-10 object-contain drop-shadow-md transition-transform group-hover:scale-105"
+            width={40}
+            height={40}
+            decoding="async"
+            className="absolute left-2 top-2 z-10 h-10 w-10 object-contain drop-shadow-sm transition-transform [@media(hover:hover)]:group-hover:scale-105 pointer-events-none"
           />
         ) : null}
         {discountPercentage > 0 && !isUnavailable && (
-          <span className="absolute right-2 top-2 z-10 rounded-full bg-[#DE2839] px-2 py-0.5 text-[10px] font-bold text-white shadow-md">
+          <span className="absolute right-2 top-2 z-10 rounded-full bg-[#DE2839] px-2 py-0.5 text-[10px] font-bold text-white shadow-xs pointer-events-none">
             -{discountPercentage}%
           </span>
         )}
@@ -225,7 +231,11 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
           <img
             src={productImage}
             alt={product.name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            width={400}
+            height={400}
+            loading={isEager ? "eager" : "lazy"}
+            decoding="async"
+            className="h-full w-full object-cover transition-transform duration-300 [@media(hover:hover)]:group-hover:scale-105"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-secondary text-muted-foreground">
@@ -245,7 +255,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
 
   return (
     <>
-      <div className="group relative flex flex-col justify-between w-full h-full overflow-hidden rounded-2xl bg-card p-4 transition-all hover:shadow-md border border-border">
+      <div className="group relative flex flex-col justify-between w-full h-full overflow-hidden rounded-2xl bg-card p-4 transition-shadow [@media(hover:hover)]:hover:shadow-md border border-border">
         <div>
           {isMobile ? (
             <button
@@ -340,10 +350,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
               <button
                 type="button"
                 onClick={() => setShowNotificationModal(true)}
-                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-sm transition-colors"
-                style={{ backgroundColor: '#ea580c' }}
-                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = '#c2410c')}
-                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = '#ea580c')}
+                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-xs transition-colors bg-[#ea580c] [@media(hover:hover)]:hover:bg-[#c2410c] active:bg-[#9a3412]"
               >
                 <BellRing className="h-4 w-4" />
                 Avise-me quando chegar
@@ -395,7 +402,7 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
             <button
               type="button"
               onClick={() => setShowNotificationModal(true)}
-              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-sm transition-colors" style={{ backgroundColor: '#ea580c' }} onMouseOver={e => (e.currentTarget.style.backgroundColor='#c2410c')} onMouseOut={e => (e.currentTarget.style.backgroundColor='#ea580c')}
+              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white shadow-xs transition-colors bg-[#ea580c] [@media(hover:hover)]:hover:bg-[#c2410c] active:bg-[#9a3412]"
             >
               <BellRing className="h-4 w-4" />
               Avise-me quando chegar
@@ -499,4 +506,4 @@ const ProductCard = ({ product, isBestSeller }: ProductCardProps) => {
   );
 };
 
-export default ProductCard;
+export default memo(ProductCard);

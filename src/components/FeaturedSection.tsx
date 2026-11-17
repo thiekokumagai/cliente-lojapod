@@ -5,8 +5,7 @@ import { useProducts, useCategories } from "@/hooks/useProducts";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { matchesProductSearch } from "@/utils/search";
 import { sortProducts } from "@/utils/sortProducts";
-import useEmblaCarousel from "embla-carousel-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useMemo, useRef } from "react";
 
 const FeaturedSection = () => {
   const {
@@ -22,92 +21,91 @@ const FeaturedSection = () => {
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
   const { data: settings } = useStoreSettings();
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    align: "start",
-    loop: true,
-    dragFree: false,
-    containScroll: "trimSnaps",
-  });
+  const allowsNotification = settings?.enableStockAlertNotification !== false;
 
-  const [canScrollPrev, setCanScrollPrev] = useState(false);
-  const [canScrollNext, setCanScrollNext] = useState(false);
+  // Produtos destacados que passam nos filtros ativos. Só recalcula quando os dados ou os filtros mudam.
+  const visibleProducts = useMemo(() => {
+    const featuredProducts = allProducts.filter((p) => p.isFeatured);
 
-  // Produtos destacados que passam nos filtros ativos
-  const featuredProducts = allProducts.filter((p) => p.isFeatured);
+    const filteredProducts = featuredProducts.filter((product) => {
+      const groups =
+        product.variationGroups && product.variationGroups.length > 0
+          ? product.variationGroups
+          : product.variationGroup
+            ? [product.variationGroup]
+            : [];
 
-  const filteredProducts = featuredProducts.filter((product) => {
-    const groups =
-      product.variationGroups && product.variationGroups.length > 0
-        ? product.variationGroups
-        : product.variationGroup
-          ? [product.variationGroup]
-          : [];
+      const hasAvailableVariations =
+        groups.length > 0
+          ? groups.some((group) => group.options.some((option) => option.available))
+          : (product.stock ?? 0) > 0;
 
-    const allowsNotification = settings?.enableStockAlertNotification !== false;
-    const hasAvailableVariations =
-      groups.length > 0
-        ? groups.some((group) => group.options.some((option) => option.available))
-        : (product.stock ?? 0) > 0;
+      const isAvailableOrNotifiable =
+        product.isCombo
+          ? (product.stock ?? 0) > 0 || allowsNotification
+          : hasAvailableVariations || allowsNotification;
 
-    const isAvailableOrNotifiable =
-      product.isCombo
-        ? (product.stock ?? 0) > 0 || allowsNotification
-        : hasAvailableVariations || allowsNotification;
+      const matchesCategory =
+        selectedCategoryId
+          ? product.categoryId === selectedCategoryId
+          : selectedCategory
+            ? product.category === selectedCategory
+            : true;
+      const matchesSearch = matchesProductSearch(searchTerm, product);
 
-    const matchesCategory =
-      selectedCategoryId
-        ? product.categoryId === selectedCategoryId
-        : selectedCategory
-          ? product.category === selectedCategory
-          : true;
-    const matchesSearch = matchesProductSearch(searchTerm, product);
+      const activeFilters =
+        selectedVariationFilters.length > 0
+          ? selectedVariationFilters
+          : selectedNicotineStrength
+            ? [selectedNicotineStrength]
+            : [];
 
-    const activeFilters =
-      selectedVariationFilters.length > 0
-        ? selectedVariationFilters
-        : selectedNicotineStrength
-          ? [selectedNicotineStrength]
-          : [];
-
-    const matchesNicotine =
-      activeFilters.length > 0
-        ? activeFilters.every((filterOption) =>
-            groups.some((group) =>
-              group.options.some(
-                (option) =>
-                  (allowsNotification || option.available) &&
-                  option.label === filterOption
+      const matchesNicotine =
+        activeFilters.length > 0
+          ? activeFilters.every((filterOption) =>
+              groups.some((group) =>
+                group.options.some(
+                  (option) =>
+                    (allowsNotification || option.available) &&
+                    option.label === filterOption
+                )
               )
             )
-          )
-        : true;
+          : true;
 
-    return isAvailableOrNotifiable && matchesCategory && matchesSearch && matchesNicotine;
-  });
+      return isAvailableOrNotifiable && matchesCategory && matchesSearch && matchesNicotine;
+    });
 
-  const visibleProducts = sortProducts(filteredProducts, sortOption, apiCategories);
+    return sortProducts(filteredProducts, sortOption, apiCategories);
+  }, [
+    allProducts,
+    apiCategories,
+    allowsNotification,
+    selectedCategory,
+    selectedCategoryId,
+    searchTerm,
+    selectedNicotineStrength,
+    selectedVariationFilters,
+    sortOption,
+  ]);
 
   const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
+    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const firstCard = container.querySelector<HTMLElement>(":scope > div");
+    const step = firstCard ? firstCard.offsetWidth + 12 : 252;
+    container.scrollBy({ left: -step, behavior: "smooth" });
+  }, []);
 
   const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-
-  const onSelect = useCallback(() => {
-    if (!emblaApi) return;
-    setCanScrollPrev(emblaApi.canScrollPrev());
-    setCanScrollNext(emblaApi.canScrollNext());
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelect();
-    emblaApi.on("select", onSelect);
-    emblaApi.on("reInit", onSelect);
-  }, [emblaApi, onSelect]);
+    if (!scrollContainerRef.current) return;
+    const container = scrollContainerRef.current;
+    const firstCard = container.querySelector<HTMLElement>(":scope > div");
+    const step = firstCard ? firstCard.offsetWidth + 12 : 252;
+    container.scrollBy({ left: step, behavior: "smooth" });
+  }, []);
 
   if (visibleProducts.length === 0) return null;
 
@@ -150,14 +148,27 @@ const FeaturedSection = () => {
           )}
         </div>
 
-        <div className="mt-6 overflow-hidden" ref={emblaRef}>
-          <div className="flex items-stretch gap-1.5 -ml-2.5 md:-ml-2.5 py-1">
+        <div className="mt-6 overflow-hidden">
+          <div
+            ref={scrollContainerRef}
+            className="flex items-stretch gap-3 overflow-x-auto py-1 scroll-smooth snap-x snap-mandatory overscroll-x-contain [-webkit-overflow-scrolling:touch] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden will-change-scroll transform-gpu"
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
+              WebkitOverflowScrolling: "touch",
+            }}
+          >
             {visibleProducts.map((product, i) => (
               <div
                 key={product.id}
-                className="pl-2.5 md:pl-2.5 w-[220px] sm:w-[240px] md:w-[260px] shrink-0 min-w-0 flex"
+                className="w-[220px] sm:w-[240px] md:w-[260px] shrink-0 min-w-0 flex snap-start"
               >
-                <ProductCard product={product} index={i} isBestSeller={Boolean(product.isBestSeller)} />
+                <ProductCard
+                  product={product}
+                  index={i}
+                  priority={i < 2}
+                  isBestSeller={Boolean(product.isBestSeller)}
+                />
               </div>
             ))}
           </div>
@@ -168,4 +179,3 @@ const FeaturedSection = () => {
 };
 
 export default FeaturedSection;
-

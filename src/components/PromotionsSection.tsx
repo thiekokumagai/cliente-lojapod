@@ -8,6 +8,7 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { matchesProductSearch } from "@/utils/search";
 import { sortProducts } from "@/utils/sortProducts";
 import { cn } from "@/lib/utils";
+import { useMemo } from "react";
 
 const PromotionsSection = () => {
   const {
@@ -23,62 +24,75 @@ const PromotionsSection = () => {
   const { data: settings } = useStoreSettings();
   const normalizedSearch = searchTerm.trim().toLowerCase();
 
-  const isProductInPromo = (p: (typeof allProducts)[0]) =>
-    Boolean(p.isPromo || (p.oldPrice !== undefined && p.oldPrice > 0 && p.price < p.oldPrice));
+  const allowsNotification = settings?.enableStockAlertNotification !== false;
 
-  const promoProducts = allProducts.filter(isProductInPromo);
+  const visibleProducts = useMemo(() => {
+    const isProductInPromo = (p: (typeof allProducts)[0]) =>
+      Boolean(p.isPromo || (p.oldPrice !== undefined && p.oldPrice > 0 && p.price < p.oldPrice));
 
-  const filteredProducts = promoProducts.filter((product) => {
-    const groups =
-      product.variationGroups && product.variationGroups.length > 0
-        ? product.variationGroups
-        : product.variationGroup
-          ? [product.variationGroup]
-          : [];
+    const promoProducts = allProducts.filter(isProductInPromo);
 
-    const allowsNotification = settings?.enableStockAlertNotification !== false;
-    const hasAvailableVariations =
-      groups.length > 0
-        ? groups.some((group) => group.options.some((option) => option.available))
-        : (product.stock ?? 0) > 0;
+    const filteredProducts = promoProducts.filter((product) => {
+      const groups =
+        product.variationGroups && product.variationGroups.length > 0
+          ? product.variationGroups
+          : product.variationGroup
+            ? [product.variationGroup]
+            : [];
 
-    const isAvailableOrNotifiable =
-      product.isCombo
-        ? (product.stock ?? 0) > 0 || allowsNotification
-        : hasAvailableVariations || allowsNotification;
+      const hasAvailableVariations =
+        groups.length > 0
+          ? groups.some((group) => group.options.some((option) => option.available))
+          : (product.stock ?? 0) > 0;
 
-    const matchesCategory =
-      selectedCategoryId
-        ? product.categoryId === selectedCategoryId
-        : selectedCategory
-          ? product.category === selectedCategory
-          : true;
-    const matchesSearch = matchesProductSearch(searchTerm, product);
+      const isAvailableOrNotifiable =
+        product.isCombo
+          ? (product.stock ?? 0) > 0 || allowsNotification
+          : hasAvailableVariations || allowsNotification;
 
-    const activeFilters =
-      selectedVariationFilters.length > 0
-        ? selectedVariationFilters
-        : selectedNicotineStrength
-          ? [selectedNicotineStrength]
-          : [];
+      const matchesCategory =
+        selectedCategoryId
+          ? product.categoryId === selectedCategoryId
+          : selectedCategory
+            ? product.category === selectedCategory
+            : true;
+      const matchesSearch = matchesProductSearch(searchTerm, product);
 
-    const matchesNicotine =
-      activeFilters.length > 0
-        ? activeFilters.every((filterOption) =>
-            groups.some((group) =>
-              group.options.some(
-                (option) =>
-                  (allowsNotification || option.available) &&
-                  option.label === filterOption
+      const activeFilters =
+        selectedVariationFilters.length > 0
+          ? selectedVariationFilters
+          : selectedNicotineStrength
+            ? [selectedNicotineStrength]
+            : [];
+
+      const matchesNicotine =
+        activeFilters.length > 0
+          ? activeFilters.every((filterOption) =>
+              groups.some((group) =>
+                group.options.some(
+                  (option) =>
+                    (allowsNotification || option.available) &&
+                    option.label === filterOption
+                )
               )
             )
-          )
-        : true;
+          : true;
 
-    return isAvailableOrNotifiable && matchesCategory && matchesSearch && matchesNicotine;
-  });
+      return isAvailableOrNotifiable && matchesCategory && matchesSearch && matchesNicotine;
+    });
 
-  const visibleProducts = sortProducts(filteredProducts, sortOption, apiCategories);
+    return sortProducts(filteredProducts, sortOption, apiCategories);
+  }, [
+    allProducts,
+    apiCategories,
+    allowsNotification,
+    selectedCategory,
+    selectedCategoryId,
+    searchTerm,
+    selectedNicotineStrength,
+    selectedVariationFilters,
+    sortOption,
+  ]);
 
   if (visibleProducts.length === 0) return null;
 
@@ -126,6 +140,7 @@ const PromotionsSection = () => {
                 key={product.id}
                 product={product}
                 index={i}
+                priority={false}
                 isBestSeller={Boolean(product.isBestSeller)}
               />
             )

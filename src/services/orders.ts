@@ -41,6 +41,35 @@ export interface CreateOrderPayload {
   }>;
 }
 
+export interface MercadoPagoPixResponse {
+  paymentId: string;
+  status: string;
+  amount: number;
+  /** Pix copia e cola */
+  qrCode: string;
+  /** Imagem PNG do QR Code em base64 */
+  qrCodeBase64: string;
+  ticketUrl: string | null;
+  expiresAt: string | null;
+}
+
+export interface MercadoPagoCardPayload {
+  token: string;
+  installments: number;
+  paymentMethodId: string;
+  issuerId?: string;
+  payerEmail?: string;
+  identification?: { type: string; number: string };
+}
+
+export interface MercadoPagoCardResponse {
+  paid: boolean;
+  status: "approved" | "in_process" | "rejected";
+  paymentId: string;
+  statusDetail?: string;
+  message: string;
+}
+
 export const ordersService = {
   async createStoreOrder(payload: CreateOrderPayload) {
     return api.post<{ id: string; orderNumber: number }>("/store/orders", payload);
@@ -50,6 +79,14 @@ export const ordersService = {
   },
   async createOnlineCheckout(orderId: string, originUrl?: string) {
     return api.post<{ checkoutUrl: string; transactionId?: string }>(`/payments/checkout/${orderId}`, { originUrl });
+  },
+  /** Mercado Pago: o servidor calcula o valor a partir do pedido; o navegador não envia valor. */
+  async createMercadoPagoPix(orderId: string) {
+    return api.post<MercadoPagoPixResponse>(`/payments/mercadopago/pix/${orderId}`, {});
+  },
+  /** Mercado Pago: só o token do cartão (gerado no navegador) vai para a API, nunca os dados do cartão. */
+  async createMercadoPagoCard(orderId: string, payload: MercadoPagoCardPayload) {
+    return api.post<MercadoPagoCardResponse>(`/payments/mercadopago/card/${orderId}`, payload);
   },
   async checkPaymentStatus(orderId: string, transactionNsu?: string, slug?: string) {
     return api.post<{ paid: boolean; status: string; paymentStatus: string }>(`/payments/check-status/${orderId}`, { transactionNsu, slug });

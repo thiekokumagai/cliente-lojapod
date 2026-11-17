@@ -20,7 +20,7 @@ type DeliveryRange = {
     valor: number;
 };
 
-function getFreightPrice(distanceKm: number, ranges: DeliveryRange[]): number | null {
+export function getFreightPrice(distanceKm: number, ranges: DeliveryRange[]): number | null {
     if (!ranges || ranges.length === 0) return null;
     
     // Assegurar que as faixas estão ordenadas por distância
@@ -34,7 +34,7 @@ function getFreightPrice(distanceKm: number, ranges: DeliveryRange[]): number | 
     return sortedRanges[sortedRanges.length - 1].valor;
 }
 
-function validateDistance(
+export function validateDistance(
     distanceKm: number, 
     ranges: DeliveryRange[], 
     allowAboveMax: boolean,
@@ -57,6 +57,68 @@ function validateDistance(
     }
 
     return null;
+}
+
+export type FreightPriceSettings = {
+    deliveryType?: string | null;
+    deliveryFixedFee?: number | string | null;
+    deliveryRanges?: { ranges?: DeliveryRange[] } | null;
+    freeShippingEnabled?: boolean | null;
+    freeShippingMinValue?: number | string | null;
+};
+
+/**
+ * Preço do frete de uma entrega com a distância já medida (null = taxa a combinar).
+ * Mesma regra que o servidor aplica no pedido público (api-lojapod: orders/domain/utils/freight-rules.ts);
+ * os dois lados têm a mesma tabela de casos nos testes.
+ */
+export function computeFreightPrice(settings: FreightPriceSettings | null | undefined, km: number, cartTotal?: number): number | null {
+    const ranges = settings?.deliveryRanges?.ranges || [];
+    let freightPrice: number | null = null;
+
+    if (settings?.deliveryType === "NO_FEE") {
+        freightPrice = 0;
+    } else if (settings?.deliveryType === "FIXED_FEE") {
+        freightPrice = settings?.deliveryFixedFee ? Number(settings.deliveryFixedFee) : 0;
+    } else if (settings?.deliveryType === "TO_COMBINE") {
+        freightPrice = null; // Taxa a combinar
+    } else {
+        // Por distância (DISTANCE ou fallback)
+        freightPrice = getFreightPrice(km, ranges);
+    }
+
+    // Regra de Frete Grátis
+    const freeShippingMin = settings?.freeShippingMinValue ? Number(settings.freeShippingMinValue) : null;
+    if (settings?.freeShippingEnabled && freeShippingMin !== null && !isNaN(freeShippingMin) && freeShippingMin > 0) {
+        if (cartTotal && cartTotal >= freeShippingMin) {
+            freightPrice = 0;
+        }
+    }
+
+    return freightPrice;
+}
+
+export type OriginSettings = {
+    street?: string | null;
+    number?: string | null;
+    city?: string | null;
+    state?: string | null;
+    cep?: string | null;
+    deliveryOriginCep?: string | null;
+    deliveryOriginNumber?: string | null;
+};
+
+/** Endereço de origem (local ativo da loja) enviado ao Google. Mesmo texto que o servidor monta (freight-address.ts). */
+export function buildOriginAddress(storeSettings: OriginSettings | null | undefined): string {
+    const street = (storeSettings?.street || "").trim();
+    const num = (storeSettings?.deliveryOriginNumber || storeSettings?.number || "").trim();
+    const city = (storeSettings?.city || "").trim();
+    const state = (storeSettings?.state || "").trim();
+    const cep = (storeSettings?.deliveryOriginCep || storeSettings?.cep || "79000-000").replace(/\D/g, "");
+
+    return street
+        ? `${street}${num ? `, ${num}` : ""}${city ? `, ${city}` : ""}${state ? ` - ${state}` : ""}, CEP ${cep}, Brasil`
+        : (num ? `CEP ${cep}, ${num}, Brasil` : `CEP ${cep}, Brasil`);
 }
 
 async function fetchRoute(origin: string, destination: string) {
@@ -103,16 +165,8 @@ export function useFreight() {
                 return null;
             }
 
-            // Origem da loja para cálculo de rota
-            const street = (storeSettings?.street || "").trim();
-            const num = (storeSettings?.deliveryOriginNumber || storeSettings?.number || "").trim();
-            const city = (storeSettings?.city || "").trim();
-            const state = (storeSettings?.state || "").trim();
-            const cep = (storeSettings?.deliveryOriginCep || storeSettings?.cep || "79000-000").replace(/\D/g, "");
-
-            const originAddress = street
-                ? `${street}${num ? `, ${num}` : ""}${city ? `, ${city}` : ""}${state ? ` - ${state}` : ""}, CEP ${cep}, Brasil`
-                : (num ? `CEP ${cep}, ${num}, Brasil` : `CEP ${cep}, Brasil`);
+            // Origem da loja para cálculo de rota (o servidor monta o mesmo texto)
+            const originAddress = buildOriginAddress(storeSettings);
 
             const route = await fetchRoute(originAddress, destination);
 
@@ -132,31 +186,8 @@ export function useFreight() {
                 return distanceValidation;
             }
 
-            // Verifica tipo de entrega e frete grátis
-            let freightPrice: number | null = null;
-            let deliveryError = null;
-            
-            if (storeSettings?.deliveryType === "NO_FEE") {
-                freightPrice = 0;
-            } else if (storeSettings?.deliveryType === "FIXED_FEE") {
-                freightPrice = storeSettings?.deliveryFixedFee ? Number(storeSettings.deliveryFixedFee) : 0;
-            } else if (storeSettings?.deliveryType === "TO_COMBINE") {
-                freightPrice = null; // Taxa a combinar
-            } else {
-                // Por distância (DISTANCE ou fallback)
-                freightPrice = getFreightPrice(km, ranges);
-            }
-            
-            // Regra de Frete Grátis
-            const freeShippingMin = storeSettings?.freeShippingMinValue ? Number(storeSettings.freeShippingMinValue) : null;
-            if (storeSettings?.freeShippingEnabled && freeShippingMin !== null && !isNaN(freeShippingMin) && freeShippingMin > 0) {
-                if (cartTotal && cartTotal >= freeShippingMin) {
-                    freightPrice = 0;
-                    deliveryError = null;
-                }
-            }
-            
-            if (deliveryError && freightPrice !== 0) return deliveryError;
+            // Tipo de entrega e frete grátis (mesma regra do servidor)
+            const freightPrice = computeFreightPrice(storeSettings, km, cartTotal);
 
             // Parse duration to get minutes
             let durationMins = 0;
