@@ -904,8 +904,8 @@ const CartSidebar = () => {
     toast.success("Cupom removido.");
   };
 
-  const handleRemoveItem = (productId: string, selectedVariation?: string) => {
-    removeFromCart(productId, selectedVariation);
+  const handleRemoveItem = (productId: string, selectedVariation?: string, orderBumpId?: string | null) => {
+    removeFromCart(productId, selectedVariation, orderBumpId);
   };
 
   const handleClearCart = () => {
@@ -1690,7 +1690,7 @@ const CartSidebar = () => {
                                     )}
                                   </div>
                                   <button
-                                    onClick={() => handleRemoveItem(item.product.id, item.selectedVariation)}
+                                    onClick={() => handleRemoveItem(item.product.id, item.selectedVariation, item.orderBumpId)}
                                     className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-secondary"
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -1699,7 +1699,7 @@ const CartSidebar = () => {
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1 rounded-full border border-border bg-card px-1 py-1">
                                     <button
-                                      onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedVariation)}
+                                      onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedVariation, item.orderBumpId)}
                                       className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary"
                                     >
                                       <Minus className="h-3 w-3" />
@@ -1711,7 +1711,7 @@ const CartSidebar = () => {
                                       disabled={isAtLimit}
                                       onClick={() => {
                                         if (isAtLimit) return;
-                                        updateQuantity(item.product.id, item.quantity + 1, item.selectedVariation);
+                                        updateQuantity(item.product.id, item.quantity + 1, item.selectedVariation, item.orderBumpId);
                                       }}
                                       className={`rounded-full p-1.5 ${isAtLimit ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50" : "bg-primary text-primary-foreground"}`}
                                     >

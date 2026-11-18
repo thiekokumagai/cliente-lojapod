@@ -11,6 +11,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 import seloMaisVendido from "@/assets/seloMaisVendido.png";
 import { getReservedStockInCart, getProductAvailableStock } from "@/utils/cart-stock";
+import { isBumpLine } from "@/utils/cart-lines";
 
 
 interface ProductCardProps {
@@ -81,7 +82,7 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
   }, [hasVariationGroup, availableOptions.length, product.stock]);
 
   const cartItem = items.find(
-    (item) => item.product.id === product.id && item.selectedVariation === undefined
+    (item) => item.product.id === product.id && item.selectedVariation === undefined && !isBumpLine(item)
   );
   const quantityInCart = cartItem?.quantity ?? 0;
 
@@ -89,8 +90,9 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
     () =>
       items.filter(
         (item) =>
-          item.product.id === product.id ||
-          (product.isCombo && item.product.comboId === product.id)
+          !isBumpLine(item) &&
+          (item.product.id === product.id ||
+            (product.isCombo && item.product.comboId === product.id))
       ),
     [items, product.id, product.isCombo]
   );
@@ -104,7 +106,7 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
     () =>
       items.filter(
         (item) =>
-          item.product.id === product.id && item.selectedVariation !== undefined
+          item.product.id === product.id && item.selectedVariation !== undefined && !isBumpLine(item)
       ),
     [items, product.id]
   );

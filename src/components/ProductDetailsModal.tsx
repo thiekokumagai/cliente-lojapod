@@ -17,6 +17,16 @@ import {
   getSelectedCombinationStock,
 } from "@/utils/variation-stock";
 import { getReservedStockInCart, getProductAvailableStock, areVariationsEqual } from "@/utils/cart-stock";
+import { isBumpLine } from "@/utils/cart-lines";
+import { useProductOrderBumps } from "@/hooks/useProductOrderBumps";
+import ProductOrderBumpGroup from "@/components/product/ProductOrderBumpGroup";
+import {
+  addChosenOffersToCart,
+  chosenOffers,
+  pruneSelection,
+  selectionTotal,
+  type BumpSelection,
+} from "@/utils/order-bump-selection";
 
 interface ProductDetailsModalProps {
   product: Product;
@@ -229,7 +239,8 @@ const ProductDetailsModal = ({
     const cartItem = items.find(
       (item) =>
         item.product.id === product.id &&
-        item.selectedVariation === variationToCheck
+        item.selectedVariation === variationToCheck &&
+        !isBumpLine(item)
     );
 
     return cartItem?.quantity ?? 0;
@@ -313,6 +324,18 @@ const ProductDetailsModal = ({
     });
   };
 
+  // Ofertas "Peça também" marcadas para a tela do produto (grupo opcional, ex.: "Leve junto uma Bebida").
+  // O + só guarda a escolha; o "Adicionar" coloca o produto e as ofertas no carrinho.
+  const bumpOffers = useProductOrderBumps(product.id, quantityInCart === 0 && !isUnavailable);
+  const [bumpSelection, setBumpSelection] = useState<BumpSelection>({});
+  const activeBumpSelection = useMemo(() => pruneSelection(bumpSelection, bumpOffers), [bumpSelection, bumpOffers]);
+  const bumpsTotal = useMemo(() => selectionTotal(activeBumpSelection, bumpOffers), [activeBumpSelection, bumpOffers]);
+
+  const addBumpsToCart = () => {
+    addChosenOffersToCart(chosenOffers(activeBumpSelection, bumpOffers), addToCart, updateQuantity);
+    setBumpSelection({});
+  };
+
   const startAutoClose = (variation?: string) => {
     triggerAddedModal({ product, selectedVariation: variation });
     handleClose();
@@ -336,6 +359,7 @@ const ProductDetailsModal = ({
       if (displayQuantity > 1) {
         updateQuantity(product.id, displayQuantity);
       }
+      addBumpsToCart();
       startAutoClose();
       return;
     }
@@ -349,6 +373,7 @@ const ProductDetailsModal = ({
       updateQuantity(product.id, displayQuantity, variation);
     }
     
+    addBumpsToCart();
     startAutoClose(variation);
   };
 
@@ -690,6 +715,10 @@ const ProductDetailsModal = ({
             </p>
           )}
 
+          {quantityInCart === 0 && !isUnavailable && (
+            <ProductOrderBumpGroup offers={bumpOffers} selection={activeBumpSelection} onChange={setBumpSelection} />
+          )}
+
           <div className="mt-6 border-t border-border-subtle pt-6">
             <button
               type="button"
@@ -757,7 +786,7 @@ const ProductDetailsModal = ({
                 <span>{isUnavailable ? "Esgotado" : quantityInCart > 0 ? "Adicionado" : "Adicionar"}</span>
                 <span>
                   {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                    quantityInCart > 0 ? 0 : (product.price + selectedOptionsAdditions) * displayQuantity
+                    quantityInCart > 0 ? 0 : (product.price + selectedOptionsAdditions) * displayQuantity + bumpsTotal
                   )}
                 </span>
               </button>

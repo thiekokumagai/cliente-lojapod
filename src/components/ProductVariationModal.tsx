@@ -10,6 +10,7 @@ import {
   getSelectedCombinationStock,
 } from "@/utils/variation-stock";
 import { getReservedStockInCart } from "@/utils/cart-stock";
+import { isSameCartLine } from "@/utils/cart-lines";
 
 interface ProductVariationModalProps {
   product: Product;
@@ -142,10 +143,8 @@ const ProductVariationModal = ({
     if (isComboStep) return 0;
     if (!combinedVariation) return 0;
 
-    const cartItem = items.find(
-      (item) =>
-        item.product.id === product.id &&
-        item.selectedVariation === combinedVariation
+    const cartItem = items.find((item) =>
+      isSameCartLine(item, product.id, combinedVariation, (product as any).orderBumpId),
     );
 
     return cartItem?.quantity ?? 0;
@@ -238,11 +237,11 @@ const ProductVariationModal = ({
 
     if (nextQuantity <= 0) {
       setIsLocked(false);
-      removeFromCart(product.id, combinedVariation);
+      removeFromCart(product.id, combinedVariation, (product as any).orderBumpId);
       return;
     }
 
-    updateQuantity(product.id, nextQuantity, combinedVariation);
+    updateQuantity(product.id, nextQuantity, combinedVariation, (product as any).orderBumpId);
   };
 
   const isAtLimit = useMemo(() => {
@@ -256,7 +255,7 @@ const ProductVariationModal = ({
 
     const nextQuantity = displayQuantity + 1;
     setDisplayQuantity(nextQuantity);
-    updateQuantity(product.id, nextQuantity, combinedVariation);
+    updateQuantity(product.id, nextQuantity, combinedVariation, (product as any).orderBumpId);
   };
 
   if (!isOpen || allGroups.length === 0) return null;

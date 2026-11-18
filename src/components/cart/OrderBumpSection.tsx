@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { orderBumpsService, OrderBumpSuggestion } from "@/services/order-bumps";
-import type { Product, ProductVariationGroup } from "@/data/products";
+import type { Product } from "@/data/products";
 import { buildImageUrl } from "@/utils/image-url";
+import { convertSuggestionToProduct } from "@/utils/order-bump-product";
 import { Plus } from "lucide-react";
 
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
@@ -31,7 +32,7 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
     setIsLoading(true);
 
     orderBumpsService
-      .getSuggestions(cartProductIds)
+      .getSuggestions(cartProductIds, "CART")
       .then((data) => {
         if (isMounted) {
           setSuggestions(data || []);
@@ -57,61 +58,6 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
   }
 
   const sectionTitle = suggestions[0]?.sectionTitle || "Peça também";
-
-  // Converte a sugestão em um objeto compatível com Product
-  const convertSuggestionToProduct = (sug: OrderBumpSuggestion): Product => {
-    const raw = sug.product;
-
-    // Monta os variationGroups caso o produto tenha variações
-    const variationGroups: ProductVariationGroup[] = [];
-    if ((raw as any).variations && (raw as any).variations.length > 0) {
-      for (const vItem of (raw as any).variations) {
-        const v = vItem?.variation;
-        if (!v || !v.options || v.options.length === 0) continue;
-
-        const options = v.options.map((opt: any) => ({
-          label: opt.value,
-          available: true,
-          stock: raw.totalStock,
-        }));
-
-        if (options.length > 0) {
-          variationGroups.push({
-            name: v.title || "Variação",
-            options,
-          });
-        }
-      }
-    }
-
-    const rawPrice = Number(raw.price);
-    const rawOrig = Number(raw.originalPrice);
-    const finalPrice = rawPrice > 0 ? rawPrice : (rawOrig > 0 ? rawOrig : 0);
-    const hasDiscount = !!raw.hasDiscount && rawOrig > finalPrice;
-
-    return {
-      id: raw.id,
-      name: raw.title,
-      image: raw.imageUrl ? buildImageUrl(raw.imageUrl) : "",
-      images: raw.imageUrl ? [buildImageUrl(raw.imageUrl)] : [],
-      category: "",
-      description: "",
-      price: finalPrice,
-      oldPrice: hasDiscount ? rawOrig : undefined,
-      isPromo: hasDiscount,
-      stock: raw.totalStock,
-      variationGroups: variationGroups.length > 0 ? variationGroups : undefined,
-      items: (raw.items || []).map((it) => ({
-        stock: it.stock,
-        options: (it.options || []).map((opt) => ({
-          option: {
-            id: opt.option.id,
-            value: opt.option.value,
-          },
-        })),
-      })),
-    };
-  };
 
   const handleAdd = (sug: OrderBumpSuggestion) => {
     const prod = convertSuggestionToProduct(sug);
@@ -143,7 +89,7 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
         aria-label={`Sugestões: ${sectionTitle}`}
       >
         {suggestions.map((sug) => {
-          const cartItem = items.find((ci) => ci.product.id === sug.product.id);
+          const cartItem = items.find((ci) => ci.product.id === sug.product.id && ci.orderBumpId === sug.bumpId);
           const inCartQuantity = cartItem ? cartItem.quantity : 0;
           const isAtStockLimit = inCartQuantity >= sug.product.totalStock;
 
@@ -182,7 +128,7 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
                   <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-background p-1 shadow-md">
                     <button
                       type="button"
-                      onClick={() => updateQuantity(sug.product.id, inCartQuantity - 1)}
+                      onClick={() => updateQuantity(sug.product.id, inCartQuantity - 1, undefined, sug.bumpId)}
                       aria-label={`Diminuir ${sug.product.title}`}
                       className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                     >
@@ -194,7 +140,7 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
                     <button
                       type="button"
                       disabled={isAtStockLimit}
-                      onClick={() => updateQuantity(sug.product.id, inCartQuantity + 1)}
+                      onClick={() => updateQuantity(sug.product.id, inCartQuantity + 1, undefined, sug.bumpId)}
                       aria-label={`Aumentar ${sug.product.title}`}
                       className="flex h-9 w-9 items-center justify-center rounded-full text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
                     >

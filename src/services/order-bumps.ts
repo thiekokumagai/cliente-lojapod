@@ -28,17 +28,26 @@ export interface OrderBumpSuggestion {
     hasDiscount: boolean;
     discountPercent?: number | null;
     imageUrl?: string | null;
+    /** Descrição curta do produto (ex.: "Lata 310ml"), quando a loja cadastrou. */
+    description?: string | null;
     totalStock: number;
     hasVariations: boolean;
     items?: OrderBumpProductItem[];
   };
 }
 
+/** Onde o cliente está vendo as ofertas: na sacola ou dentro da tela do produto. */
+export type OrderBumpLocation = "CART" | "PRODUCT";
+
 export const orderBumpsService = {
-  async getSuggestions(productIds: string[]): Promise<OrderBumpSuggestion[]> {
+  async getSuggestions(
+    productIds: string[],
+    location: OrderBumpLocation = "CART",
+  ): Promise<OrderBumpSuggestion[]> {
     if (!productIds || productIds.length === 0) return [];
     return api.post<OrderBumpSuggestion[]>("/store/order-bumps/suggestions", {
       productIds,
+      location,
     });
   },
 };

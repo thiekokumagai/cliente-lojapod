@@ -30,6 +30,16 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getSelectedCombinationStock } from "@/utils/variation-stock";
 import { getReservedStockInCart } from "@/utils/cart-stock";
+import { isBumpLine } from "@/utils/cart-lines";
+import { useProductOrderBumps } from "@/hooks/useProductOrderBumps";
+import ProductOrderBumpGroup from "@/components/product/ProductOrderBumpGroup";
+import {
+  addChosenOffersToCart,
+  chosenOffers,
+  pruneSelection,
+  selectionTotal,
+  type BumpSelection,
+} from "@/utils/order-bump-selection";
 
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
 
@@ -120,7 +130,7 @@ const ProductPage = () => {
   }, [combinationStock]);
 
   const cartItem = items.find(
-    (item) => item.product.id === product?.id && item.selectedVariation === selectedVariation,
+    (item) => item.product.id === product?.id && item.selectedVariation === selectedVariation && !isBumpLine(item),
   );
 
   useEffect(() => {
@@ -210,8 +220,20 @@ const ProductPage = () => {
 
   const isInCart = !!cartItem;
 
+  // Ofertas "Peça também" marcadas para a tela do produto (grupo opcional, ex.: "Leve junto uma Bebida").
+  // O + só guarda a escolha; o "Adicionar ao Pedido" coloca o produto e as ofertas no carrinho.
+  const showBumps = !isInCart && !isUnavailable && !isCombinationUnavailable;
+  const bumpOffers = useProductOrderBumps(product?.id, showBumps);
+  const [bumpSelection, setBumpSelection] = useState<BumpSelection>({});
+  const activeBumpSelection = useMemo(() => pruneSelection(bumpSelection, bumpOffers), [bumpSelection, bumpOffers]);
+  const bumpsTotal = useMemo(() => selectionTotal(activeBumpSelection, bumpOffers), [activeBumpSelection, bumpOffers]);
+  const addBumpsToCart = () => {
+    addChosenOffersToCart(chosenOffers(activeBumpSelection, bumpOffers), addToCart, updateQuantity);
+    setBumpSelection({});
+  };
+
   const priceVal = product?.price || 0;
-  const totalPrice = priceVal * quantity;
+  const totalPrice = priceVal * quantity + (isInCart ? 0 : bumpsTotal);
   const totalOldPrice = product?.oldPrice ? product.oldPrice * quantity : 0;
   const discount = product?.isPromo && product.oldPrice 
     ? Math.round(((product.oldPrice - priceVal) / product.oldPrice) * 100)
@@ -225,7 +247,9 @@ const ProductPage = () => {
       ? "Selecione as variações"
       : isInCart
         ? "Atualizar"
-        : "Adicionar ao Pedido";
+        : bumpsTotal > 0
+          ? `Adicionar ao Pedido · ${formatPrice(totalPrice)}`
+          : "Adicionar ao Pedido";
 
   if (isLoading) {
     return (
@@ -312,6 +336,7 @@ const ProductPage = () => {
       if (quantity > 1) {
         updateQuantity(product.id, quantity);
       }
+      addBumpsToCart();
       triggerAddedModal({ product });
       setHasJustUpdated(true);
       handleNavigateToList();
@@ -330,6 +355,7 @@ const ProductPage = () => {
 
     addToCart({ product, selectedVariation });
     updateQuantity(product.id, quantity, selectedVariation);
+    addBumpsToCart();
     triggerAddedModal({ product, selectedVariation });
     setHasJustUpdated(true);
     handleNavigateToList();
@@ -453,6 +479,10 @@ const ProductPage = () => {
               onSelectComboOption={handleSelectComboOption}
             />
 
+            {showBumps && (
+              <ProductOrderBumpGroup offers={bumpOffers} selection={activeBumpSelection} onChange={setBumpSelection} />
+            )}
+
             {isInCart && (
               <div className="mt-6">
                 <button
@@ -558,6 +588,10 @@ const ProductPage = () => {
                 comboSelections={comboSelections}
                 onSelectComboOption={handleSelectComboOption}
               />
+
+              {showBumps && (
+                <ProductOrderBumpGroup offers={bumpOffers} selection={activeBumpSelection} onChange={setBumpSelection} />
+              )}
 
               <div className="mt-6 space-y-3">
                 {(isUnavailable || isCombinationUnavailable) && settings?.enableStockAlertNotification !== false ? (

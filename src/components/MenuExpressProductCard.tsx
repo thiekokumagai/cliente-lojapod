@@ -10,6 +10,7 @@ import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 import { isProductAtStockLimit } from "@/utils/cart-stock";
+import { isBumpLine } from "@/utils/cart-lines";
 
 interface MenuExpressProductCardProps {
   product: Product;
@@ -77,7 +78,7 @@ const MenuExpressProductCard = memo(function MenuExpressProductCard({ product, i
   );
 
   const handleDecrease = () => {
-    const line = items.find((i) => i.product.id === product.id);
+    const line = items.find((i) => i.product.id === product.id && !isBumpLine(i));
     if (!line) return;
     updateQuantity(product.id, line.quantity - 1, line.selectedVariation);
   };
