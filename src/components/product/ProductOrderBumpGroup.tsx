@@ -3,7 +3,6 @@ import { useCart } from "@/contexts/CartContext";
 import type { OrderBumpSuggestion } from "@/services/order-bumps";
 import { buildImageUrl } from "@/utils/image-url";
 import {
-  MAX_BUMP_SELECTIONS,
   canIncrease,
   decrease,
   increase,
@@ -38,16 +37,15 @@ const ProductOrderBumpGroup = ({ offers, selection, onChange }: ProductOrderBump
 
   return (
     <section className="mt-6" aria-labelledby="product-order-bump-title" data-testid="product-order-bump-group">
-      <div className="flex items-start justify-between gap-3 rounded-lg bg-muted/30 p-3">
+      <div className="flex items-center justify-between gap-3 rounded-lg bg-muted/30 p-3">
         <div className="min-w-0">
           <h3 id="product-order-bump-title" className="text-base font-bold text-foreground">
             {title}
           </h3>
-          <p className="text-sm text-muted-foreground">Escolha até {MAX_BUMP_SELECTIONS} opções</p>
         </div>
         {count > 0 && (
           <span className="shrink-0 text-sm font-semibold tabular-nums text-muted-foreground" aria-live="polite">
-            {count}/{MAX_BUMP_SELECTIONS}
+            {count} {count === 1 ? "selecionado" : "selecionados"}
           </span>
         )}
       </div>

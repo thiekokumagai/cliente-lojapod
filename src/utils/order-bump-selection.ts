@@ -7,9 +7,6 @@ import { convertSuggestionToProduct } from "@/utils/order-bump-product";
  * botão "Adicionar" é que coloca o produto e as ofertas no carrinho.
  */
 
-/** Limite de unidades escolhidas no grupo (soma de todas as ofertas). Fixo, como "Escolha até 10 opções". */
-export const MAX_BUMP_SELECTIONS = 10;
-
 /** `bumpId` -> quantidade escolhida. */
 export type BumpSelection = Record<string, number>;
 
@@ -30,13 +27,12 @@ export const offersForProductScreen = (offers: OrderBumpSuggestion[]): OrderBump
 export const stockLeft = (offer: OrderBumpSuggestion, alreadyInCart: number): number =>
   Math.max(0, offer.product.totalStock - alreadyInCart);
 
-/** Dá para somar mais uma unidade? Respeita o limite do grupo e o estoque. */
+/** Dá para somar mais uma unidade? Respeita o estoque da oferta (descontando o carrinho). */
 export function canIncrease(
   selection: BumpSelection,
   offer: OrderBumpSuggestion,
   alreadyInCart = 0,
 ): boolean {
-  if (selectedCount(selection) >= MAX_BUMP_SELECTIONS) return false;
   return (selection[offer.bumpId] ?? 0) < stockLeft(offer, alreadyInCart);
 }
 

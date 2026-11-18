@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { OrderBumpSuggestion } from "@/services/order-bumps";
 import {
-  MAX_BUMP_SELECTIONS,
   addChosenOffersToCart,
   canIncrease,
   chosenOffers,
@@ -37,27 +36,30 @@ describe("order-bump-selection: seleção dentro da tela do produto", () => {
   const coca = offer("coca", 7);
   const fanta = offer("fanta", 6.5);
 
-  describe("o limite do grupo é fixo em 10", () => {
-    it("MAX_BUMP_SELECTIONS é 10", () => {
-      expect(MAX_BUMP_SELECTIONS).toBe(10);
-    });
-
-    it("soma até 10 unidades (de uma oferta ou de várias) e para no 11º", () => {
+  describe("sem limite fixo no grupo (livre até o estoque)", () => {
+    it("permite somar além de 10 unidades respeitando o estoque de cada produto", () => {
       let sel = {};
-      for (let i = 0; i < 6; i++) sel = increase(sel, coca);
-      for (let i = 0; i < 4; i++) sel = increase(sel, fanta);
-      expect(selectedCount(sel)).toBe(10);
-      expect(canIncrease(sel, coca)).toBe(false);
-      expect(increase(sel, fanta)).toBe(sel); // nada muda
-      expect(selectedCount(increase(sel, coca))).toBe(10);
-    });
+      for (let i = 0; i < 15; i++) sel = increase(sel, coca);
+      expect(selectedCount(sel)).toBe(15);
+      expect(canIncrease(sel, coca)).toBe(true);
 
-    it("tirar uma libera de novo", () => {
-      let sel = {};
-      for (let i = 0; i < 10; i++) sel = increase(sel, coca);
-      sel = decrease(sel, coca.bumpId);
-      expect(selectedCount(sel)).toBe(9);
+      for (let i = 0; i < 5; i++) sel = increase(sel, coca);
+      expect(selectedCount(sel)).toBe(20); // totalStock de coca é 20
+      expect(canIncrease(sel, coca)).toBe(false); // atingiu o estoque de coca
+
+      // fanta ainda tem estoque e pode ser adicionada
       expect(canIncrease(sel, fanta)).toBe(true);
+      sel = increase(sel, fanta);
+      expect(selectedCount(sel)).toBe(21);
+    });
+
+    it("tirar uma unidade libera para adicionar de novo", () => {
+      let sel = {};
+      for (let i = 0; i < 20; i++) sel = increase(sel, coca);
+      expect(canIncrease(sel, coca)).toBe(false);
+      sel = decrease(sel, coca.bumpId);
+      expect(selectedCount(sel)).toBe(19);
+      expect(canIncrease(sel, coca)).toBe(true);
     });
   });
 

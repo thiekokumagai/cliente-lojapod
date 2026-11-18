@@ -91,12 +91,12 @@ describe("ProductDetailsModal: grupo 'Peça também' dentro da tela do produto",
     expect(getSuggestions).toHaveBeenCalledWith(["donuts"], "PRODUCT");
   });
 
-  it("mostra título, 'Escolha até 10 opções', nome, descrição curta e preço de cada oferta", async () => {
+  it("mostra título, nome, descrição curta e preço de cada oferta (sem 'Escolha até 10 opções')", async () => {
     renderModal();
     const group = await screen.findByTestId("product-order-bump-group");
 
     expect(within(group).getByText("Leve junto uma Bebida")).toBeInTheDocument();
-    expect(within(group).getByText("Escolha até 10 opções")).toBeInTheDocument();
+    expect(within(group).queryByText(/Escolha até/)).not.toBeInTheDocument();
     expect(within(group).getByText("Coca-Cola 310ml")).toBeInTheDocument();
     expect(within(group).getAllByText("Lata 310ml")).toHaveLength(2);
     expect(within(group).getByText("+ R$ 7,00")).toBeInTheDocument();
@@ -114,7 +114,7 @@ describe("ProductDetailsModal: grupo 'Peça também' dentro da tela do produto",
 
     expect(lines()).toEqual([]); // carrinho continua vazio
     expect(total()).toContain("R$ 31,40"); // 10,90 + 2×7,00 + 6,50
-    expect(screen.getByText("3/10")).toBeInTheDocument();
+    expect(screen.getByText("3 selecionados")).toBeInTheDocument();
   });
 
   it("o Adicionar coloca o produto e as ofertas no carrinho, cada oferta com o preço da oferta", async () => {
@@ -150,20 +150,20 @@ describe("ProductDetailsModal: grupo 'Peça também' dentro da tela do produto",
     fireEvent.click(screen.getByLabelText("Diminuir Coca-Cola 310ml"));
 
     expect(total()).toContain("R$ 10,90");
-    expect(screen.queryByText("1/10")).not.toBeInTheDocument();
+    expect(screen.queryByText(/selecionado/)).not.toBeInTheDocument();
   });
 
-  it("limite fixo de 10 unidades no grupo: o + trava", async () => {
+  it("sem limite de 10: permite escolher mais de 10 unidades respeitando o estoque", async () => {
     renderModal();
     await screen.findByTestId("product-order-bump-group");
 
     for (let i = 0; i < 12; i++) fireEvent.click(screen.getByLabelText("Adicionar Coca-Cola 310ml"));
 
-    expect(screen.getByText("10/10")).toBeInTheDocument();
-    expect(screen.getByLabelText("Adicionar Coca-Cola 310ml")).toBeDisabled();
-    expect(screen.getByLabelText("Adicionar Fanta 310ml")).toBeDisabled();
+    expect(screen.getByText("12 selecionados")).toBeInTheDocument();
+    expect(screen.getByLabelText("Adicionar Coca-Cola 310ml")).not.toBeDisabled();
+    expect(screen.getByLabelText("Adicionar Fanta 310ml")).not.toBeDisabled();
     fireEvent.click(screen.getByText("Adicionar"));
-    await waitFor(() => expect(lines()).toContain("coca|bump-coca|10|7"));
+    await waitFor(() => expect(lines()).toContain("coca|bump-coca|12|7"));
   });
 
   it("respeita o estoque da oferta", async () => {

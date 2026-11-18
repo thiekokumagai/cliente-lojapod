@@ -98,13 +98,13 @@ describe("ProductPage: grupo 'Peça também' dentro da página do produto", () =
   });
   afterEach(() => cleanup());
 
-  it("pede as ofertas da tela do produto e mostra o grupo com título e 'Escolha até 10 opções'", async () => {
+  it("pede as ofertas da tela do produto e mostra o grupo com título e sem 'Escolha até 10 opções'", async () => {
     renderPage();
 
     await waitFor(() => expect(screen.getAllByTestId("product-order-bump-group").length).toBeGreaterThan(0));
     expect(getSuggestions).toHaveBeenCalledWith(["donuts"], "PRODUCT");
     expect(screen.getAllByText("Leve junto uma Bebida").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Escolha até 10 opções").length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Escolha até/)).not.toBeInTheDocument();
     expect(screen.getAllByText("+ R$ 7,00").length).toBeGreaterThan(0);
   });
 
@@ -143,14 +143,14 @@ describe("ProductPage: grupo 'Peça também' dentro da página do produto", () =
     await waitFor(() => expect(lines()).toEqual(["donuts||1|10.9"]));
   });
 
-  it("limite fixo de 10 no grupo", async () => {
+  it("sem limite fixo no grupo: permite ultrapassar 10 unidades", async () => {
     renderPage();
     await waitFor(() => expect(screen.getAllByTestId("product-order-bump-group").length).toBeGreaterThan(0));
 
     for (let i = 0; i < 12; i++) fireEvent.click(plus("Coca-Cola 310ml"));
 
-    expect(screen.getAllByText("10/10").length).toBeGreaterThan(0);
-    expect(plus("Coca-Cola 310ml")).toBeDisabled();
+    expect(screen.getAllByText("12 selecionados").length).toBeGreaterThan(0);
+    expect(plus("Coca-Cola 310ml")).not.toBeDisabled();
   });
 
   it("sem ofertas a página fica como sempre foi", async () => {
