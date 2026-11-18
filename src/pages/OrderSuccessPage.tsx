@@ -18,6 +18,8 @@ import { ordersService } from "@/services/orders";
 import { subscribeToOrderStatus } from "@/services/order-socket";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { formatWhatsAppNumber } from "@/utils/phone";
+import { formatPaymentMethod } from "@/utils/payment-method";
+import { formatOrderStatus } from "@/utils/order-status";
 
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
 
@@ -257,12 +259,12 @@ export default function OrderSuccessPage() {
     }
 
     lines.push(`Valor Total: ${formatPrice(Number(order.totalOrder || 0))}`);
-    lines.push(`Forma de pagamento: ${order.paymentMethod || "Não informado"}`);
+    lines.push(`Forma de pagamento: ${formatPaymentMethod(order.paymentMethod)}`);
     if (order.paymentMethod === "Cartão de Crédito Online") {
       lines.push(`Status do pagamento: ${order.paymentStatus === "PAID" ? "PAGO ✅" : "Processando"}`);
       lines.push(`Pagamento: Online`);
     } else {
-      lines.push(`Status do pedido: ${order.status || "PENDING"}`);
+      lines.push(`Status do pedido: ${formatOrderStatus(order.status, order.deliveryModality)}`);
     }
 
     if (order.deliveryModality === "STORE_PICKUP") {
@@ -570,7 +572,7 @@ export default function OrderSuccessPage() {
                 <span className="text-muted-foreground">Pagamento: </span>
                 <strong className="font-semibold inline-flex items-center gap-1 text-foreground">
                   <CreditCard className="h-3.5 w-3.5" />
-                  {order.paymentMethod || "Não informado"}{" "}
+                  {formatPaymentMethod(order.paymentMethod)}{" "}
                   {isPaid
                     ? "(Aprovado)"
                     : isCreditOnline
