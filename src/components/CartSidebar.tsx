@@ -54,6 +54,7 @@ import { sendCartContact } from "@/services/analytics";
 import type { Product } from "@/data/products";
 import { OrderBumpSection } from "@/components/cart/OrderBumpSection";
 import ProductVariationModal from "@/components/ProductVariationModal";
+import { resolveEffectiveCartItem } from "@/utils/cart-lines";
 
 const SESSION_ADDRESS_KEY = "podemais-checkout-address";
 const SESSION_ADDRESSES_KEY = "podemais-checkout-addresses";
@@ -356,23 +357,8 @@ const CartSidebar = () => {
   };
 
   const effectiveItems = useMemo(() => {
-    if (isPromoAllowedFor(paymentMethod)) {
-      return items;
-    }
-    return items.map(item => {
-      if (item.product.isPromo && item.product.oldPrice) {
-        return {
-          ...item,
-          product: {
-            ...item.product,
-            price: item.product.oldPrice,
-            isPromo: false,
-            oldPrice: undefined
-          }
-        };
-      }
-      return item;
-    });
+    const promoAllowed = isPromoAllowedFor(paymentMethod);
+    return items.map((item) => resolveEffectiveCartItem(item, promoAllowed));
   }, [items, paymentMethod, storeSettings?.promoPaymentMethods]);
 
   const effectiveTotalPrice = useMemo(() => {

@@ -25,3 +25,27 @@ export const isSameCartLine = (
   item.product.id === productId &&
   item.selectedVariation === selectedVariation &&
   (item.orderBumpId ?? null) === (orderBumpId ?? null);
+
+/**
+ * Ajusta o preço do item de acordo com as regras de forma de pagamento:
+ * - Produtos normais em promoção revertem para `oldPrice` quando a forma de pagamento não permite preço promocional (ex: Cartão).
+ * - Combos e itens de Order Bump NÃO revertem para `oldPrice`, pois possuem preços tabelados/de oferta próprios.
+ */
+export function resolveEffectiveCartItem<T extends { product: any; isOrderBump?: boolean; orderBumpId?: string | null }>(
+  item: T,
+  isPromoAllowed: boolean,
+): T {
+  if (isPromoAllowed) return item;
+  if (!item.product?.isCombo && !isBumpLine(item) && item.product?.isPromo && item.product?.oldPrice) {
+    return {
+      ...item,
+      product: {
+        ...item.product,
+        price: item.product.oldPrice,
+        isPromo: false,
+        oldPrice: undefined,
+      },
+    };
+  }
+  return item;
+}
