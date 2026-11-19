@@ -17,6 +17,7 @@ import {
 import { ordersService } from "@/services/orders";
 import { subscribeToOrderStatus } from "@/services/order-socket";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useNoIndex } from "@/hooks/useNoIndex";
 import { formatWhatsAppNumber } from "@/utils/phone";
 import { formatPaymentMethod } from "@/utils/payment-method";
 import { formatOrderStatus } from "@/utils/order-status";
@@ -43,6 +44,7 @@ const getStepStatusIndex = (status?: string, isStorePickup = false) => {
 };
 
 export default function OrderSuccessPage() {
+  useNoIndex();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

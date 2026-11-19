@@ -175,6 +175,16 @@ const server = http.createServer(async (req, res) => {
       html = html.replace(/<\/head>/i, `  <meta property="og:url" content="${canonicalUrl}" />\n</head>`);
     }
 
+    const isPrivateOrderRoute = /^\/pedido(\/|$)/i.test(pathname);
+    if (isPrivateOrderRoute) {
+      const noIndexDirective = "noindex, nofollow, noarchive, nosnippet";
+      res.setHeader("X-Robots-Tag", noIndexDirective);
+      html = html.replace(
+        /<\/head>/i,
+        `  <meta name="robots" content="${noIndexDirective}" />\n  <meta name="googlebot" content="${noIndexDirective}" />\n</head>`
+      );
+    }
+
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("Cache-Control", "no-cache");
     res.end(html);

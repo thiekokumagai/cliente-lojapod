@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MercadoPagoPix } from "@/components/payment/MercadoPagoPix";
 import { MercadoPagoCard } from "@/components/payment/MercadoPagoCard";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useNoIndex } from "@/hooks/useNoIndex";
 import { getMercadoPagoCheckout } from "@/lib/mercadopago";
 import { ordersService } from "@/services/orders";
 
@@ -13,6 +14,7 @@ const formatPrice = (value: number) =>
 
 /** Pagamento online do pedido pelo Mercado Pago: Pix (QR Code) ou cartão. Rota `/pedido/:id/pagamento`. */
 export default function MercadoPagoPaymentPage() {
+  useNoIndex();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();

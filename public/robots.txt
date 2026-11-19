@@ -1,14 +1,24 @@
 User-agent: Googlebot
 Allow: /
+Disallow: /pedido
+Disallow: /pedido/
 
 User-agent: Bingbot
 Allow: /
+Disallow: /pedido
+Disallow: /pedido/
 
 User-agent: Twitterbot
 Allow: /
+Disallow: /pedido
+Disallow: /pedido/
 
 User-agent: facebookexternalhit
 Allow: /
+Disallow: /pedido
+Disallow: /pedido/
 
 User-agent: *
 Allow: /
+Disallow: /pedido
+Disallow: /pedido/

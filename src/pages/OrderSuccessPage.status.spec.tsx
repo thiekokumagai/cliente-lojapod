@@ -101,4 +101,21 @@ describe("OrderSuccessPage: status do pedido em português no WhatsApp", () => {
     expect(text).toContain("Status do pedido: Status indisponível");
     expect(text).not.toContain("REFUNDED");
   });
+
+  it("injeta meta robots e googlebot com noindex na página do pedido e remove ao desmontar", async () => {
+    getStoreOrder.mockResolvedValue(order());
+    const { unmount } = render(<OrderSuccessPage />);
+
+    await screen.findByText("Enviar comprovante no WhatsApp");
+
+    const robots = document.head.querySelector<HTMLMetaElement>('meta[name="robots"]');
+    const googlebot = document.head.querySelector<HTMLMetaElement>('meta[name="googlebot"]');
+    expect(robots?.getAttribute("content")).toBe("noindex, nofollow, noarchive, nosnippet");
+    expect(googlebot?.getAttribute("content")).toBe("noindex, nofollow, noarchive, nosnippet");
+
+    unmount();
+
+    expect(document.head.querySelector('meta[name="robots"]')).toBeNull();
+    expect(document.head.querySelector('meta[name="googlebot"]')).toBeNull();
+  });
 });
