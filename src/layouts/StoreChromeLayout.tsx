@@ -12,6 +12,7 @@ import MyOrdersButton from "@/components/MyOrdersButton";
 import StoreNotFound from "@/components/StoreNotFound";
 import StoreOffline from "@/components/StoreOffline";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { getApiBaseUrl } from "@/services/api";
 import { buildImageUrl } from "@/utils/image-url";
 import { io } from "socket.io-client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -25,7 +26,7 @@ const StoreChromeLayout = () => {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const socketUrl = import.meta.env.VITE_ADMIN_API?.replace(/\/api$/, '') || 'http://localhost:3000';
+    const socketUrl = getApiBaseUrl().replace(/\/api$/, '') || 'http://localhost:3000';
     const socket = io(socketUrl);
 
     socket.on('connect', () => {

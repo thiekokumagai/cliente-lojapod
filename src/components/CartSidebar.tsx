@@ -857,8 +857,8 @@ const CartSidebar = () => {
 
     setIsValidatingCoupon(true);
     try {
-      const { getApiHeaders } = await import("@/services/api");
-      const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/coupons/validate`, {
+      const { getApiHeaders, getApiBaseUrl } = await import("@/services/api");
+      const response = await fetch(`${getApiBaseUrl()}/coupons/validate`, {
         method: "POST",
         headers: { ...getApiHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({ title: trimmedCoupon, orderTotal: effectiveTotalPrice, nonPromoItemsTotal }),

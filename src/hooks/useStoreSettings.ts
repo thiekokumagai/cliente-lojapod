@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getApiHeaders, getSubdomain } from "@/services/api";
+import { getApiHeaders, getApiBaseUrl, getSubdomain } from "@/services/api";
 
 interface StoreSettings {
   storeName: string;
@@ -116,7 +116,7 @@ export function useStoreSettings() {
     initialDataUpdatedAt: 0,
     queryFn: async (): Promise<StoreSettings> => {
       const response = await fetch(
-        `${import.meta.env.VITE_ADMIN_API}/store/settings`,
+        `${getApiBaseUrl()}/store/settings`,
         {
           headers: getApiHeaders(),
         },

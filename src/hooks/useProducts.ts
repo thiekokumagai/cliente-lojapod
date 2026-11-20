@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getApiHeaders } from "@/services/api";
+import { getApiHeaders, getApiBaseUrl } from "@/services/api";
 import type { Product, ProductVariationGroup } from "@/data/products";
 
 interface NewApiProduct {
@@ -159,7 +159,7 @@ export function useProducts(categoryId?: string | null) {
       ? ["api-products-category", categoryId]
       : ["api-products"],
     queryFn: async (): Promise<Product[]> => {
-      let url = `${import.meta.env.VITE_ADMIN_API}/store/products?limit=9999`;
+      let url = `${getApiBaseUrl()}/store/products?limit=9999`;
       if (categoryId) {
         url += `&categoryId=${categoryId}`;
       }
@@ -167,7 +167,7 @@ export function useProducts(categoryId?: string | null) {
       // Buscar produtos convencionais e combos ativos em paralelo
       const [productsRes, combosRes] = await Promise.all([
         fetch(url, { headers: getApiHeaders() }),
-        fetch(`${import.meta.env.VITE_ADMIN_API}/store/combos`, { headers: getApiHeaders() }).catch(() => null),
+        fetch(`${getApiBaseUrl()}/store/combos`, { headers: getApiHeaders() }).catch(() => null),
       ]);
 
       if (!productsRes.ok) throw new Error("Failed to fetch products");
@@ -258,7 +258,7 @@ export function useProduct(id?: string) {
       // 1. Tentar buscar como produto convencional
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_ADMIN_API}/store/products/${id}`,
+          `${getApiBaseUrl()}/store/products/${id}`,
           {
             headers: getApiHeaders(),
           },
@@ -274,7 +274,7 @@ export function useProduct(id?: string) {
       // 2. Se não encontrar em products, tentar buscar em combos
       try {
         const comboRes = await fetch(
-          `${import.meta.env.VITE_ADMIN_API}/store/combos/${id}`,
+          `${getApiBaseUrl()}/store/combos/${id}`,
           {
             headers: getApiHeaders(),
           },
@@ -338,7 +338,7 @@ export function useCategories() {
     queryKey: ["api-categories"],
     queryFn: async () => {
       const response = await fetch(
-        `${import.meta.env.VITE_ADMIN_API}/store/categories`,
+        `${getApiBaseUrl()}/store/categories`,
         {
           headers: getApiHeaders(),
         },

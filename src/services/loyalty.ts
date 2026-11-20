@@ -1,4 +1,4 @@
-import { getApiHeaders } from "./api";
+import { getApiHeaders, getApiBaseUrl } from "./api";
 
 export interface StoreLoyaltyProgram {
   id: string;
@@ -41,9 +41,10 @@ export interface StoreLoyaltyCardResponse {
 export const storeLoyaltyService = {
   getCard: async (phone?: string): Promise<StoreLoyaltyCardResponse> => {
     const cleanPhone = phone ? phone.replace(/\D/g, "") : "";
+    const baseUrl = getApiBaseUrl();
     const url = cleanPhone
-      ? `${import.meta.env.VITE_ADMIN_API}/store/loyalty/card?phone=${encodeURIComponent(cleanPhone)}`
-      : `${import.meta.env.VITE_ADMIN_API}/store/loyalty/card`;
+      ? `${baseUrl}/store/loyalty/card?phone=${encodeURIComponent(cleanPhone)}`
+      : `${baseUrl}/store/loyalty/card`;
     const response = await fetch(url, {
       headers: getApiHeaders(),
     });
@@ -55,7 +56,7 @@ export const storeLoyaltyService = {
 
   redeemReward: async (payload: { phone: string; rewardType?: string; rewardTitle?: string; orderId?: string }) => {
     const cleanPhone = payload.phone.replace(/\D/g, "");
-    const response = await fetch(`${import.meta.env.VITE_ADMIN_API}/store/loyalty/redeem`, {
+    const response = await fetch(`${getApiBaseUrl()}/store/loyalty/redeem`, {
       method: "POST",
       headers: {
         ...getApiHeaders(),

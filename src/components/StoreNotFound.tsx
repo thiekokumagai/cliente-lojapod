@@ -2,19 +2,33 @@ import React from 'react';
 import { SearchX, Globe, ArrowLeft } from 'lucide-react';
 import { getSubdomain } from '@/services/api';
 
-function getAppUrl(): string {
+export function getAppUrl(): string {
   if (typeof window === 'undefined') return 'https://app.lojapod.com';
-  const hostname = window.location.hostname;
+  const hostname = window.location.hostname.toLowerCase();
   const port = window.location.port ? `:${window.location.port}` : '';
   const protocol = window.location.protocol;
   if (hostname.includes('localhost')) {
     return `${protocol}//app.localhost${port}`;
   }
+  if (hostname === 'podipedir.com.br' || hostname.endsWith('.podipedir.com.br')) {
+    return `${protocol}//podipedir.com.br`;
+  }
   return `${protocol}//app.lojapod.com`;
+}
+
+export function getAppHostLabel(): string {
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname.toLowerCase();
+    if (hostname === 'podipedir.com.br' || hostname.endsWith('.podipedir.com.br')) {
+      return 'podipedir.com.br';
+    }
+  }
+  return 'app.lojapod.com';
 }
 
 export default function StoreNotFound() {
   const subdomain = getSubdomain();
+  const appHostLabel = getAppHostLabel();
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center p-4 sm:p-6 relative overflow-hidden font-sans">
@@ -61,7 +75,7 @@ export default function StoreNotFound() {
           className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white font-semibold text-sm transition-all shadow-lg hover:shadow-red-600/25 active:scale-95"
         >
           <ArrowLeft className="w-4 h-4" />
-          Voltar para app.lojapod.com
+          Voltar para {appHostLabel}
         </a>
       </div>
     </div>

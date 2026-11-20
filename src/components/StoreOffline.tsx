@@ -2,13 +2,16 @@ import React from 'react';
 import { Store, Globe, ArrowLeft } from 'lucide-react';
 import { getSubdomain } from '@/services/api';
 
-function getAppUrl(): string {
+export function getAppUrl(): string {
   if (typeof window === 'undefined') return 'https://app.lojapod.com';
-  const hostname = window.location.hostname;
+  const hostname = window.location.hostname.toLowerCase();
   const port = window.location.port ? `:${window.location.port}` : '';
   const protocol = window.location.protocol;
   if (hostname.includes('localhost')) {
     return `${protocol}//app.localhost${port}`;
+  }
+  if (hostname === 'podipedir.com.br' || hostname.endsWith('.podipedir.com.br')) {
+    return `${protocol}//podipedir.com.br`;
   }
   return `${protocol}//app.lojapod.com`;
 }

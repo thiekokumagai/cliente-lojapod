@@ -1,4 +1,5 @@
 import { io, type Socket } from "socket.io-client";
+import { getApiBaseUrl } from "@/services/api";
 
 /** Payload do evento `order.status` (só status; nunca dado pessoal). */
 export interface OrderStatusEvent {
@@ -13,7 +14,7 @@ let refs = 0;
 
 function acquireSocket(): Socket {
   if (!socket) {
-    const url = import.meta.env.VITE_ADMIN_API?.replace(/\/api$/, "") || "http://localhost:3000";
+    const url = getApiBaseUrl().replace(/\/api$/, "") || "http://localhost:3000";
     socket = io(url);
   }
   refs += 1;

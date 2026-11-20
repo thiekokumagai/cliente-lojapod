@@ -41,18 +41,37 @@ function buildFullLogoUrl(rawLogo) {
   return `${MINIO_PUBLIC_URL}/${MINIO_BUCKET}/${clean}`;
 }
 
+const PLATFORM_BASE_DOMAINS = ["lojapod.com", "podipedir.com.br"];
+const RESERVED_SUBDOMAINS = new Set(["app", "admin", "api", "www"]);
+
+function resolveStoreIdentifier(domain) {
+  const clean = (domain || "").trim().toLowerCase().replace(/^www\./, "");
+  for (const baseDomain of PLATFORM_BASE_DOMAINS) {
+    const suffix = `.${baseDomain}`;
+    if (clean.endsWith(suffix)) {
+      const sub = clean.slice(0, -suffix.length).split(".")[0];
+      if (sub && !RESERVED_SUBDOMAINS.has(sub)) {
+        return sub;
+      }
+    }
+  }
+  return clean;
+}
+
 async function getStoreSettings(domain) {
   const cached = settingsCache.get(domain);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data;
   }
 
+  const storeIdentifier = resolveStoreIdentifier(domain);
+
   try {
     const res = await fetch(`${API_URL}/store/settings`, {
       headers: {
         "Content-Type": "application/json",
-        "X-Store-Domain": domain,
-        "X-Store-Subdomain": domain,
+        "X-Store-Domain": storeIdentifier,
+        "X-Store-Subdomain": storeIdentifier,
         "X-Custom-Domain": domain,
       },
       signal: AbortSignal.timeout(6000),
