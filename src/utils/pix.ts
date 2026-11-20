@@ -68,7 +68,7 @@ export function cleanPixKey(key: string, keyType?: string | null): string {
 export function generatePixPayload({
   key,
   keyType,
-  name = 'LOJAPOD',
+  name = 'PODI PEDIR',
   city = 'SAO PAULO',
   amount,
   description,
@@ -108,7 +108,7 @@ export function generatePixPayload({
       .replace(/[^a-zA-Z0-9 ]/g, '')
       .trim()
       .toUpperCase()
-      .slice(0, 25) || 'LOJAPOD';
+      .slice(0, 25) || 'PODI PEDIR';
   const merchantName = formatField('59', cleanName);
 
   // 60 - Merchant City (max 15 chars)

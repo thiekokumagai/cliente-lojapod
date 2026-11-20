@@ -215,5 +215,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`[Server] Cliente LojaPod SSR rodando na porta ${PORT}`);
+  console.log(`[Server] Cliente Podi Pedir SSR rodando na porta ${PORT}`);
 });

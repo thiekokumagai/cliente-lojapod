@@ -1430,7 +1430,7 @@ const CartSidebar = () => {
     const pixPayload = generatePixPayload({
       key: rawPixKey,
       keyType: storeSettings?.pixKeyType,
-      name: storeSettings?.storeName || storeSettings?.name || "LOJAPOD",
+      name: storeSettings?.storeName || storeSettings?.name || "PODI PEDIR",
       city: storeSettings?.city || "SAO PAULO",
       amount: checkoutTotal > 0 ? checkoutTotal : finalTotal,
     });
@@ -2785,7 +2785,7 @@ const CartSidebar = () => {
                         const payload = generatePixPayload({
                           key: rawPixKey,
                           keyType: storeSettings?.pixKeyType,
-                          name: storeSettings?.storeName || storeSettings?.name || "LOJAPOD",
+                          name: storeSettings?.storeName || storeSettings?.name || "PODI PEDIR",
                           city: storeSettings?.city || "SAO PAULO",
                           amount: checkoutTotal > 0 ? checkoutTotal : finalTotal,
                         });
