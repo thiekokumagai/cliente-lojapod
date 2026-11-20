@@ -4,7 +4,7 @@ const path = require("path");
 
 const PORT = process.env.PORT || 3000;
 const DIST_DIR = path.join(__dirname, "dist");
-const API_URL = (process.env.VITE_ADMIN_API || "https://api.lojapod.com/api").replace(/\/$/, "");
+const API_URL = (process.env.VITE_ADMIN_API || "https://api.podipedir.com.br/api").replace(/\/$/, "");
 const MINIO_PUBLIC_URL = (process.env.VITE_MINIO_PUBLIC_URL || "https://bucket-production-10ac.up.railway.app").replace(/\/$/, "");
 const MINIO_BUCKET = process.env.VITE_MINIO_BUCKET || "lojapod";
 
