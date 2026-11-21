@@ -5,6 +5,7 @@ import type { Product } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import ProductVariationModal from "@/components/ProductVariationModal";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
+import ProductCustomizerModal from "@/components/ProductCustomizerModal";
 import { StockNotificationModal } from "@/components/StockNotificationModal";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -12,6 +13,10 @@ import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 import seloMaisVendido from "@/assets/seloMaisVendido.png";
 import { getReservedStockInCart, getProductAvailableStock } from "@/utils/cart-stock";
 import { isBumpLine } from "@/utils/cart-lines";
+import {
+  getCustomizationCopy,
+  supportsCustomization,
+} from "@/utils/business-type";
 
 
 interface ProductCardProps {
@@ -38,6 +43,7 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
   const [showVariationModal, setShowVariationModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showCustomizerModal, setShowCustomizerModal] = useState(false);
   const productImage = product.image || "";
   // As duas primeiras imagens visíveis na viewport inicial carregam eagerly; o restante só sob demanda
   const isEager = priority !== undefined ? priority : (index !== undefined && index < 2);
@@ -117,9 +123,24 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
     0
   );
 
+  const customItemsInCart = useMemo(
+    () => items.filter((item) => item.product.id === product.id && item.isCustomized),
+    [items, product.id]
+  );
+  const customQuantityInCart = customItemsInCart.reduce((total, item) => total + item.quantity, 0);
+  const canCustomize =
+    Boolean(product.isCustomizable) &&
+    supportsCustomization(storeSettings?.businessType);
+  const customizationCopy = getCustomizationCopy(storeSettings?.businessType);
+
   const handleBuy = () => {
     if (product.isCombo) {
       startComboFlow(product);
+      return;
+    }
+
+    if (canCustomize) {
+      setShowCustomizerModal(true);
       return;
     }
 
@@ -418,6 +439,17 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
               Esgotado
             </button>
           )
+        ) : canCustomize ? (
+          <button
+            type="button"
+            onClick={handleBuy}
+            className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl px-4 text-sm font-semibold bg-primary text-primary-foreground"
+          >
+            <ShoppingCart className="h-4 w-4" />
+            {customQuantityInCart > 0
+              ? customizationCopy.buttonRepeatLabel
+              : customizationCopy.buttonLabel}
+          </button>
         ) : hasVariationGroup ? (
           <button
             type="button"
@@ -502,6 +534,15 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
           comboId={product.isCombo ? (product.comboId || product.id) : undefined}
           isCombo={product.isCombo}
           productTitle={product.name}
+        />
+      )}
+      {canCustomize && showCustomizerModal && (
+        <ProductCustomizerModal
+          isOpen={showCustomizerModal}
+          onClose={() => setShowCustomizerModal(false)}
+          product={product}
+          businessType={storeSettings?.businessType}
+          onConfirm={(item) => addToCart(item)}
         />
       )}
     </>

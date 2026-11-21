@@ -12,6 +12,9 @@ export interface CartItem {
   comboSelections?: ComboComponentSelection[];
   isOrderBump?: boolean;
   orderBumpId?: string;
+  isCustomized?: boolean;
+  customizationSnapshot?: any;
+  customizationLineId?: string;
 }
 
 export interface SavedOrder {
@@ -31,12 +34,18 @@ interface CartContextType {
   items: CartItem[];
   addToCart: (item: Product | SelectedProduct) => void;
   /** `orderBumpId` ausente = linha normal; informe o id da oferta para mexer na linha da oferta. */
-  removeFromCart: (productId: string, selectedVariation?: string, orderBumpId?: string | null) => void;
+  removeFromCart: (
+    productId: string,
+    selectedVariation?: string,
+    orderBumpId?: string | null,
+    customizationLineId?: string | null,
+  ) => void;
   updateQuantity: (
     productId: string,
     quantity: number,
     selectedVariation?: string,
     orderBumpId?: string | null,
+    customizationLineId?: string | null,
   ) => void;
   clearCart: () => void;
   totalItems: number;
@@ -86,6 +95,9 @@ const normalizeItem = (item: Product | SelectedProduct) => {
     comboSelections: undefined,
     isOrderBump: (item as any).isOrderBump,
     orderBumpId: (item as any).orderBumpId,
+    isCustomized: (item as any).isCustomized,
+    customizationSnapshot: (item as any).customizationSnapshot,
+    customizationLineId: (item as any).customizationLineId,
   };
 };
 
@@ -236,6 +248,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         if (cartItem.selectedVariation !== normalizedItem.selectedVariation) return false;
         // Linha normal e linha de oferta "Peça também" do mesmo produto têm preços diferentes: não se juntam
         if ((cartItem.orderBumpId ?? null) !== ((normalizedItem as any).orderBumpId ?? null)) return false;
+        // Linhas de produtos customizados diferentes têm id de customização próprio
+        if ((cartItem.customizationLineId ?? null) !== ((normalizedItem as any).customizationLineId ?? null)) return false;
         if (normalizedComboKey || getComboKey(cartItem)) {
           return getComboKey(cartItem) === normalizedComboKey;
         }
@@ -248,6 +262,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
               cartItem.product.id === normalizedItem.product.id &&
               cartItem.selectedVariation === normalizedItem.selectedVariation &&
               (cartItem.orderBumpId ?? null) === ((normalizedItem as any).orderBumpId ?? null) &&
+              (cartItem.customizationLineId ?? null) === ((normalizedItem as any).customizationLineId ?? null) &&
               (normalizedComboKey ? getComboKey(cartItem) === normalizedComboKey : true);
 
             return matches ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem;
@@ -261,6 +276,9 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
               comboSelections: normalizedItem.comboSelections,
               isOrderBump: (normalizedItem as any).isOrderBump,
               orderBumpId: (normalizedItem as any).orderBumpId,
+              isCustomized: (normalizedItem as any).isCustomized,
+              customizationSnapshot: (normalizedItem as any).customizationSnapshot,
+              customizationLineId: (normalizedItem as any).customizationLineId,
             },
           ];
 
@@ -290,21 +308,32 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   }, []);
 
-  const removeFromCart = useCallback((productId: string, selectedVariation?: string, orderBumpId?: string | null) => {
+  const removeFromCart = useCallback((
+    productId: string,
+    selectedVariation?: string,
+    orderBumpId?: string | null,
+    customizationLineId?: string | null,
+  ) => {
     setItems((prev) =>
       prev.filter(
         (item) =>
-          !isSameCartLine(item, productId, selectedVariation, orderBumpId)
+          !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
       )
     );
   }, []);
 
-  const updateQuantity = useCallback((productId: string, quantity: number, selectedVariation?: string, orderBumpId?: string | null) => {
+  const updateQuantity = useCallback((
+    productId: string,
+    quantity: number,
+    selectedVariation?: string,
+    orderBumpId?: string | null,
+    customizationLineId?: string | null,
+  ) => {
     if (quantity <= 0) {
       setItems((prev) =>
         prev.filter(
           (item) =>
-            !isSameCartLine(item, productId, selectedVariation, orderBumpId)
+            !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
         )
       );
       return;
@@ -312,7 +341,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     setItems((prev) => {
       const targetIndex = prev.findIndex(
-        (item) => isSameCartLine(item, productId, selectedVariation, orderBumpId)
+        (item) => isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
       );
       if (targetIndex === -1) return prev;
 

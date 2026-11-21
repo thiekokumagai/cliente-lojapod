@@ -1,8 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { getApiHeaders, getApiBaseUrl, getSubdomain } from "@/services/api";
 
+export type BusinessType = "POD" | "FOOD" | "ACAI";
+
 interface StoreSettings {
   storeName: string;
+  businessType?: BusinessType;
   logoUrl?: string;
   whiteLogoUrl?: string;
   faviconUrl?: string;

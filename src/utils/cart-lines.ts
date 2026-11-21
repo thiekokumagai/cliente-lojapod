@@ -9,22 +9,25 @@ type LineLike = {
   selectedVariation?: string;
   orderBumpId?: string | null;
   isOrderBump?: boolean;
+  customizationLineId?: string | null;
 };
 
 /** Linha criada por uma oferta "Peça também" (tem o id da oferta). */
 export const isBumpLine = (item: Pick<LineLike, "orderBumpId" | "isOrderBump">): boolean =>
   !!item.orderBumpId || !!item.isOrderBump;
 
-/** É a linha deste produto/variação/oferta? `orderBumpId` ausente = linha normal (sem oferta). */
+/** É a linha deste produto/variação/oferta/customização? `orderBumpId` ou `customizationLineId` ausentes = linha padrão. */
 export const isSameCartLine = (
   item: LineLike,
   productId: string,
   selectedVariation?: string,
   orderBumpId?: string | null,
+  customizationLineId?: string | null,
 ): boolean =>
   item.product.id === productId &&
   item.selectedVariation === selectedVariation &&
-  (item.orderBumpId ?? null) === (orderBumpId ?? null);
+  (item.orderBumpId ?? null) === (orderBumpId ?? null) &&
+  (item.customizationLineId ?? null) === (customizationLineId ?? null);
 
 /**
  * Ajusta o preço do item de acordo com as regras de forma de pagamento:

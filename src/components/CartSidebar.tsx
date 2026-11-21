@@ -890,8 +890,13 @@ const CartSidebar = () => {
     toast.success("Cupom removido.");
   };
 
-  const handleRemoveItem = (productId: string, selectedVariation?: string, orderBumpId?: string | null) => {
-    removeFromCart(productId, selectedVariation, orderBumpId);
+  const handleRemoveItem = (
+    productId: string,
+    selectedVariation?: string,
+    orderBumpId?: string | null,
+    customizationLineId?: string | null,
+  ) => {
+    removeFromCart(productId, selectedVariation, orderBumpId, customizationLineId);
   };
 
   const handleClearCart = () => {
@@ -1019,6 +1024,18 @@ const CartSidebar = () => {
           const effectiveVar = ci.variation || chosen?.variation;
           const compVar = effectiveVar ? ` (${effectiveVar})` : "";
           qtyStr += `\n    • ${compQtd}x ${ci.productName}${compVar}`;
+        });
+      }
+      if (item.isCustomized && item.customizationSnapshot?.stages) {
+        item.customizationSnapshot.stages.forEach((stage: any) => {
+          const opts = (stage.options || []).map((opt: any) => {
+            const optQtd = opt.quantity > 1 ? `${opt.quantity}x ` : "";
+            const optPrice = Number(opt.totalPrice) > 0 ? ` (+${formatPrice(Number(opt.totalPrice))})` : "";
+            return `${optQtd}${opt.name}${optPrice}`;
+          }).join(", ");
+          if (opts) {
+            qtyStr += `\n    • [${stage.groupName}]: ${opts}`;
+          }
         });
       }
       return qtyStr;
@@ -1222,6 +1239,8 @@ const CartSidebar = () => {
           comboSelections: item.comboSelections || undefined,
           isOrderBump: (item as any).isOrderBump || false,
           orderBumpId: (item as any).orderBumpId || undefined,
+          isCustomized: !!item.isCustomized,
+          customizationSnapshot: item.customizationSnapshot || undefined,
         })),
         redeemedReward: redeemedReward ? {
           rewardType: redeemedReward.rewardType,
@@ -1674,9 +1693,21 @@ const CartSidebar = () => {
                                         })}
                                       </div>
                                     )}
+
+                                    {/* Personalização / Montagem por etapas */}
+                                    {item.isCustomized && item.customizationSnapshot?.stages && (
+                                      <div className="mt-1.5 pl-2 border-l-2 border-emerald-400 space-y-0.5">
+                                        {item.customizationSnapshot.stages.map((stage: any, sIdx: number) => (
+                                          <p key={sIdx} className="text-[11px] text-muted-foreground">
+                                            <span className="font-semibold text-foreground">{stage.groupName}:</span>{" "}
+                                            {(stage.options || []).map((o: any) => `${o.quantity > 1 ? `${o.quantity}x ` : ""}${o.name}${Number(o.totalPrice) > 0 ? ` (+${formatPrice(Number(o.totalPrice))})` : ""}`).join(", ")}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                   <button
-                                    onClick={() => handleRemoveItem(item.product.id, item.selectedVariation, item.orderBumpId)}
+                                    onClick={() => handleRemoveItem(item.product.id, item.selectedVariation, item.orderBumpId, item.customizationLineId)}
                                     className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-secondary"
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -1685,7 +1716,7 @@ const CartSidebar = () => {
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1 rounded-full border border-border bg-card px-1 py-1">
                                     <button
-                                      onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedVariation, item.orderBumpId)}
+                                      onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedVariation, item.orderBumpId, item.customizationLineId)}
                                       className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary"
                                     >
                                       <Minus className="h-3 w-3" />
@@ -1697,7 +1728,7 @@ const CartSidebar = () => {
                                       disabled={isAtLimit}
                                       onClick={() => {
                                         if (isAtLimit) return;
-                                        updateQuantity(item.product.id, item.quantity + 1, item.selectedVariation, item.orderBumpId);
+                                        updateQuantity(item.product.id, item.quantity + 1, item.selectedVariation, item.orderBumpId, item.customizationLineId);
                                       }}
                                       className={`rounded-full p-1.5 ${isAtLimit ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50" : "bg-primary text-primary-foreground"}`}
                                     >
@@ -2258,7 +2289,7 @@ const CartSidebar = () => {
                     <div className="space-y-2">
                       {effectiveItems.map((item) => (
                         <div
-                          key={`${item.product.id}-${item.selectedVariation ?? "default"}`}
+                          key={`${item.product.id}-${item.selectedVariation ?? "default"}-${item.customizationLineId ?? ""}`}
                           className="flex items-start justify-between text-sm gap-3"
                         >
                           <div className="flex items-start gap-2 flex-1">
@@ -2283,6 +2314,16 @@ const CartSidebar = () => {
                                     <p key={cIdx} className="text-[11px] text-muted-foreground">
                                       • {(ci.quantity || 1) * item.quantity}x {ci.productName}
                                       {ci.variation ? ` (${ci.variation})` : ""}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                              {item.isCustomized && item.customizationSnapshot?.stages && (
+                                <div className="mt-1 pl-2 border-l-2 border-emerald-400 space-y-0.5">
+                                  {item.customizationSnapshot.stages.map((stage: any, sIdx: number) => (
+                                    <p key={sIdx} className="text-[11px] text-muted-foreground">
+                                      <span className="font-semibold text-foreground">{stage.groupName}:</span>{" "}
+                                      {(stage.options || []).map((o: any) => `${o.quantity > 1 ? `${o.quantity}x ` : ""}${o.name}${Number(o.totalPrice) > 0 ? ` (+${formatPrice(Number(o.totalPrice))})` : ""}`).join(", ")}
                                     </p>
                                   ))}
                                 </div>
@@ -2695,6 +2736,16 @@ const CartSidebar = () => {
                                   </p>
                                 );
                               })}
+                            </div>
+                          )}
+                          {item.isCustomized && item.customizationSnapshot?.stages && (
+                            <div className="mt-1 pl-2 border-l-2 border-emerald-400 space-y-0.5">
+                              {item.customizationSnapshot.stages.map((stage: any, sIdx: number) => (
+                                <p key={sIdx} className="text-[12px] text-[#8b8b8b]">
+                                  <span className="font-semibold text-foreground">{stage.groupName}:</span>{" "}
+                                  {(stage.options || []).map((o: any) => `${o.quantity > 1 ? `${o.quantity}x ` : ""}${o.name}${Number(o.totalPrice) > 0 ? ` (+${formatPrice(Number(o.totalPrice))})` : ""}`).join(", ")}
+                                </p>
+                              ))}
                             </div>
                           )}
                         </div>

@@ -38,6 +38,17 @@ describe("cliente-lojapod: resolução de múltiplos domínios-base (lojapod.com
     expect(getSubdomain()).toBe("demo");
   });
 
+  it("extrai o subdomínio de *.localhost em ambiente local", () => {
+    mockLocation("demo.localhost");
+    expect(getSubdomain()).toBe("demo");
+
+    mockLocation("minhaloja.localhost");
+    expect(getSubdomain()).toBe("minhaloja");
+
+    mockLocation("localhost");
+    expect(getSubdomain()).toBe("demo");
+  });
+
   it("mantém o hostname completo quando for domínio próprio de lojista", () => {
     mockLocation("hnperfumes.com.br");
     expect(getSubdomain()).toBe("hnperfumes.com.br");

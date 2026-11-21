@@ -39,10 +39,17 @@ export function getSubdomain(): string {
   const paramSubdomain = urlParams.get("subdomain") || urlParams.get("domain");
   if (paramSubdomain) return paramSubdomain.toLowerCase();
 
-  // localhost → demo
+  // localhost → demo; <slug>.localhost → <slug> (ex.: demo.localhost → demo)
   if (hostname === "localhost" || hostname === "127.0.0.1") return "demo";
 
   const cleanHost = hostname.replace(/^www\./, "");
+
+  if (cleanHost.endsWith(".localhost")) {
+    const localSubdomain = cleanHost.slice(0, -".localhost".length).split(".")[0];
+    if (localSubdomain && !RESERVED_SUBDOMAINS.has(localSubdomain)) {
+      return localSubdomain;
+    }
+  }
 
   // Se for subdomínio nativo (.lojapod.com ou .podipedir.com.br)
   for (const baseDomain of PLATFORM_BASE_DOMAINS) {

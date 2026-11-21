@@ -58,6 +58,7 @@ export interface Product {
   // Campos de Combo
   isCombo?: boolean;
   comboId?: string;
+  isCustomizable?: boolean;
   comboItems?: ComboItemComponent[];
   maxPerOrder?: number | null;
   discountPercentage?: number;
@@ -70,5 +71,8 @@ export interface SelectedProduct {
   comboSelections?: ComboComponentSelection[];
   isOrderBump?: boolean;
   orderBumpId?: string;
+  isCustomized?: boolean;
+  customizationSnapshot?: any;
+  customizationLineId?: string;
 }
 
