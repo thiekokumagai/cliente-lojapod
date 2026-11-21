@@ -20,6 +20,8 @@ import { getReservedStockInCart, getProductAvailableStock, areVariationsEqual } 
 import { isBumpLine } from "@/utils/cart-lines";
 import { useProductOrderBumps } from "@/hooks/useProductOrderBumps";
 import ProductOrderBumpGroup from "@/components/product/ProductOrderBumpGroup";
+import ProductCustomizerModal from "@/components/ProductCustomizerModal";
+import { getCustomizationCopy, supportsCustomization } from "@/utils/business-type";
 import {
   addChosenOffersToCart,
   chosenOffers,
@@ -83,6 +85,7 @@ const ProductDetailsModal = ({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showCustomizerModal, setShowCustomizerModal] = useState(false);
 
   const discountPercentage = useMemo(() => {
     if (product.isPromo && product.oldPrice && product.price < product.oldPrice) {
@@ -218,6 +221,18 @@ const ProductDetailsModal = ({
     ? allComboComponentsSelected && (product.stock === undefined || product.stock > 0)
     : allSelected && !isCombinationUnavailable;
 
+  const canCustomize =
+    Boolean(product.isCustomizable) &&
+    supportsCustomization(storeSettings?.businessType);
+  const customizationCopy = getCustomizationCopy(storeSettings?.businessType);
+  const customQuantityInCart = useMemo(
+    () =>
+      items
+        .filter((item) => item.product.id === product.id && item.isCustomized)
+        .reduce((total, item) => total + item.quantity, 0),
+    [items, product.id],
+  );
+
   const quantityInCart = useMemo(() => {
     if (product.isCombo) {
       if (!allComboComponentsSelected) return 0;
@@ -342,6 +357,12 @@ const ProductDetailsModal = ({
   };
 
   const handleBuy = () => {
+    if (canCustomize) {
+      if (isUnavailable || isCombinationUnavailable) return;
+      setShowCustomizerModal(true);
+      return;
+    }
+
     if (product.isCombo) {
       if (!canAddToCart || isUnavailable) return;
       const formattedSelections = comboNeedsSelections
@@ -775,18 +796,30 @@ const ProductDetailsModal = ({
 
               <button
                 type="button"
-                onClick={quantityInCart > 0 ? undefined : handleBuy}
-                disabled={(!canAddToCart && quantityInCart === 0) || isUnavailable}
+                onClick={canCustomize ? handleBuy : quantityInCart > 0 ? undefined : handleBuy}
+                disabled={(!canAddToCart && quantityInCart === 0 && !canCustomize) || isUnavailable}
                 className={`flex h-12 flex-[2] items-center justify-between rounded-xl px-4 text-sm font-bold transition-opacity ${
-                  (canAddToCart || quantityInCart > 0) && !isUnavailable
+                  (canAddToCart || quantityInCart > 0 || canCustomize) && !isUnavailable
                     ? "bg-primary text-primary-foreground"
                     : "bg-muted text-muted-foreground cursor-not-allowed"
                 }`}
               >
-                <span>{isUnavailable ? "Esgotado" : quantityInCart > 0 ? "Adicionado" : "Adicionar"}</span>
+                <span>
+                  {isUnavailable
+                    ? "Esgotado"
+                    : canCustomize
+                      ? customQuantityInCart > 0
+                        ? customizationCopy.buttonRepeatLabel
+                        : customizationCopy.buttonLabel
+                      : quantityInCart > 0
+                        ? "Adicionado"
+                        : "Adicionar"}
+                </span>
                 <span>
                   {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(
-                    quantityInCart > 0 ? 0 : (product.price + selectedOptionsAdditions) * displayQuantity + bumpsTotal
+                    !canCustomize && quantityInCart > 0
+                      ? 0
+                      : (product.price + selectedOptionsAdditions) * displayQuantity + bumpsTotal
                   )}
                 </span>
               </button>
@@ -832,6 +865,22 @@ const ProductDetailsModal = ({
           onClose={() => setIsImageModalOpen(false)}
           title={product.name}
           description={product.description}
+        />
+      )}
+      {canCustomize && showCustomizerModal && (
+        <ProductCustomizerModal
+          isOpen={showCustomizerModal}
+          onClose={() => setShowCustomizerModal(false)}
+          product={product}
+          businessType={storeSettings?.businessType}
+          onConfirm={(item) => {
+            addToCart(item);
+            if (displayQuantity > 1) {
+              updateQuantity(item.product.id, displayQuantity, item.selectedVariation, item.orderBumpId, item.customizationLineId);
+            }
+            addBumpsToCart();
+            startAutoClose(item.selectedVariation);
+          }}
         />
       )}
     </div>,

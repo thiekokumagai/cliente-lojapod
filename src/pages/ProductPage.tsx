@@ -33,6 +33,8 @@ import { getReservedStockInCart } from "@/utils/cart-stock";
 import { isBumpLine } from "@/utils/cart-lines";
 import { useProductOrderBumps } from "@/hooks/useProductOrderBumps";
 import ProductOrderBumpGroup from "@/components/product/ProductOrderBumpGroup";
+import ProductCustomizerModal from "@/components/ProductCustomizerModal";
+import { getCustomizationCopy, supportsCustomization } from "@/utils/business-type";
 import {
   addChosenOffersToCart,
   chosenOffers,
@@ -55,6 +57,7 @@ const ProductPage = () => {
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [hasJustUpdated, setHasJustUpdated] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [showCustomizerModal, setShowCustomizerModal] = useState(false);
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
@@ -219,6 +222,17 @@ const ProductPage = () => {
       : product?.stock === 0;
 
   const isInCart = !!cartItem;
+  const canCustomize =
+    Boolean(product?.isCustomizable) &&
+    supportsCustomization(settings?.businessType);
+  const customizationCopy = getCustomizationCopy(settings?.businessType);
+  const customQuantityInCart = useMemo(
+    () =>
+      items
+        .filter((item) => item.product.id === product?.id && item.isCustomized)
+        .reduce((total, item) => total + item.quantity, 0),
+    [items, product?.id],
+  );
 
   // Ofertas "Peça também" marcadas para a tela do produto (grupo opcional, ex.: "Leve junto uma Bebida").
   // O + só guarda a escolha; o "Adicionar ao Pedido" coloca o produto e as ofertas no carrinho.
@@ -243,13 +257,17 @@ const ProductPage = () => {
 
   const primaryButtonLabel = isUnavailable || isCombinationUnavailable
     ? "Esgotado"
-    : !canAddToCart
-      ? "Selecione as variações"
-      : isInCart
-        ? "Atualizar"
-        : bumpsTotal > 0
-          ? `Adicionar ao Pedido · ${formatPrice(totalPrice)}`
-          : "Adicionar ao Pedido";
+    : canCustomize
+      ? customQuantityInCart > 0
+        ? customizationCopy.buttonRepeatLabel
+        : customizationCopy.buttonLabel
+      : !canAddToCart
+        ? "Selecione as variações"
+        : isInCart
+          ? "Atualizar"
+          : bumpsTotal > 0
+            ? `Adicionar ao Pedido · ${formatPrice(totalPrice)}`
+            : "Adicionar ao Pedido";
 
   if (isLoading) {
     return (
@@ -318,6 +336,12 @@ const ProductPage = () => {
 
   const handleAddOrUpdateCart = () => {
     if (!product) return;
+
+    if (canCustomize) {
+      if (isUnavailable || isCombinationUnavailable) return;
+      setShowCustomizerModal(true);
+      return;
+    }
 
     if (product.isCombo) {
       if (!canAddToCart || isUnavailable) return;
@@ -706,6 +730,25 @@ const ProductPage = () => {
           customSubtitle={`Item do combo: ${activeCombo.name}`}
           customConfirmLabel={comboStepIndex + 1 === comboTotalSteps ? "Concluir e Adicionar Combo" : "Próximo Item"}
           onConfirmVariation={(variation, productItem) => handleConfirmComboStep(variation, productItem)}
+        />
+      )}
+
+      {canCustomize && showCustomizerModal && product && (
+        <ProductCustomizerModal
+          isOpen={showCustomizerModal}
+          onClose={() => setShowCustomizerModal(false)}
+          product={product}
+          businessType={settings?.businessType}
+          onConfirm={(item) => {
+            addToCart(item);
+            if (quantity > 1) {
+              updateQuantity(item.product.id, quantity, item.selectedVariation, item.orderBumpId, item.customizationLineId);
+            }
+            addBumpsToCart();
+            triggerAddedModal(item);
+            setHasJustUpdated(true);
+            handleNavigateToList();
+          }}
         />
       )}
     </div>

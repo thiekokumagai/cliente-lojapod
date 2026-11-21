@@ -28,6 +28,7 @@ interface NewApiProduct {
   images?: { url: string }[];
   isBestSeller?: boolean;
   isFeatured?: boolean;
+  isCustomizable?: boolean;
   createdAt?: string;
   totalSold?: number;
 }
@@ -147,6 +148,7 @@ export function transformNewApiProduct(
     isVisible: raw.isVisible,
     isBestSeller: raw.isBestSeller,
     isFeatured: raw.isFeatured,
+    isCustomizable: Boolean(raw.isCustomizable),
     categoryId: raw.categoryId,
     createdAt: raw.createdAt,
     totalSold: Number(raw.totalSold || 0),

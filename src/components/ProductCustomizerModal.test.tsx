@@ -8,6 +8,7 @@ vi.mock("@/services/api", () => ({
 }));
 
 import ProductCustomizerModal from "./ProductCustomizerModal";
+import { transformNewApiProduct } from "@/hooks/useProducts";
 import { apiResponse } from "@/test/fixtures/compositions";
 
 function renderModal(onConfirm = vi.fn()) {
@@ -64,5 +65,27 @@ describe("ProductCustomizerModal com a resposta real da API", () => {
         ],
       },
     ]);
+  });
+
+  it("transformNewApiProduct preserva isCustomizable vindo da API pública /store/products", () => {
+    const mapped = transformNewApiProduct({
+      id: "p1",
+      title: "Hambúrguer",
+      categoryId: "c1",
+      price: 100,
+      isCustomizable: true,
+      items: [{ stock: 10, options: [] }],
+    });
+    expect(mapped.isCustomizable).toBe(true);
+
+    const notCustomizable = transformNewApiProduct({
+      id: "p2",
+      title: "Refrigerante",
+      categoryId: "c1",
+      price: 10,
+      isCustomizable: false,
+      items: [{ stock: 10, options: [] }],
+    });
+    expect(notCustomizable.isCustomizable).toBe(false);
   });
 });
