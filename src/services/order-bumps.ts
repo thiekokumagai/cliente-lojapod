@@ -20,6 +20,9 @@ export interface OrderBumpProductItem {
 export interface OrderBumpSuggestion {
   bumpId: string;
   sectionTitle: string;
+  triggerType?: "ALL" | "CATEGORY" | "PRODUCT";
+  triggerProductId?: string | null;
+  triggerCategoryId?: string | null;
   product: {
     id: string;
     title: string;

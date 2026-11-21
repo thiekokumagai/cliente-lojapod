@@ -10,8 +10,10 @@ export default function UrbanFeaturedHeader() {
 
   const showDeliveryBadge = isNoFee || isFixedFee;
   const showStorePickup = Boolean(settings?.storePickupEnabled);
+  const minOrderValue = settings?.minOrderEnabled ? Number(settings?.minOrderValue || 0) : 0;
+  const showMinOrder = minOrderValue > 0;
 
-  if (!showDeliveryBadge && !showStorePickup) {
+  if (!showDeliveryBadge && !showStorePickup && !showMinOrder) {
     return null;
   }
 
@@ -37,6 +39,12 @@ export default function UrbanFeaturedHeader() {
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700 shrink-0">
             <Store className="h-3.5 w-3.5 text-blue-600" />
             <span>Retirada</span>
+          </div>
+        )}
+
+        {showMinOrder && (
+          <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 shrink-0">
+            <span>Pedido mín. R$ {minOrderValue.toFixed(2).replace('.', ',')}</span>
           </div>
         )}
       </div>

@@ -26,6 +26,8 @@ export default function MenuExpressHeader() {
   const isFixedFee = settings?.deliveryType === "FIXED_FEE";
   const fixedFeeValue = settings?.deliveryFixedFee;
   const showStorePickup = Boolean(settings?.storePickupEnabled);
+  const minOrderValue = settings?.minOrderEnabled ? Number(settings?.minOrderValue || 0) : 0;
+  const showMinOrder = minOrderValue > 0;
 
   return (
     <header className="w-full bg-background border-b border-border-subtle">
@@ -112,6 +114,13 @@ export default function MenuExpressHeader() {
                   <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-700 shrink-0">
                     <Store className="h-3.5 w-3.5 text-blue-600" />
                     <span>Retirada</span>
+                  </span>
+                )}
+
+                {/* Pedido Mínimo (estilo iFood) */}
+                {showMinOrder && (
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-xs font-semibold text-amber-800 shrink-0">
+                    <span>Pedido mín. R$ {minOrderValue.toFixed(2).replace('.', ',')}</span>
                   </span>
                 )}
 

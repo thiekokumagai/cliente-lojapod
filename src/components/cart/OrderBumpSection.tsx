@@ -61,18 +61,25 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
 
   const handleAdd = (sug: OrderBumpSuggestion) => {
     const prod = convertSuggestionToProduct(sug);
+    const orderBumpTrigger = {
+      triggerType: sug.triggerType,
+      triggerProductId: sug.triggerProductId,
+      triggerCategoryId: sug.triggerCategoryId,
+    };
 
     if (sug.product.hasVariations && onOpenVariationModal) {
       onOpenVariationModal({
         ...prod,
         isOrderBump: true,
         orderBumpId: sug.bumpId,
+        orderBumpTrigger,
       } as any);
     } else {
       addToCart({
         product: prod,
         isOrderBump: true,
         orderBumpId: sug.bumpId,
+        orderBumpTrigger,
       } as any);
     }
   };

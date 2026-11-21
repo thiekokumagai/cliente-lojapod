@@ -15,6 +15,8 @@ export default function UrbanHeader({ onOpenCategoriesMenu }: UrbanHeaderProps) 
   const isNoFee = settings?.deliveryType === "NO_FEE" || Boolean(settings?.freeShippingEnabled);
   const isFixedFee = settings?.deliveryType === "FIXED_FEE";
   const fixedFeeValue = settings?.deliveryFixedFee;
+  const minOrderValue = settings?.minOrderEnabled ? Number(settings?.minOrderValue || 0) : 0;
+  const showMinOrder = minOrderValue > 0;
 
   const logoUrl = settings?.whiteLogoUrl || settings?.logoUrl;
   const storeName = settings?.storeName || "Urban";
@@ -56,6 +58,11 @@ export default function UrbanHeader({ onOpenCategoriesMenu }: UrbanHeaderProps) 
                 <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-800 border border-zinc-700/60 text-xs font-medium text-zinc-200">
                   <Truck className="h-3.5 w-3.5 text-zinc-300" />
                   <span>Taxa fixa{fixedFeeValue ? `: R$ ${Number(fixedFeeValue).toFixed(2).replace('.', ',')}` : ''}</span>
+                </div>
+              )}
+              {showMinOrder && (
+                <div className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-zinc-800 border border-zinc-700/60 text-xs font-medium text-zinc-200">
+                  <span>Pedido mín. R$ {minOrderValue.toFixed(2).replace('.', ',')}</span>
                 </div>
               )}
 

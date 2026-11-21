@@ -95,7 +95,7 @@ describe("CartContext: a linha de oferta 'Peça também' não se junta à linha 
     expect(result.current.items.find((i) => i.orderBumpId === "b1")!.quantity).toBe(1);
   });
 
-  it("removeFromCart com o id da oferta tira só a oferta; sem o id tira só a linha normal", () => {
+  it("removeFromCart com o id da oferta tira só a oferta; sem o id tira a linha normal e o bump que sobrou sozinho perde o desconto da oferta", () => {
     const { result } = setup();
     act(() => result.current.addToCart(normal()));
     act(() => result.current.addToCart(bump()));
@@ -104,10 +104,50 @@ describe("CartContext: a linha de oferta 'Peça também' não se junta à linha 
     expect(result.current.items).toHaveLength(1);
     expect(result.current.items[0].orderBumpId).toBeUndefined();
 
-    act(() => result.current.addToCart(bump()));
+    act(() =>
+      result.current.addToCart({
+        product: { ...coca(6), oldPrice: 8, isPromo: true } as never,
+        isOrderBump: true,
+        orderBumpId: "b1",
+      }),
+    );
     act(() => result.current.removeFromCart("coca"));
     expect(result.current.items).toHaveLength(1);
-    expect(result.current.items[0].orderBumpId).toBe("b1");
+    expect(result.current.items[0].orderBumpId).toBeUndefined();
+    expect(result.current.items[0].isOrderBump).toBeUndefined();
+    expect(result.current.items[0].product.price).toBe(8);
+  });
+
+  it("quando o produto gatilho é removido do carrinho, o item de Order Bump perde o desconto e volta ao preço normal", () => {
+    const { result } = setup();
+    const triggerProduct = {
+      product: { id: "pod-principal", name: "Pod Principal", image: "", category: "", categoryId: "cat-1", description: "", price: 100, stock: 10 } as never,
+    };
+    const bumpItem = {
+      product: { id: "ignite-v400", name: "IGNITE v400 (Cópia)", image: "", category: "", description: "", price: 25, oldPrice: 50, isPromo: true, stock: 10 } as never,
+      isOrderBump: true,
+      orderBumpId: "bump-ignite",
+      orderBumpTrigger: { triggerType: "PRODUCT" as const, triggerProductId: "pod-principal" },
+    };
+
+    act(() => result.current.addToCart(triggerProduct));
+    act(() => result.current.addToCart(bumpItem));
+
+    expect(result.current.items).toHaveLength(2);
+    expect(result.current.items.find((i) => i.product.id === "ignite-v400")!.product.price).toBe(25);
+    expect(result.current.items.find((i) => i.product.id === "ignite-v400")!.orderBumpId).toBe("bump-ignite");
+
+    // Remove o produto principal gatilho
+    act(() => result.current.removeFromCart("pod-principal"));
+
+    expect(result.current.items).toHaveLength(1);
+    const remaining = result.current.items[0];
+    expect(remaining.product.id).toBe("ignite-v400");
+    expect(remaining.product.price).toBe(50);
+    expect(remaining.product.oldPrice).toBeUndefined();
+    expect(remaining.product.isPromo).toBe(false);
+    expect(remaining.isOrderBump).toBeUndefined();
+    expect(remaining.orderBumpId).toBeUndefined();
   });
 
   it("quantidade 0 na linha da oferta remove só ela", () => {

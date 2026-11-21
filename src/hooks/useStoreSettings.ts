@@ -52,6 +52,8 @@ interface StoreSettings {
   }[];
   freeShippingEnabled?: boolean;
   freeShippingMinValue?: number;
+  minOrderEnabled?: boolean;
+  minOrderValue?: number;
   storePickupEnabled?: boolean;
   deliveryType?: string;
   deliveryFixedFee?: number;

@@ -100,6 +100,11 @@ export function addChosenOffersToCart(
       product: convertSuggestionToProduct(offer),
       isOrderBump: true,
       orderBumpId: offer.bumpId,
+      orderBumpTrigger: {
+        triggerType: offer.triggerType,
+        triggerProductId: offer.triggerProductId,
+        triggerCategoryId: offer.triggerCategoryId,
+      },
     });
     if (quantity > 1) {
       updateQuantity(offer.product.id, quantity, undefined, offer.bumpId);

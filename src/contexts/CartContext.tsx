@@ -3,7 +3,8 @@ import type { Product, SelectedProduct, ComboComponentSelection } from "@/data/p
 import { trackEvent } from "@/components/FacebookPixel";
 import { syncCartAnalytics } from "@/services/analytics";
 import { getReservedStockInCart, getProductAvailableStock } from "@/utils/cart-stock";
-import { isSameCartLine } from "@/utils/cart-lines";
+import { isSameCartLine, reconcileOrderBumpItems } from "@/utils/cart-lines";
+import type { OrderBumpTriggerRule } from "@/data/products";
 
 export interface CartItem {
   product: Product;
@@ -12,6 +13,7 @@ export interface CartItem {
   comboSelections?: ComboComponentSelection[];
   isOrderBump?: boolean;
   orderBumpId?: string;
+  orderBumpTrigger?: OrderBumpTriggerRule;
   isCustomized?: boolean;
   customizationSnapshot?: any;
   customizationLineId?: string;
@@ -95,6 +97,7 @@ const normalizeItem = (item: Product | SelectedProduct) => {
     comboSelections: undefined,
     isOrderBump: (item as any).isOrderBump,
     orderBumpId: (item as any).orderBumpId,
+    orderBumpTrigger: (item as any).orderBumpTrigger,
     isCustomized: (item as any).isCustomized,
     customizationSnapshot: (item as any).customizationSnapshot,
     customizationLineId: (item as any).customizationLineId,
@@ -276,6 +279,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
               comboSelections: normalizedItem.comboSelections,
               isOrderBump: (normalizedItem as any).isOrderBump,
               orderBumpId: (normalizedItem as any).orderBumpId,
+              orderBumpTrigger: (normalizedItem as any).orderBumpTrigger,
               isCustomized: (normalizedItem as any).isCustomized,
               customizationSnapshot: (normalizedItem as any).customizationSnapshot,
               customizationLineId: (normalizedItem as any).customizationLineId,
@@ -315,9 +319,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     customizationLineId?: string | null,
   ) => {
     setItems((prev) =>
-      prev.filter(
-        (item) =>
-          !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
+      reconcileOrderBumpItems(
+        prev.filter(
+          (item) =>
+            !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
+        )
       )
     );
   }, []);
@@ -331,9 +337,11 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   ) => {
     if (quantity <= 0) {
       setItems((prev) =>
-        prev.filter(
-          (item) =>
-            !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
+        reconcileOrderBumpItems(
+          prev.filter(
+            (item) =>
+              !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
+          )
         )
       );
       return;
@@ -388,10 +396,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (finalQuantity <= 0) {
-        return prev.filter((_, idx) => idx !== targetIndex);
+        return reconcileOrderBumpItems(prev.filter((_, idx) => idx !== targetIndex));
       }
 
-      return prev.map((it, idx) => (idx === targetIndex ? { ...it, quantity: finalQuantity } : it));
+      return reconcileOrderBumpItems(
+        prev.map((it, idx) => (idx === targetIndex ? { ...it, quantity: finalQuantity } : it))
+      );
     });
   }, []);
 

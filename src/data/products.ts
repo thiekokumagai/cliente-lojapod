@@ -65,12 +65,19 @@ export interface Product {
   totalSold?: number;
 }
 
+export interface OrderBumpTriggerRule {
+  triggerType?: "ALL" | "CATEGORY" | "PRODUCT";
+  triggerProductId?: string | null;
+  triggerCategoryId?: string | null;
+}
+
 export interface SelectedProduct {
   product: Product;
   selectedVariation?: string;
   comboSelections?: ComboComponentSelection[];
   isOrderBump?: boolean;
   orderBumpId?: string;
+  orderBumpTrigger?: OrderBumpTriggerRule;
   isCustomized?: boolean;
   customizationSnapshot?: any;
   customizationLineId?: string;

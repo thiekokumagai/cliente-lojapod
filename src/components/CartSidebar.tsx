@@ -609,6 +609,23 @@ const CartSidebar = () => {
     };
   }, [storeSettings?.freeShippingEnabled, storeSettings?.freeShippingMinValue, effectiveTotalPrice]);
 
+  const minOrderSettings = useMemo(() => {
+    if (!storeSettings?.minOrderEnabled) return null;
+    const minVal = Number(storeSettings.minOrderValue);
+    if (isNaN(minVal) || minVal <= 0) return null;
+
+    const remaining = Math.max(0, Math.round((minVal - effectiveTotalPrice) * 100) / 100);
+    const progress = Math.min(100, Math.round((effectiveTotalPrice / minVal) * 100));
+    const achieved = effectiveTotalPrice + 0.005 >= minVal;
+
+    return {
+      minVal,
+      remaining,
+      progress,
+      achieved,
+    };
+  }, [storeSettings?.minOrderEnabled, storeSettings?.minOrderValue, effectiveTotalPrice]);
+
   const isFreeShippingByCoupon = useMemo(() => {
     if (couponData?.type === 'FREE_SHIPPING') {
       const coupon = couponData.coupon;
@@ -906,6 +923,11 @@ const CartSidebar = () => {
   const goToDelivery = () => {
     if (!effectiveItems.length) return;
 
+    if (minOrderSettings && !minOrderSettings.achieved) {
+      toast.info(`Faltam ${formatPrice(minOrderSettings.remaining)} para atingir o pedido mínimo de ${formatPrice(minOrderSettings.minVal)}.`);
+      return;
+    }
+
     const stockError = validateCartStockAllocation(effectiveItems);
     if (stockError) {
       toast.error(stockError);
@@ -921,6 +943,11 @@ const CartSidebar = () => {
   };
 
   const goToPayment = () => {
+    if (minOrderSettings && !minOrderSettings.achieved) {
+      toast.info(`Faltam ${formatPrice(minOrderSettings.remaining)} para atingir o pedido mínimo de ${formatPrice(minOrderSettings.minVal)}.`);
+      return;
+    }
+
     if (isEditingContact || !isContactValid) {
       // Leva o cliente direto para o preenchimento dos dados
       setIsContactModalOpen(true);
@@ -1186,6 +1213,11 @@ const CartSidebar = () => {
   ]);
 
   const finalizeOrder = async () => {
+    if (minOrderSettings && !minOrderSettings.achieved) {
+      toast.info(`O valor mínimo do pedido é ${formatPrice(minOrderSettings.minVal)}.`);
+      return;
+    }
+
     const isDeliveryValid = deliveryModality === "STORE_PICKUP" || (isAddressValid && hasValidDeliveryFee);
     if (!isContactValid || !isDeliveryValid || !isPaymentValid || effectiveItems.length === 0 || !paymentMethod) {
       toast.info("Preencha todas as etapas obrigatórias para finalizar.");
@@ -1548,6 +1580,29 @@ const CartSidebar = () => {
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {step === "cart" && (
                 <div className="space-y-4 p-4">
+                  {/* Barra de Progresso de Pedido Mínimo (estilo iFood) */}
+                  {minOrderSettings && !minOrderSettings.achieved && items.length > 0 && (
+                    <div className="rounded-2xl p-3.5 border bg-amber-50/90 border-amber-200 text-amber-900 transition-all">
+                      <div className="flex items-center justify-between gap-2 mb-2 text-xs sm:text-sm">
+                        <div className="flex items-center gap-2 font-medium">
+                          <AlertCircle className="h-4 w-4 shrink-0 text-amber-600" />
+                          <span>
+                            Faltam <strong className="font-bold text-amber-800">{formatPrice(minOrderSettings.remaining)}</strong> para atingir o pedido mínimo de <strong className="font-bold">{formatPrice(minOrderSettings.minVal)}</strong>
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold shrink-0 opacity-80">
+                          {minOrderSettings.progress}%
+                        </span>
+                      </div>
+                      <div className="h-2 w-full rounded-full bg-amber-200/60 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-amber-500 transition-all duration-500 ease-out"
+                          style={{ width: `${minOrderSettings.progress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
                   {/* Barra de Progresso de Frete Grátis */}
                   {freeShippingSettings && items.length > 0 && (
                     <div className={`rounded-2xl p-3.5 border transition-all ${
@@ -2478,9 +2533,16 @@ const CartSidebar = () => {
                     <button
                       type="button"
                       onClick={goToDelivery}
-                      className="w-full rounded-2xl bg-primary py-3.5 text-sm font-bold text-primary-foreground"
+                      disabled={Boolean(minOrderSettings && !minOrderSettings.achieved)}
+                      className={`w-full rounded-2xl py-3.5 text-sm font-bold transition-colors ${
+                        minOrderSettings && !minOrderSettings.achieved
+                          ? "bg-muted text-muted-foreground cursor-not-allowed"
+                          : "bg-primary text-primary-foreground"
+                      }`}
                     >
-                      Continuar
+                      {minOrderSettings && !minOrderSettings.achieved
+                        ? `Faltam ${formatPrice(minOrderSettings.remaining)} para o pedido mínimo`
+                        : "Continuar"}
                     </button>
                   </div>
                 ) : (

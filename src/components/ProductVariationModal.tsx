@@ -225,6 +225,7 @@ const ProductVariationModal = ({
       selectedVariation: combinedVariation,
       isOrderBump: (product as any).isOrderBump,
       orderBumpId: (product as any).orderBumpId,
+      orderBumpTrigger: (product as any).orderBumpTrigger,
     } as any);
     startAutoClose(combinedVariation);
   };
