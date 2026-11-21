@@ -9,8 +9,8 @@ describe("business-type helpers (vitrine)", () => {
     expect(supportsCustomization(undefined)).toBe(false);
   });
 
-  it("retorna chamadas específicas para Marmitaria, Açaiteria e fallback genérico", () => {
-    expect(getCustomizationCopy("FOOD").buttonLabel).toBe("Monte seu prato");
+  it("retorna chamadas específicas para Restaurante, Açaiteria e fallback genérico", () => {
+    expect(getCustomizationCopy("FOOD").buttonLabel).toBe("Monte seu pedido");
     expect(getCustomizationCopy("ACAI").buttonLabel).toBe("Monte seu açaí");
     expect(getCustomizationCopy("POD").buttonLabel).toBe("Montar Produto");
   });

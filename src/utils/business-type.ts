@@ -11,9 +11,9 @@ export function getCustomizationCopy(businessType?: BusinessType): {
 } {
   if (businessType === "FOOD") {
     return {
-      buttonLabel: "Monte seu prato",
-      buttonRepeatLabel: "Montar outro prato",
-      modalSubtitle: "Monte seu prato selecionando as opções abaixo.",
+      buttonLabel: "Monte seu pedido",
+      buttonRepeatLabel: "Montar outro pedido",
+      modalSubtitle: "Monte seu pedido selecionando as opções abaixo.",
     };
   }
   if (businessType === "ACAI") {
