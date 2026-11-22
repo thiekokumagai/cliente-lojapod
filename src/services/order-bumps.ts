@@ -24,6 +24,7 @@ export interface OrderBumpSuggestion {
   triggerProductId?: string | null;
   triggerProductIds?: string[];
   triggerCategoryId?: string | null;
+  triggerCategoryIds?: string[];
   product: {
     id: string;
     title: string;

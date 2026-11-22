@@ -66,6 +66,7 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
       triggerProductId: sug.triggerProductId,
         triggerProductIds: sug.triggerProductIds,
       triggerCategoryId: sug.triggerCategoryId,
+      triggerCategoryIds: sug.triggerCategoryIds,
     };
 
     if (sug.product.hasVariations && onOpenVariationModal) {

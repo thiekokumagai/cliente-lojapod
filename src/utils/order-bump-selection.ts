@@ -105,6 +105,7 @@ export function addChosenOffersToCart(
         triggerProductId: offer.triggerProductId,
       triggerProductIds: offer.triggerProductIds,
         triggerCategoryId: offer.triggerCategoryId,
+        triggerCategoryIds: offer.triggerCategoryIds,
       },
     });
     if (quantity > 1) {

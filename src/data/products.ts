@@ -71,6 +71,7 @@ export interface OrderBumpTriggerRule {
   triggerProductId?: string | null;
     triggerProductIds?: string[];
   triggerCategoryId?: string | null;
+  triggerCategoryIds?: string[];
 }
 
 export interface SelectedProduct {

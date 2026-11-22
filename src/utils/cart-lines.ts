@@ -82,6 +82,7 @@ export interface CartItemWithBumpLike {
     triggerProductId?: string | null;
     triggerProductIds?: string[];
     triggerCategoryId?: string | null;
+    triggerCategoryIds?: string[];
   };
   isCustomized?: boolean;
   customizationSnapshot?: any;
@@ -160,8 +161,16 @@ export function reconcileOrderBumpItems<T extends CartItemWithBumpLike>(items: T
           triggerMet = others.length > 0;
         }
       } else if (triggerType === "CATEGORY") {
-        if (trigger?.triggerCategoryId) {
-          triggerMet = others.some((e) => e.categoryId === trigger.triggerCategoryId);
+        const triggerCatIds =
+          Array.isArray(trigger?.triggerCategoryIds) && trigger.triggerCategoryIds.length > 0
+            ? trigger.triggerCategoryIds
+            : trigger?.triggerCategoryId
+              ? [trigger.triggerCategoryId]
+              : [];
+        if (triggerCatIds.length > 0) {
+          triggerMet = triggerCatIds.some((catId) =>
+            others.some((e) => e.categoryId === catId),
+          );
         } else {
           triggerMet = others.length > 0;
         }

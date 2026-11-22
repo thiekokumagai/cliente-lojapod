@@ -103,3 +103,37 @@ describe("reconcileOrderBumpItems — múltiplos triggerProductIds (regra OU)", 
     expect(reverted?.product.price).toBe(8);
   });
 });
+
+describe("reconcileOrderBumpItems — múltiplos triggerCategoryIds (regra OU)", () => {
+  const bumpItem = {
+    product: { id: "coca", price: 6, oldPrice: 10, isPromo: true, categoryId: "bebidas" },
+    quantity: 1,
+    isOrderBump: true,
+    orderBumpId: "bump-cat",
+    orderBumpTrigger: {
+      triggerType: "CATEGORY" as const,
+      triggerCategoryId: "bolos",
+      triggerCategoryIds: ["bolos", "salgados"],
+    },
+  };
+
+  it("mantém preço de oferta se houver produto de qualquer categoria em triggerCategoryIds", () => {
+    const res = reconcileOrderBumpItems([
+      { product: { id: "coxinha", price: 8, categoryId: "salgados" }, quantity: 1 },
+      bumpItem,
+    ]);
+    const bump = res.find((i) => i.product.id === "coca");
+    expect(bump?.isOrderBump).toBe(true);
+    expect(bump?.product.price).toBe(6);
+  });
+
+  it("reverte preço da oferta quando nenhuma categoria gatilho permanece no carrinho", () => {
+    const res = reconcileOrderBumpItems([
+      { product: { id: "agua", price: 4, categoryId: "outros" }, quantity: 1 },
+      bumpItem,
+    ]);
+    const reverted = res.find((i) => i.product.id === "coca");
+    expect(reverted?.isOrderBump).toBeUndefined();
+    expect(reverted?.product.price).toBe(10);
+  });
+});
