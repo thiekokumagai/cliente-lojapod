@@ -22,3 +22,11 @@ export function getCustomizationCopy(businessType?: BusinessType): {
     modalSubtitle: "Personalize seu produto selecionando as opções abaixo.",
   };
 }
+
+export function formatServesLabel(servesCount?: number | null): string | null {
+  if (typeof servesCount !== "number" || !Number.isFinite(servesCount) || servesCount < 1) {
+    return null;
+  }
+  const count = Math.floor(servesCount);
+  return count === 1 ? "Serve 1 pessoa" : `Serve ${count} pessoas`;
+}

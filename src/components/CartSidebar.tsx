@@ -912,8 +912,9 @@ const CartSidebar = () => {
     selectedVariation?: string,
     orderBumpId?: string | null,
     customizationLineId?: string | null,
+    observation?: string | null,
   ) => {
-    removeFromCart(productId, selectedVariation, orderBumpId, customizationLineId);
+    removeFromCart(productId, selectedVariation, orderBumpId, customizationLineId, observation);
   };
 
   const handleClearCart = () => {
@@ -1052,6 +1053,9 @@ const CartSidebar = () => {
           const compVar = effectiveVar ? ` (${effectiveVar})` : "";
           qtyStr += `\n    • ${compQtd}x ${ci.productName}${compVar}`;
         });
+      }
+      if (item.observation?.trim()) {
+        qtyStr += `\n    Obs: ${item.observation.trim()}`;
       }
       if (item.isCustomized && item.customizationSnapshot?.stages) {
         item.customizationSnapshot.stages.forEach((stage: any) => {
@@ -1266,6 +1270,7 @@ const CartSidebar = () => {
           quantity: item.quantity,
           price: item.product.price,
           variation: item.selectedVariation,
+          observation: item.observation?.trim() || undefined,
           comboId: item.product.isCombo ? item.product.comboId || item.product.id : undefined,
           isCombo: !!item.product.isCombo,
           comboSelections: item.comboSelections || undefined,
@@ -1760,9 +1765,14 @@ const CartSidebar = () => {
                                         ))}
                                       </div>
                                     )}
+                                    {item.observation && (
+                                      <p className="mt-1.5 rounded-lg border border-amber-200/80 bg-amber-50/90 px-2 py-1 text-[11px] text-amber-900 break-words">
+                                        <span className="font-semibold text-amber-800">Obs:</span> {item.observation}
+                                      </p>
+                                    )}
                                   </div>
                                   <button
-                                    onClick={() => handleRemoveItem(item.product.id, item.selectedVariation, item.orderBumpId, item.customizationLineId)}
+                                    onClick={() => handleRemoveItem(item.product.id, item.selectedVariation, item.orderBumpId, item.customizationLineId, item.observation)}
                                     className="shrink-0 rounded-full p-1 text-muted-foreground hover:bg-secondary"
                                   >
                                     <Trash2 className="h-4 w-4" />
@@ -1771,7 +1781,7 @@ const CartSidebar = () => {
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-1 rounded-full border border-border bg-card px-1 py-1">
                                     <button
-                                      onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedVariation, item.orderBumpId, item.customizationLineId)}
+                                      onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedVariation, item.orderBumpId, item.customizationLineId, item.observation)}
                                       className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary"
                                     >
                                       <Minus className="h-3 w-3" />
@@ -1783,7 +1793,7 @@ const CartSidebar = () => {
                                       disabled={isAtLimit}
                                       onClick={() => {
                                         if (isAtLimit) return;
-                                        updateQuantity(item.product.id, item.quantity + 1, item.selectedVariation, item.orderBumpId, item.customizationLineId);
+                                        updateQuantity(item.product.id, item.quantity + 1, item.selectedVariation, item.orderBumpId, item.customizationLineId, item.observation);
                                       }}
                                       className={`rounded-full p-1.5 ${isAtLimit ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50" : "bg-primary text-primary-foreground"}`}
                                     >

@@ -59,6 +59,7 @@ export interface Product {
   isCombo?: boolean;
   comboId?: string;
   isCustomizable?: boolean;
+  servesCount?: number | null;
   comboItems?: ComboItemComponent[];
   maxPerOrder?: number | null;
   discountPercentage?: number;
@@ -82,5 +83,6 @@ export interface SelectedProduct {
   isCustomized?: boolean;
   customizationSnapshot?: any;
   customizationLineId?: string;
+  observation?: string;
 }
 

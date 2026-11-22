@@ -29,6 +29,7 @@ interface NewApiProduct {
   isBestSeller?: boolean;
   isFeatured?: boolean;
   isCustomizable?: boolean;
+  servesCount?: number | null;
   createdAt?: string;
   totalSold?: number;
 }
@@ -149,6 +150,7 @@ export function transformNewApiProduct(
     isBestSeller: raw.isBestSeller,
     isFeatured: raw.isFeatured,
     isCustomizable: Boolean(raw.isCustomizable),
+    servesCount: typeof raw.servesCount === "number" && raw.servesCount >= 1 ? raw.servesCount : null,
     categoryId: raw.categoryId,
     createdAt: raw.createdAt,
     totalSold: Number(raw.totalSold || 0),

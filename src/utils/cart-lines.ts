@@ -10,9 +10,16 @@ type LineLike = {
   orderBumpId?: string | null;
   isOrderBump?: boolean;
   customizationLineId?: string | null;
+  observation?: string | null;
 };
 
 /** Linha criada por uma oferta "Peça também" (tem o id da oferta). */
+export const normalizeCartObservation = (value?: string | null): string | null => {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, 300) : null;
+};
+
 export const isBumpLine = (item: Pick<LineLike, "orderBumpId" | "isOrderBump">): boolean =>
   !!item.orderBumpId || !!item.isOrderBump;
 
@@ -23,11 +30,13 @@ export const isSameCartLine = (
   selectedVariation?: string,
   orderBumpId?: string | null,
   customizationLineId?: string | null,
+  observation?: string | null,
 ): boolean =>
   item.product.id === productId &&
   item.selectedVariation === selectedVariation &&
   (item.orderBumpId ?? null) === (orderBumpId ?? null) &&
-  (item.customizationLineId ?? null) === (customizationLineId ?? null);
+  (item.customizationLineId ?? null) === (customizationLineId ?? null) &&
+  normalizeCartObservation(item.observation) === normalizeCartObservation(observation);
 
 /**
  * Ajusta o preço do item de acordo com as regras de forma de pagamento:
@@ -77,6 +86,7 @@ export interface CartItemWithBumpLike {
   isCustomized?: boolean;
   customizationSnapshot?: any;
   customizationLineId?: string;
+  observation?: string;
 }
 
 /**
@@ -192,7 +202,8 @@ export function reconcileOrderBumpItems<T extends CartItemWithBumpLike>(items: T
           !m.product.isCombo &&
           !m.customizationLineId &&
           m.product.id === item.product.id &&
-          m.selectedVariation === item.selectedVariation,
+          m.selectedVariation === item.selectedVariation &&
+          normalizeCartObservation(m.observation) === normalizeCartObservation(item.observation),
       );
       if (existingNormal) {
         existingNormal.quantity += item.quantity;

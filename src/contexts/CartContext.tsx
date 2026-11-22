@@ -3,7 +3,7 @@ import type { Product, SelectedProduct, ComboComponentSelection } from "@/data/p
 import { trackEvent } from "@/components/FacebookPixel";
 import { syncCartAnalytics } from "@/services/analytics";
 import { getReservedStockInCart, getProductAvailableStock } from "@/utils/cart-stock";
-import { isSameCartLine, reconcileOrderBumpItems } from "@/utils/cart-lines";
+import { isSameCartLine, normalizeCartObservation, reconcileOrderBumpItems } from "@/utils/cart-lines";
 import type { OrderBumpTriggerRule } from "@/data/products";
 
 export interface CartItem {
@@ -17,6 +17,7 @@ export interface CartItem {
   isCustomized?: boolean;
   customizationSnapshot?: any;
   customizationLineId?: string;
+  observation?: string;
 }
 
 export interface SavedOrder {
@@ -41,6 +42,7 @@ interface CartContextType {
     selectedVariation?: string,
     orderBumpId?: string | null,
     customizationLineId?: string | null,
+    observation?: string | null,
   ) => void;
   updateQuantity: (
     productId: string,
@@ -48,6 +50,7 @@ interface CartContextType {
     selectedVariation?: string,
     orderBumpId?: string | null,
     customizationLineId?: string | null,
+    observation?: string | null,
   ) => void;
   clearCart: () => void;
   totalItems: number;
@@ -211,6 +214,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       };
 
       const normalizedComboKey = getComboKey(normalizedItem);
+      const normalizedObservation = normalizeCartObservation((normalizedItem as any).observation);
 
       // Validação de estoque considerando a demanda acumulada (itens avulsos + componentes de combos)
       if (normalizedItem.product.isCombo) {
@@ -253,6 +257,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
         if ((cartItem.orderBumpId ?? null) !== ((normalizedItem as any).orderBumpId ?? null)) return false;
         // Linhas de produtos customizados diferentes têm id de customização próprio
         if ((cartItem.customizationLineId ?? null) !== ((normalizedItem as any).customizationLineId ?? null)) return false;
+        if (normalizeCartObservation(cartItem.observation) !== normalizedObservation) return false;
         if (normalizedComboKey || getComboKey(cartItem)) {
           return getComboKey(cartItem) === normalizedComboKey;
         }
@@ -266,6 +271,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
               cartItem.selectedVariation === normalizedItem.selectedVariation &&
               (cartItem.orderBumpId ?? null) === ((normalizedItem as any).orderBumpId ?? null) &&
               (cartItem.customizationLineId ?? null) === ((normalizedItem as any).customizationLineId ?? null) &&
+              normalizeCartObservation(cartItem.observation) === normalizedObservation &&
               (normalizedComboKey ? getComboKey(cartItem) === normalizedComboKey : true);
 
             return matches ? { ...cartItem, quantity: cartItem.quantity + 1 } : cartItem;
@@ -283,6 +289,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
               isCustomized: (normalizedItem as any).isCustomized,
               customizationSnapshot: (normalizedItem as any).customizationSnapshot,
               customizationLineId: (normalizedItem as any).customizationLineId,
+              observation: normalizedObservation ?? undefined,
             },
           ];
 
@@ -317,12 +324,13 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     selectedVariation?: string,
     orderBumpId?: string | null,
     customizationLineId?: string | null,
+    observation?: string | null,
   ) => {
     setItems((prev) =>
       reconcileOrderBumpItems(
         prev.filter(
           (item) =>
-            !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
+            !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId, observation)
         )
       )
     );
@@ -334,13 +342,14 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     selectedVariation?: string,
     orderBumpId?: string | null,
     customizationLineId?: string | null,
+    observation?: string | null,
   ) => {
     if (quantity <= 0) {
       setItems((prev) =>
         reconcileOrderBumpItems(
           prev.filter(
             (item) =>
-              !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
+              !isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId, observation)
           )
         )
       );
@@ -349,7 +358,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
 
     setItems((prev) => {
       const targetIndex = prev.findIndex(
-        (item) => isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId)
+        (item) => isSameCartLine(item, productId, selectedVariation, orderBumpId, customizationLineId, observation)
       );
       if (targetIndex === -1) return prev;
 

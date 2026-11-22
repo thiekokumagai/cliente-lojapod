@@ -30,7 +30,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { getSelectedCombinationStock } from "@/utils/variation-stock";
 import { getReservedStockInCart } from "@/utils/cart-stock";
-import { isBumpLine } from "@/utils/cart-lines";
+import { isBumpLine, normalizeCartObservation } from "@/utils/cart-lines";
 import { useProductOrderBumps } from "@/hooks/useProductOrderBumps";
 import ProductOrderBumpGroup from "@/components/product/ProductOrderBumpGroup";
 import ProductCustomizationSection from "@/components/ProductCustomizationSection";
@@ -41,7 +41,7 @@ import {
   type CompositionSelections,
   type PublicCompositionStage,
 } from "@/services/compositions";
-import { supportsCustomization } from "@/utils/business-type";
+import { formatServesLabel, supportsCustomization } from "@/utils/business-type";
 import {
   addChosenOffersToCart,
   chosenOffers,
@@ -140,8 +140,20 @@ const ProductPage = () => {
     return combinationStock !== null && combinationStock <= 0;
   }, [combinationStock]);
 
+  const isFoodStore = supportsCustomization(settings?.businessType);
+  const servesLabel = isFoodStore ? formatServesLabel(product?.servesCount) : null;
+  const [itemObservation, setItemObservation] = useState("");
+  const normalizedItemObservation = isFoodStore
+    ? normalizeCartObservation(itemObservation)
+    : null;
+
   const cartItem = items.find(
-    (item) => item.product.id === product?.id && item.selectedVariation === selectedVariation && !isBumpLine(item),
+    (item) =>
+      item.product.id === product?.id &&
+      item.selectedVariation === selectedVariation &&
+      !isBumpLine(item) &&
+      !item.customizationLineId &&
+      normalizeCartObservation(item.observation) === normalizedItemObservation,
   );
 
   useEffect(() => {
@@ -235,6 +247,10 @@ const ProductPage = () => {
     supportsCustomization(settings?.businessType);
   const [compositionStages, setCompositionStages] = useState<PublicCompositionStage[]>([]);
   const [isLoadingCompositions, setIsLoadingCompositions] = useState(false);
+
+  useEffect(() => {
+    setItemObservation("");
+  }, [product?.id]);
 
   useEffect(() => {
     if (!canCustomize || !product?.id) {
@@ -446,6 +462,7 @@ const ProductPage = () => {
         isCustomized: true,
         customizationSnapshot: snapshot,
         customizationLineId: lineId,
+        observation: isFoodStore && itemObservation.trim() ? itemObservation.trim().slice(0, 300) : undefined,
       };
 
       addToCart(customItem);
@@ -456,11 +473,13 @@ const ProductPage = () => {
           undefined,
           undefined,
           customItem.customizationLineId,
+          customItem.observation,
         );
       }
       addBumpsToCart();
       triggerAddedModal(customItem);
       setCustomizationSelections({});
+      setItemObservation("");
       setHighlightedGroupId(null);
       setHasJustUpdated(true);
       handleNavigateToList();
@@ -477,13 +496,16 @@ const ProductPage = () => {
           variation: comboSelections[item.compKey],
         }));
 
+      const comboObs = isFoodStore && itemObservation.trim() ? itemObservation.trim().slice(0, 300) : undefined;
       addToCart({
         product,
         comboSelections: formattedSelections,
+        observation: comboObs,
       });
       if (quantity > 1) {
-        updateQuantity(product.id, quantity);
+        updateQuantity(product.id, quantity, undefined, undefined, undefined, comboObs);
       }
+      setItemObservation("");
       addBumpsToCart();
       triggerAddedModal({ product });
       setHasJustUpdated(true);
@@ -494,15 +516,25 @@ const ProductPage = () => {
     if (!canAddToCart || isUnavailable || isCombinationUnavailable) return;
 
     if (cartItem) {
-      updateQuantity(product.id, quantity, selectedVariation);
+      updateQuantity(
+        product.id,
+        quantity,
+        selectedVariation,
+        undefined,
+        undefined,
+        normalizedItemObservation,
+      );
+      setItemObservation("");
       triggerAddedModal({ product, selectedVariation });
       setHasJustUpdated(true);
       handleNavigateToList();
       return;
     }
 
-    addToCart({ product, selectedVariation });
-    updateQuantity(product.id, quantity, selectedVariation);
+    const normalizedObs = isFoodStore && itemObservation.trim() ? itemObservation.trim().slice(0, 300) : undefined;
+    addToCart({ product, selectedVariation, observation: normalizedObs });
+    updateQuantity(product.id, quantity, selectedVariation, undefined, undefined, normalizedObs);
+    setItemObservation("");
     addBumpsToCart();
     triggerAddedModal({ product, selectedVariation });
     setHasJustUpdated(true);
@@ -512,7 +544,7 @@ const ProductPage = () => {
   const handleRemoveFromCart = () => {
     if (!cartItem || !product) return;
 
-    removeFromCart(product.id, selectedVariation);
+    removeFromCart(product.id, selectedVariation, undefined, undefined, cartItem.observation ?? null);
     setHasJustUpdated(false);
     setQuantity(1);
   };
@@ -574,6 +606,13 @@ const ProductPage = () => {
             <h1 className="font-display text-[24px] font-medium leading-tight text-fg-secondary">
               {product.name}
             </h1>
+            {servesLabel && (
+              <div className="mt-2">
+                <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                  {servesLabel}
+                </span>
+              </div>
+            )}
 
             <div className="mt-6 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 rounded-full border border-border-subtle bg-surface-muted px-4 py-2.5">
@@ -636,6 +675,26 @@ const ProductPage = () => {
                 highlightedGroupId={highlightedGroupId}
               />
             )}
+            {isFoodStore && (
+              <div className="mt-5 rounded-2xl border border-border-subtle bg-surface-muted/40 p-4">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label className="text-sm font-semibold text-foreground">
+                    Alguma observação?
+                  </label>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {itemObservation.length}/300
+                  </span>
+                </div>
+                <textarea
+                  value={itemObservation}
+                  onChange={(e) => setItemObservation(e.target.value.slice(0, 300))}
+                  maxLength={300}
+                  rows={2}
+                  placeholder="Ex: sem cebola, molho à parte..."
+                  className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
+            )}
 
             {showBumps && (
               <ProductOrderBumpGroup offers={bumpOffers} selection={activeBumpSelection} onChange={setBumpSelection} />
@@ -693,6 +752,13 @@ const ProductPage = () => {
               <h1 className="font-display text-[27px] font-semibold leading-[1.15] text-fg-secondary">
                 {product.name}
               </h1>
+              {servesLabel && (
+                <div className="mt-2">
+                  <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
+                    {servesLabel}
+                  </span>
+                </div>
+              )}
 
               <div className="mt-6 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 rounded-full border border-border-subtle bg-surface-muted px-5 py-2.5 text-fg-secondary">
@@ -755,6 +821,26 @@ const ProductPage = () => {
                 onChangeQuantity={handleCustomizationQuantityChange}
                 highlightedGroupId={highlightedGroupId}
               />
+            )}
+            {isFoodStore && (
+              <div className="mt-5 rounded-2xl border border-border-subtle bg-surface-muted/40 p-4">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label className="text-sm font-semibold text-foreground">
+                    Alguma observação?
+                  </label>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {itemObservation.length}/300
+                  </span>
+                </div>
+                <textarea
+                  value={itemObservation}
+                  onChange={(e) => setItemObservation(e.target.value.slice(0, 300))}
+                  maxLength={300}
+                  rows={2}
+                  placeholder="Ex: sem cebola, molho à parte..."
+                  className="w-full resize-none rounded-xl border border-border bg-background px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                />
+              </div>
             )}
 
             {showBumps && (
