@@ -126,18 +126,22 @@ export default function MenuExpressHeader() {
 
                 {!settings?.hideAddress ? (
                   (settings?.street || settings?.city) && (
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                      <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      {settings?.street
-                        ? `${settings.street}${settings.number ? `, ${settings.number}` : ''}${settings.complement ? ` - ${settings.complement}` : ''}${settings.neighborhood ? ` - ${settings.neighborhood}` : ''}${settings.city ? `, ${settings.city}` : ''}${settings.state ? ` - ${settings.state}` : ''}`
-                        : `${settings?.city || ''}${settings?.state ? ` - ${settings.state}` : ''}`}
+                    <span className="flex items-start gap-1 text-xs text-muted-foreground min-w-0 max-w-full basis-full">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span className="min-w-0 break-words leading-snug">
+                        {settings?.street
+                          ? `${settings.street}${settings.number ? `, ${settings.number}` : ''}${settings.complement ? ` - ${settings.complement}` : ''}${settings.neighborhood ? ` - ${settings.neighborhood}` : ''}${settings.city ? `, ${settings.city}` : ''}${settings.state ? ` - ${settings.state}` : ''}`
+                          : `${settings?.city || ''}${settings?.state ? ` - ${settings.state}` : ''}`}
+                      </span>
                     </span>
                   )
                 ) : (
                   settings?.city && (
-                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
-                      <MapPin className="h-3.5 w-3.5 shrink-0" />
-                      {settings.city}, {settings.state}
+                    <span className="flex items-start gap-1 text-xs text-muted-foreground min-w-0 max-w-full basis-full">
+                      <MapPin className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+                      <span className="min-w-0 break-words leading-snug">
+                        {settings.city}, {settings.state}
+                      </span>
                     </span>
                   )
                 )}

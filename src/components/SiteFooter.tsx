@@ -83,7 +83,7 @@ const SiteFooter = () => {
         </div>
 
         <div className="mt-10 flex flex-col items-center gap-10 text-center md:grid md:grid-cols-[1fr_minmax(320px,1.4fr)_1fr] md:items-start md:text-left">
-          <div className="flex flex-col items-center space-y-4 md:items-start">
+          <div className="flex flex-col items-center space-y-4 md:items-start min-w-0 max-w-full">
             <div className="flex items-center justify-center md:justify-start">
               <Link to="/" className="inline-block hover:opacity-90 transition-opacity" title={storeName || "Início"}>
                 {settings?.logoUrl ? (
@@ -101,16 +101,16 @@ const SiteFooter = () => {
             </div>
             {settings?.hideAddress ? (
               city && state && (
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground md:justify-start">
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground md:justify-start min-w-0 max-w-full">
                   <MapPin className="h-4 w-4 shrink-0" />
                   <span>{city} - {state}</span>
                 </div>
               )
             ) : (
               (settings?.street || city) && (
-                <div className="flex items-start justify-center gap-2 text-sm text-muted-foreground md:justify-start">
+                <div className="flex items-start justify-center gap-2 text-sm text-muted-foreground md:justify-start min-w-0 max-w-full">
                   <MapPin className="h-4 w-4 shrink-0 mt-0.5" />
-                  <span className="leading-tight">
+                  <span className="leading-tight min-w-0 break-words">
                     {settings?.street
                       ? `${settings.street}${settings.number ? `, ${settings.number}` : ''}${settings.complement ? ` - ${settings.complement}` : ''}${settings.neighborhood ? ` - ${settings.neighborhood}` : ''}${city ? `, ${city}` : ''}${state ? ` - ${state}` : ''}`
                       : `${city} - ${state}`}
