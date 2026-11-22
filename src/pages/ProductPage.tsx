@@ -33,8 +33,15 @@ import { getReservedStockInCart } from "@/utils/cart-stock";
 import { isBumpLine } from "@/utils/cart-lines";
 import { useProductOrderBumps } from "@/hooks/useProductOrderBumps";
 import ProductOrderBumpGroup from "@/components/product/ProductOrderBumpGroup";
-import ProductCustomizerModal from "@/components/ProductCustomizerModal";
-import { getCustomizationCopy, supportsCustomization } from "@/utils/business-type";
+import ProductCustomizationSection from "@/components/ProductCustomizationSection";
+import {
+  calculateCustomization,
+  compositionsService,
+  getEffectiveStageLimits,
+  type CompositionSelections,
+  type PublicCompositionStage,
+} from "@/services/compositions";
+import { supportsCustomization } from "@/utils/business-type";
 import {
   addChosenOffersToCart,
   chosenOffers,
@@ -57,7 +64,8 @@ const ProductPage = () => {
   const [selections, setSelections] = useState<Record<string, string>>({});
   const [hasJustUpdated, setHasJustUpdated] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [showCustomizerModal, setShowCustomizerModal] = useState(false);
+  const [customizationSelections, setCustomizationSelections] = useState<CompositionSelections>({});
+  const [highlightedGroupId, setHighlightedGroupId] = useState<string | null>(null);
   const redirectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
@@ -225,13 +233,79 @@ const ProductPage = () => {
   const canCustomize =
     Boolean(product?.isCustomizable) &&
     supportsCustomization(settings?.businessType);
-  const customizationCopy = getCustomizationCopy(settings?.businessType);
-  const customQuantityInCart = useMemo(
+  const [compositionStages, setCompositionStages] = useState<PublicCompositionStage[]>([]);
+  const [isLoadingCompositions, setIsLoadingCompositions] = useState(false);
+
+  useEffect(() => {
+    if (!canCustomize || !product?.id) {
+      setCompositionStages([]);
+      setIsLoadingCompositions(false);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingCompositions(true);
+    compositionsService
+      .getProductCompositions(product.id)
+      .then((res) => {
+        if (!cancelled) setCompositionStages(res?.stages ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setCompositionStages([]);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingCompositions(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [canCustomize, product?.id]);
+
+  useEffect(() => {
+    setCustomizationSelections({});
+    setHighlightedGroupId(null);
+  }, [product?.id]);
+
+  const handleCustomizationQuantityChange = (
+    groupId: string,
+    optionId: string,
+    delta: number,
+    stage: PublicCompositionStage,
+  ) => {
+    setHighlightedGroupId((prev) => (prev === groupId ? null : prev));
+    setCustomizationSelections((prev) => {
+      const groupSelections = { ...(prev[groupId] || {}) };
+      const currentQty = groupSelections[optionId] || 0;
+      const totalGroupQty = Object.values(groupSelections).reduce((sum, q) => sum + q, 0);
+      const { maxQuantity } = getEffectiveStageLimits(stage);
+      const targetOption = stage.options.find((o) => o.id === optionId);
+      const optionMax = Math.max(1, Number(targetOption?.maxQuantityPerItem) || 1);
+
+      if (delta > 0) {
+        if (maxQuantity === 1) {
+          return { ...prev, [groupId]: { [optionId]: 1 } };
+        }
+        if (totalGroupQty >= maxQuantity || currentQty >= optionMax) return prev;
+        groupSelections[optionId] = currentQty + 1;
+      } else if (delta < 0) {
+        if (currentQty <= 0) return prev;
+        const nextQty = currentQty - 1;
+        if (nextQty <= 0) {
+          delete groupSelections[optionId];
+        } else {
+          groupSelections[optionId] = nextQty;
+        }
+      }
+
+      return { ...prev, [groupId]: groupSelections };
+    });
+  };
+
+  const customizationSummary = useMemo(
     () =>
-      items
-        .filter((item) => item.product.id === product?.id && item.isCustomized)
-        .reduce((total, item) => total + item.quantity, 0),
-    [items, product?.id],
+      canCustomize
+        ? calculateCustomization(compositionStages, customizationSelections, product?.price || 0)
+        : null,
+    [canCustomize, compositionStages, customizationSelections, product?.price],
   );
 
   // Ofertas "Peça também" marcadas para a tela do produto (grupo opcional, ex.: "Leve junto uma Bebida").
@@ -246,7 +320,10 @@ const ProductPage = () => {
     setBumpSelection({});
   };
 
-  const priceVal = product?.price || 0;
+  const priceVal =
+    canCustomize && customizationSummary
+      ? customizationSummary.finalUnitPrice
+      : product?.price || 0;
   const totalPrice = priceVal * quantity + (isInCart ? 0 : bumpsTotal);
   const totalOldPrice = product?.oldPrice ? product.oldPrice * quantity : 0;
   const discount = product?.isPromo && product.oldPrice 
@@ -258,9 +335,7 @@ const ProductPage = () => {
   const primaryButtonLabel = isUnavailable || isCombinationUnavailable
     ? "Esgotado"
     : canCustomize
-      ? customQuantityInCart > 0
-        ? customizationCopy.buttonRepeatLabel
-        : customizationCopy.buttonLabel
+      ? `Adicionar • ${formatPrice(totalPrice)}`
       : !canAddToCart
         ? "Selecione as variações"
         : isInCart
@@ -338,8 +413,57 @@ const ProductPage = () => {
     if (!product) return;
 
     if (canCustomize) {
-      if (isUnavailable || isCombinationUnavailable) return;
-      setShowCustomizerModal(true);
+      if (isUnavailable || isCombinationUnavailable || isLoadingCompositions) return;
+      if (customizationSummary && !customizationSummary.isAllValid) {
+        const pendingId = customizationSummary.firstPendingGroupId;
+        setHighlightedGroupId(pendingId);
+        if (pendingId) {
+          const candidates = document.querySelectorAll(
+            `[data-customization-group-id="${pendingId}"]`,
+          );
+          const visibleTarget =
+            Array.from(candidates).find(
+              (el) => (el as HTMLElement).offsetParent !== null,
+            ) ?? candidates[0];
+          visibleTarget?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+        }
+        return;
+      }
+
+      const finalUnitPrice = customizationSummary?.finalUnitPrice ?? product.price;
+      const snapshot = {
+        basePrice: product.price,
+        stages: customizationSummary?.stages ?? [],
+        totalAdditions: customizationSummary?.totalAdditions ?? 0,
+        finalUnitPrice,
+      };
+      const lineId = `custom-${product.id}-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+      const customItem = {
+        product: {
+          ...product,
+          price: finalUnitPrice,
+        },
+        isCustomized: true,
+        customizationSnapshot: snapshot,
+        customizationLineId: lineId,
+      };
+
+      addToCart(customItem);
+      if (quantity > 1) {
+        updateQuantity(
+          customItem.product.id,
+          quantity,
+          undefined,
+          undefined,
+          customItem.customizationLineId,
+        );
+      }
+      addBumpsToCart();
+      triggerAddedModal(customItem);
+      setCustomizationSelections({});
+      setHighlightedGroupId(null);
+      setHasJustUpdated(true);
+      handleNavigateToList();
       return;
     }
 
@@ -503,6 +627,16 @@ const ProductPage = () => {
               onSelectComboOption={handleSelectComboOption}
             />
 
+            {canCustomize && (
+              <ProductCustomizationSection
+                stages={compositionStages}
+                isLoading={isLoadingCompositions}
+                selections={customizationSelections}
+                onChangeQuantity={handleCustomizationQuantityChange}
+                highlightedGroupId={highlightedGroupId}
+              />
+            )}
+
             {showBumps && (
               <ProductOrderBumpGroup offers={bumpOffers} selection={activeBumpSelection} onChange={setBumpSelection} />
             )}
@@ -613,11 +747,27 @@ const ProductPage = () => {
                 onSelectComboOption={handleSelectComboOption}
               />
 
-              {showBumps && (
+              {canCustomize && (
+              <ProductCustomizationSection
+                stages={compositionStages}
+                isLoading={isLoadingCompositions}
+                selections={customizationSelections}
+                onChangeQuantity={handleCustomizationQuantityChange}
+                highlightedGroupId={highlightedGroupId}
+              />
+            )}
+
+            {showBumps && (
                 <ProductOrderBumpGroup offers={bumpOffers} selection={activeBumpSelection} onChange={setBumpSelection} />
               )}
 
               <div className="mt-6 space-y-3">
+                {canCustomize && customizationSummary?.pendingStageMessage && !isUnavailable && (
+                  <div className="flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{customizationSummary.pendingStageMessage}</span>
+                  </div>
+                )}
                 {(isUnavailable || isCombinationUnavailable) && settings?.enableStockAlertNotification !== false ? (
                   <button
                     type="button"
@@ -672,6 +822,12 @@ const ProductPage = () => {
           totalItems > 0 ? "bottom-[calc(env(safe-area-inset-bottom)+64px)]" : "bottom-0"
         }`}
       >
+        {canCustomize && customizationSummary?.pendingStageMessage && !isUnavailable && (
+          <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-amber-700">
+            <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+            <span className="truncate">{customizationSummary.pendingStageMessage}</span>
+          </div>
+        )}
         {(isUnavailable || isCombinationUnavailable) && settings?.enableStockAlertNotification !== false ? (
           <button
             type="button"
@@ -730,25 +886,6 @@ const ProductPage = () => {
           customSubtitle={`Item do combo: ${activeCombo.name}`}
           customConfirmLabel={comboStepIndex + 1 === comboTotalSteps ? "Concluir e Adicionar Combo" : "Próximo Item"}
           onConfirmVariation={(variation, productItem) => handleConfirmComboStep(variation, productItem)}
-        />
-      )}
-
-      {canCustomize && showCustomizerModal && product && (
-        <ProductCustomizerModal
-          isOpen={showCustomizerModal}
-          onClose={() => setShowCustomizerModal(false)}
-          product={product}
-          businessType={settings?.businessType}
-          onConfirm={(item) => {
-            addToCart(item);
-            if (quantity > 1) {
-              updateQuantity(item.product.id, quantity, item.selectedVariation, item.orderBumpId, item.customizationLineId);
-            }
-            addBumpsToCart();
-            triggerAddedModal(item);
-            setHasJustUpdated(true);
-            handleNavigateToList();
-          }}
         />
       )}
     </div>

@@ -9,18 +9,11 @@ export function getCustomizationCopy(businessType?: BusinessType): {
   buttonRepeatLabel: string;
   modalSubtitle: string;
 } {
-  if (businessType === "FOOD") {
+  if (businessType === "FOOD" || businessType === "ACAI") {
     return {
       buttonLabel: "Monte seu pedido",
       buttonRepeatLabel: "Montar outro pedido",
       modalSubtitle: "Monte seu pedido selecionando as opções abaixo.",
-    };
-  }
-  if (businessType === "ACAI") {
-    return {
-      buttonLabel: "Monte seu açaí",
-      buttonRepeatLabel: "Montar outro açaí",
-      modalSubtitle: "Monte seu açaí selecionando os acompanhamentos abaixo.",
     };
   }
   return {

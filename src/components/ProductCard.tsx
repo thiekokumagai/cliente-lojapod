@@ -1,11 +1,10 @@
 import { memo, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle2, Minus, Plus, ShoppingCart, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
 import ProductVariationModal from "@/components/ProductVariationModal";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
-import ProductCustomizerModal from "@/components/ProductCustomizerModal";
 import { StockNotificationModal } from "@/components/StockNotificationModal";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -43,7 +42,7 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
   const [showVariationModal, setShowVariationModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [showCustomizerModal, setShowCustomizerModal] = useState(false);
+  const navigate = useNavigate();
   const productImage = product.image || "";
   // As duas primeiras imagens visíveis na viewport inicial carregam eagerly; o restante só sob demanda
   const isEager = priority !== undefined ? priority : (index !== undefined && index < 2);
@@ -140,7 +139,7 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
     }
 
     if (canCustomize) {
-      setShowCustomizerModal(true);
+      navigate(`/produto/${product.id}`);
       return;
     }
 
@@ -534,15 +533,6 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
           comboId={product.isCombo ? (product.comboId || product.id) : undefined}
           isCombo={product.isCombo}
           productTitle={product.name}
-        />
-      )}
-      {canCustomize && showCustomizerModal && (
-        <ProductCustomizerModal
-          isOpen={showCustomizerModal}
-          onClose={() => setShowCustomizerModal(false)}
-          product={product}
-          businessType={storeSettings?.businessType}
-          onConfirm={(item) => addToCart(item)}
         />
       )}
     </>

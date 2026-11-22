@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import type { Product } from "@/data/products";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
@@ -20,7 +21,6 @@ import { getReservedStockInCart, getProductAvailableStock, areVariationsEqual } 
 import { isBumpLine } from "@/utils/cart-lines";
 import { useProductOrderBumps } from "@/hooks/useProductOrderBumps";
 import ProductOrderBumpGroup from "@/components/product/ProductOrderBumpGroup";
-import ProductCustomizerModal from "@/components/ProductCustomizerModal";
 import { getCustomizationCopy, supportsCustomization } from "@/utils/business-type";
 import {
   addChosenOffersToCart,
@@ -85,7 +85,7 @@ const ProductDetailsModal = ({
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [isLocked, setIsLocked] = useState(false);
   const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [showCustomizerModal, setShowCustomizerModal] = useState(false);
+  const navigate = useNavigate();
 
   const discountPercentage = useMemo(() => {
     if (product.isPromo && product.oldPrice && product.price < product.oldPrice) {
@@ -359,7 +359,8 @@ const ProductDetailsModal = ({
   const handleBuy = () => {
     if (canCustomize) {
       if (isUnavailable || isCombinationUnavailable) return;
-      setShowCustomizerModal(true);
+      onClose();
+      navigate(`/produto/${product.id}`);
       return;
     }
 
@@ -865,22 +866,6 @@ const ProductDetailsModal = ({
           onClose={() => setIsImageModalOpen(false)}
           title={product.name}
           description={product.description}
-        />
-      )}
-      {canCustomize && showCustomizerModal && (
-        <ProductCustomizerModal
-          isOpen={showCustomizerModal}
-          onClose={() => setShowCustomizerModal(false)}
-          product={product}
-          businessType={storeSettings?.businessType}
-          onConfirm={(item) => {
-            addToCart(item);
-            if (displayQuantity > 1) {
-              updateQuantity(item.product.id, displayQuantity, item.selectedVariation, item.orderBumpId, item.customizationLineId);
-            }
-            addBumpsToCart();
-            startAutoClose(item.selectedVariation);
-          }}
         />
       )}
     </div>,

@@ -22,6 +22,7 @@ export interface OrderBumpSuggestion {
   sectionTitle: string;
   triggerType?: "ALL" | "CATEGORY" | "PRODUCT";
   triggerProductId?: string | null;
+  triggerProductIds?: string[];
   triggerCategoryId?: string | null;
   product: {
     id: string;

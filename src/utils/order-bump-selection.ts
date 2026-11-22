@@ -103,6 +103,7 @@ export function addChosenOffersToCart(
       orderBumpTrigger: {
         triggerType: offer.triggerType,
         triggerProductId: offer.triggerProductId,
+      triggerProductIds: offer.triggerProductIds,
         triggerCategoryId: offer.triggerCategoryId,
       },
     });

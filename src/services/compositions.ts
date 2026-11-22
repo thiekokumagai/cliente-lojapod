@@ -44,6 +44,7 @@ export interface CustomizationSummary {
   finalUnitPrice: number;
   isAllValid: boolean;
   pendingStageMessage: string | null;
+  firstPendingGroupId: string | null;
   stages: {
     groupId: string;
     groupName: string;
@@ -54,7 +55,22 @@ export interface CustomizationSummary {
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 /**
- * Mesma conta do servidor (create-order.use-case.ts, resolveCustomizedAllowedPrices):
+ * Proteção defensiva para dados legados com min > max (ex.: Min 3 / Max 1):
+ * garante max >= 1 e min <= max para que o cliente nunca fique travado sem conseguir comprar.
+ */
+export function getEffectiveStageLimits(
+  stage: Pick<PublicCompositionStage, "minQuantity" | "maxQuantity">,
+): { minQuantity: number; maxQuantity: number } {
+  const maxQuantity = Math.max(1, Number(stage.maxQuantity) || 1);
+  const rawMin = Math.max(0, Number(stage.minQuantity) || 0);
+  return {
+    minQuantity: Math.min(rawMin, maxQuantity),
+    maxQuantity,
+  };
+}
+
+/**
+ * Mesma conta do servidor (order-customization.ts, resolveCustomizedAllowedPrices):
  * por grupo, as primeiras `freeQuantity` unidades na ordem das opções (sortOrder) são grátis
  * e as demais pagam `price`.
  */
@@ -65,16 +81,22 @@ export function calculateCustomization(
 ): CustomizationSummary {
   let additionsSum = 0;
   let pendingMsg: string | null = null;
+  let firstPendingGroupId: string | null = null;
   let valid = true;
   const snapshotStages: CustomizationSummary["stages"] = [];
 
   for (const stage of stages) {
     const groupSelections = selections[stage.groupId] || {};
     const totalGroupQty = Object.values(groupSelections).reduce((sum, q) => sum + q, 0);
+    const { minQuantity } = getEffectiveStageLimits(stage);
 
-    if (totalGroupQty < stage.minQuantity) {
+    if (totalGroupQty < minQuantity) {
       valid = false;
-      if (!pendingMsg) pendingMsg = `Escolha ao menos ${stage.minQuantity} opção em "${stage.name}"`;
+      if (!pendingMsg) {
+        const unit = minQuantity === 1 ? "opção" : "opções";
+        pendingMsg = `Escolha ao menos ${minQuantity} ${unit} em "${stage.name}"`;
+        firstPendingGroupId = stage.groupId;
+      }
     }
 
     const freeSlots = stage.freeQuantity || 0;
@@ -103,6 +125,7 @@ export function calculateCustomization(
     finalUnitPrice: round2((basePrice || 0) + totalAdditions),
     isAllValid: valid,
     pendingStageMessage: pendingMsg,
+    firstPendingGroupId,
     stages: snapshotStages,
   };
 }

@@ -64,6 +64,7 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
     const orderBumpTrigger = {
       triggerType: sug.triggerType,
       triggerProductId: sug.triggerProductId,
+        triggerProductIds: sug.triggerProductIds,
       triggerCategoryId: sug.triggerCategoryId,
     };
 

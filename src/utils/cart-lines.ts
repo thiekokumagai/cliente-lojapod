@@ -71,6 +71,7 @@ export interface CartItemWithBumpLike {
   orderBumpTrigger?: {
     triggerType?: "ALL" | "CATEGORY" | "PRODUCT";
     triggerProductId?: string | null;
+    triggerProductIds?: string[];
     triggerCategoryId?: string | null;
   };
   isCustomized?: boolean;
@@ -132,11 +133,19 @@ export function reconcileOrderBumpItems<T extends CartItemWithBumpLike>(items: T
           others.length > 0 ||
           entries.some((e) => e.lineIdx !== idx && !e.isBump && e.productId === item.product.id);
       } else if (triggerType === "PRODUCT") {
-        if (trigger?.triggerProductId) {
-          triggerMet =
-            others.some((e) => e.productId === trigger.triggerProductId) ||
-            (trigger.triggerProductId === item.product.id &&
-              entries.some((e) => e.lineIdx !== idx && !e.isBump && e.productId === trigger.triggerProductId));
+        const triggerIds =
+          Array.isArray(trigger?.triggerProductIds) && trigger.triggerProductIds.length > 0
+            ? trigger.triggerProductIds
+            : trigger?.triggerProductId
+              ? [trigger.triggerProductId]
+              : [];
+        if (triggerIds.length > 0) {
+          triggerMet = triggerIds.some(
+            (triggerId) =>
+              others.some((e) => e.productId === triggerId) ||
+              (triggerId === item.product.id &&
+                entries.some((e) => e.lineIdx !== idx && !e.isBump && e.productId === triggerId)),
+          );
         } else {
           triggerMet = others.length > 0;
         }

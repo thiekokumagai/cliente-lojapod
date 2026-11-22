@@ -68,6 +68,7 @@ export interface Product {
 export interface OrderBumpTriggerRule {
   triggerType?: "ALL" | "CATEGORY" | "PRODUCT";
   triggerProductId?: string | null;
+    triggerProductIds?: string[];
   triggerCategoryId?: string | null;
 }
 
