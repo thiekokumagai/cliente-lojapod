@@ -7,13 +7,13 @@ import ProductVariationModal from "@/components/ProductVariationModal";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { StockNotificationModal } from "@/components/StockNotificationModal";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import ServesIndicator from "@/components/product/ServesIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 import seloMaisVendido from "@/assets/seloMaisVendido.png";
 import { getReservedStockInCart, getProductAvailableStock } from "@/utils/cart-stock";
 import { isBumpLine } from "@/utils/cart-lines";
 import {
-  formatServesLabel,
   getCustomizationCopy,
   supportsCustomization,
 } from "@/utils/business-type";
@@ -133,7 +133,6 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
     supportsCustomization(storeSettings?.businessType);
   const customizationCopy = getCustomizationCopy(storeSettings?.businessType);
   const isFoodStore = supportsCustomization(storeSettings?.businessType);
-  const servesLabel = isFoodStore ? formatServesLabel(product.servesCount) : null;
 
   const handleBuy = () => {
     if (product.isCombo) {
@@ -275,11 +274,7 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
       <h3 className="mt-1 font-display text-base font-semibold leading-tight text-foreground line-clamp-2">
         {product.name}
       </h3>
-      {servesLabel && (
-        <p className="mt-1 inline-flex items-center rounded-full bg-amber-50 border border-amber-200/80 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
-          {servesLabel}
-        </p>
-      )}
+      <ServesIndicator servesCount={product.servesCount} show={isFoodStore} size="sm" className="mt-1.5" />
     </>
   );
 

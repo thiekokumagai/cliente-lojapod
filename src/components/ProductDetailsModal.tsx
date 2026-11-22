@@ -22,6 +22,7 @@ import { isBumpLine } from "@/utils/cart-lines";
 import { useProductOrderBumps } from "@/hooks/useProductOrderBumps";
 import ProductOrderBumpGroup from "@/components/product/ProductOrderBumpGroup";
 import { getCustomizationCopy, supportsCustomization } from "@/utils/business-type";
+import ServesIndicator from "@/components/product/ServesIndicator";
 import {
   addChosenOffersToCart,
   chosenOffers,
@@ -221,6 +222,7 @@ const ProductDetailsModal = ({
     ? allComboComponentsSelected && (product.stock === undefined || product.stock > 0)
     : allSelected && !isCombinationUnavailable;
 
+  const isFoodStore = supportsCustomization(storeSettings?.businessType);
   const canCustomize =
     Boolean(product.isCustomizable) &&
     supportsCustomization(storeSettings?.businessType);
@@ -653,6 +655,12 @@ const ProductDetailsModal = ({
               dangerouslySetInnerHTML={{ __html: product.description }} 
             />
           )}
+          <ServesIndicator
+            servesCount={product.servesCount}
+            show={isFoodStore}
+            size="md"
+            className="mt-2.5"
+          />
           <div className="mt-4">
             {product.oldPrice && (
               <span className="block text-sm text-muted-foreground line-through">

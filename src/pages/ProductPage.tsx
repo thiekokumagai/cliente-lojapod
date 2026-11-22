@@ -41,7 +41,7 @@ import {
   type CompositionSelections,
   type PublicCompositionStage,
 } from "@/services/compositions";
-import { formatServesLabel, supportsCustomization } from "@/utils/business-type";
+import { supportsCustomization } from "@/utils/business-type";
 import {
   addChosenOffersToCart,
   chosenOffers,
@@ -141,7 +141,6 @@ const ProductPage = () => {
   }, [combinationStock]);
 
   const isFoodStore = supportsCustomization(settings?.businessType);
-  const servesLabel = isFoodStore ? formatServesLabel(product?.servesCount) : null;
   const [itemObservation, setItemObservation] = useState("");
   const normalizedItemObservation = isFoodStore
     ? normalizeCartObservation(itemObservation)
@@ -606,13 +605,6 @@ const ProductPage = () => {
             <h1 className="font-display text-[24px] font-medium leading-tight text-fg-secondary">
               {product.name}
             </h1>
-            {servesLabel && (
-              <div className="mt-2">
-                <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-                  {servesLabel}
-                </span>
-              </div>
-            )}
 
             <div className="mt-6 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3 rounded-full border border-border-subtle bg-surface-muted px-4 py-2.5">
@@ -664,6 +656,7 @@ const ProductPage = () => {
               onSelectOption={handleSelectOption}
               comboSelections={comboSelections}
               onSelectComboOption={handleSelectComboOption}
+              showServesCount={isFoodStore}
             />
 
             {canCustomize && (
@@ -752,13 +745,6 @@ const ProductPage = () => {
               <h1 className="font-display text-[27px] font-semibold leading-[1.15] text-fg-secondary">
                 {product.name}
               </h1>
-              {servesLabel && (
-                <div className="mt-2">
-                  <span className="inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-800">
-                    {servesLabel}
-                  </span>
-                </div>
-              )}
 
               <div className="mt-6 flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3 rounded-full border border-border-subtle bg-surface-muted px-5 py-2.5 text-fg-secondary">
@@ -811,6 +797,7 @@ const ProductPage = () => {
                 onSelectOption={handleSelectOption}
                 comboSelections={comboSelections}
                 onSelectComboOption={handleSelectComboOption}
+                showServesCount={isFoodStore}
               />
 
               {canCustomize && (

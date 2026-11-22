@@ -1,3 +1,4 @@
+import ServesIndicator from "@/components/product/ServesIndicator";
 import type { Product, ProductVariationGroup } from "@/data/products";
 import { isOptionAvailableGivenSelections } from "@/utils/variation-stock";
 
@@ -7,6 +8,7 @@ interface ProductInfoProps {
   variationGroups?: ProductVariationGroup[];
   selections?: Record<string, string>;
   isDesktop?: boolean;
+  showServesCount?: boolean;
   onSelectOption?: (groupName: string, optionLabel: string) => void;
   comboSelections?: Record<string, string>;
   onSelectComboOption?: (componentKey: string, variationLabel: string) => void;
@@ -18,6 +20,7 @@ const ProductInfo = ({
   variationGroups = [],
   selections = {},
   isDesktop = false,
+  showServesCount = false,
   onSelectOption,
   comboSelections = {},
   onSelectComboOption,
@@ -133,6 +136,12 @@ const ProductInfo = ({
           className={descriptionClassName}
           dangerouslySetInnerHTML={{ __html: productDescription }}
         />
+        <ServesIndicator
+          servesCount={product?.servesCount}
+          show={showServesCount}
+          size="md"
+          className="mt-3"
+        />
       </div>
     );
   }
@@ -149,6 +158,11 @@ const ProductInfo = ({
       <div
         className={`${isDesktop ? "text-[16px] text-[#666666]" : ""} rich-text-content [&>p]:mb-3 last:[&>p]:mb-0`}
         dangerouslySetInnerHTML={{ __html: productDescription }}
+      />
+      <ServesIndicator
+        servesCount={product?.servesCount}
+        show={showServesCount}
+        size="md"
       />
 
       {variationGroups.map((group) => (

@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
 import { formatServesLabel, supportsCustomization } from "@/utils/business-type";
 import { isSameCartLine, normalizeCartObservation } from "@/utils/cart-lines";
+import ServesIndicator from "@/components/product/ServesIndicator";
 
-describe("formatServesLabel e observação por item no carrinho", () => {
+describe("formatServesLabel, ServesIndicator e observação por item no carrinho", () => {
   it("formata corretamente singular, plural e valores vazios/inválidos", () => {
     expect(formatServesLabel(1)).toBe("Serve 1 pessoa");
     expect(formatServesLabel(2)).toBe("Serve 2 pessoas");
@@ -11,6 +13,19 @@ describe("formatServesLabel e observação por item no carrinho", () => {
     expect(formatServesLabel(-2)).toBeNull();
     expect(formatServesLabel(null)).toBeNull();
     expect(formatServesLabel(undefined)).toBeNull();
+  });
+
+  it("renderiza ícone de 1 pessoa para servesCount === 1 e de várias pessoas para >= 2", () => {
+    const { rerender, container } = render(<ServesIndicator servesCount={1} show />);
+    expect(screen.getByText("Serve 1 pessoa")).toBeInTheDocument();
+    expect(screen.getByTestId("serves-icon-single")).toBeInTheDocument();
+
+    rerender(<ServesIndicator servesCount={2} show />);
+    expect(screen.getByText("Serve 2 pessoas")).toBeInTheDocument();
+    expect(screen.getByTestId("serves-icon-multiple")).toBeInTheDocument();
+
+    rerender(<ServesIndicator servesCount={2} show={false} />);
+    expect(container.firstChild).toBeNull();
   });
 
   it("habilita recursos de alimentação apenas para FOOD e ACAI legado", () => {

@@ -7,6 +7,8 @@ import ProductVariationModal from "@/components/ProductVariationModal";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { StockNotificationModal } from "@/components/StockNotificationModal";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { supportsCustomization } from "@/utils/business-type";
+import ServesIndicator from "@/components/product/ServesIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
 
@@ -22,6 +24,7 @@ const UrbanProductCard = memo(function UrbanProductCard({ product, isBestSeller 
   const isMobile = useIsMobile();
   const { addToCart } = useCart();
   const { data: storeSettings } = useStoreSettings();
+  const isFoodStore = supportsCustomization(storeSettings?.businessType);
   const [selectedVariation, setSelectedVariation] = useState<string | null>(null);
   const [showVariationModal, setShowVariationModal] = useState(false);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
@@ -157,6 +160,7 @@ const UrbanProductCard = memo(function UrbanProductCard({ product, isBestSeller 
               )}
             </div>
           )}
+          <ServesIndicator servesCount={product.servesCount} show={isFoodStore} size="sm" className="mt-1.5" />
         </div>
 
         {/* Linha Inferior: Preço na esquerda e Botão Desktop '+' no canto direito */}
