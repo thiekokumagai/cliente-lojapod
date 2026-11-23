@@ -1,13 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, cleanup, within } from "@testing-library/react";
 
-// Nada de rede: ofertas, configurações da loja, pixel e análise do carrinho são mocks.
+// Nada de rede: ofertas, composições, configurações da loja, pixel e análise do carrinho são mocks.
 const getSuggestions = vi.fn();
+const getProductCompositions = vi.fn();
+let mockStoreSettings: { enableStockAlertNotification: boolean; phone: string; businessType?: string } = {
+  enableStockAlertNotification: true,
+  phone: "",
+  businessType: "POD",
+};
+
 vi.mock("@/services/order-bumps", () => ({
   orderBumpsService: { getSuggestions: (...args: unknown[]) => getSuggestions(...args) },
 }));
+vi.mock("@/services/compositions", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/services/compositions")>();
+  return {
+    ...actual,
+    compositionsService: {
+      ...actual.compositionsService,
+      getProductCompositions: (...args: unknown[]) => getProductCompositions(...args),
+    },
+  };
+});
 vi.mock("@/hooks/useStoreSettings", () => ({
-  useStoreSettings: () => ({ data: { enableStockAlertNotification: true, phone: "" } }),
+  useStoreSettings: () => ({ data: mockStoreSettings }),
 }));
 vi.mock("@/components/FacebookPixel", () => ({ trackEvent: vi.fn(), trackCustomEvent: vi.fn() }));
 vi.mock("@/services/analytics", () => ({ syncCartAnalytics: vi.fn() }));
@@ -28,9 +45,27 @@ const donuts = {
   stock: 30,
 } as never;
 
-const offer = (id: string, title: string, price: number, extra: Record<string, unknown> = {}) => ({
+const customBox = {
+  id: "caixa-doces",
+  name: "Caixa com 10 Doces",
+  image: "",
+  images: [],
+  category: "Doces",
+  description: "Monte sua caixa",
+  price: 100,
+  stock: 20,
+  isCustomizable: true,
+} as never;
+
+const offer = (
+  id: string,
+  title: string,
+  price: number,
+  extra: Record<string, unknown> = {},
+  sectionTitle = "Leve junto uma Bebida",
+) => ({
   bumpId: `bump-${id}`,
-  sectionTitle: "Leve junto uma Bebida",
+  sectionTitle,
   product: {
     id,
     title,
@@ -51,10 +86,12 @@ function CartProbe() {
   const { items } = useCart();
   return (
     <ul data-testid="cart">
-      {items.map((i) => (
+      {items.map((i, idx) => (
         <li
-          key={`${i.product.id}-${i.orderBumpId ?? "normal"}`}
+          key={`${i.product.id}-${i.orderBumpId ?? i.customizationLineId ?? "normal"}-${idx}`}
           data-line={`${i.product.id}|${i.orderBumpId ?? ""}|${i.quantity}|${i.product.price}`}
+          data-obs={i.observation ?? ""}
+          data-custom={i.isCustomized ? "1" : "0"}
         />
       ))}
     </ul>
@@ -62,11 +99,17 @@ function CartProbe() {
 }
 
 const lines = () => Array.from(screen.getByTestId("cart").querySelectorAll("li")).map((li) => li.getAttribute("data-line"));
+const cartItemsMeta = () =>
+  Array.from(screen.getByTestId("cart").querySelectorAll("li")).map((li) => ({
+    line: li.getAttribute("data-line"),
+    obs: li.getAttribute("data-obs"),
+    custom: li.getAttribute("data-custom"),
+  }));
 
-function renderModal() {
+function renderModal(product = donuts, onClose = () => {}) {
   return render(
     <CartProvider>
-      <ProductDetailsModal product={donuts} onClose={() => {}} />
+      <ProductDetailsModal product={product} onClose={onClose} />
       <CartProbe />
     </CartProvider>,
   );
@@ -77,7 +120,14 @@ const total = () => screen.getByText("Adicionar").parentElement!.textContent!.re
 describe("ProductDetailsModal: grupo 'Peça também' dentro da tela do produto", () => {
   beforeEach(() => {
     localStorage.clear();
+    mockStoreSettings = {
+      enableStockAlertNotification: true,
+      phone: "",
+      businessType: "POD",
+    };
     getSuggestions.mockReset();
+    getProductCompositions.mockReset();
+    getProductCompositions.mockResolvedValue({ stages: [] });
     getSuggestions.mockResolvedValue([
       offer("coca", "Coca-Cola 310ml", 7),
       offer("fanta", "Fanta 310ml", 6.5),
@@ -233,5 +283,101 @@ describe("ProductDetailsModal: grupo 'Peça também' dentro da tela do produto",
     await waitFor(() => expect(lines()).toHaveLength(3));
     expect(lines()).toContain("coca||1|8");
     expect(lines()).toContain("coca|bump-coca|1|7");
+  });
+
+  it("separa Order Bump em múltiplas seções por título no modal mobile", async () => {
+    getSuggestions.mockResolvedValue([
+      offer("presunto", "Presunto 100g", 4.5, {}, "Frios & Queijos"),
+      offer("coca", "Coca-Cola 310ml", 7, {}, "Leve junto uma Bebida"),
+    ]);
+    renderModal();
+
+    const group = await screen.findByTestId("product-order-bump-group");
+    const sections = within(group).getAllByTestId("product-order-bump-section");
+    expect(sections).toHaveLength(2);
+    expect(within(sections[0]).getByRole("heading", { name: "Frios & Queijos" })).toBeInTheDocument();
+    expect(within(sections[0]).getByText("Presunto 100g")).toBeInTheDocument();
+    expect(within(sections[1]).getByRole("heading", { name: "Leve junto uma Bebida" })).toBeInTheDocument();
+    expect(within(sections[1]).getByText("Coca-Cola 310ml")).toBeInTheDocument();
+  });
+
+  it("não exibe campo de observação em loja POD", async () => {
+    renderModal();
+    await screen.findByTestId("product-order-bump-group");
+    expect(screen.queryByLabelText("Alguma observação?")).not.toBeInTheDocument();
+  });
+
+  it("em loja FOOD exibe montagem inline, observação, aviso obrigatório, soma em tempo real e adiciona tudo ao carrinho", async () => {
+    mockStoreSettings = {
+      enableStockAlertNotification: true,
+      phone: "",
+      businessType: "FOOD",
+    };
+    getProductCompositions.mockResolvedValue({
+      stages: [
+        {
+          groupId: "g-sabores",
+          name: "Escolha o sabor",
+          description: null,
+          minQuantity: 1,
+          maxQuantity: 1,
+          freeQuantity: 0,
+          sortOrder: 0,
+          options: [
+            {
+              id: "opt-brigadeiro",
+              name: "Brigadeiro Gourmet",
+              description: null,
+              price: 15,
+              maxQuantityPerItem: 1,
+              sortOrder: 0,
+              isActive: true,
+            },
+          ],
+        },
+      ],
+    });
+    getSuggestions.mockResolvedValue([
+      offer("presunto", "Presunto 100g", 5, {}, "Frios & Queijos"),
+      offer("coca", "Coca-Cola 310ml", 7, {}, "Leve junto uma Bebida"),
+    ]);
+
+    renderModal(customBox);
+
+    expect(await screen.findByTestId("product-customization-section")).toBeInTheDocument();
+    expect(screen.queryByText("Monte seu pedido")).not.toBeInTheDocument();
+    expect(screen.getByText(/Escolha ao menos 1 opção em "Escolha o sabor"/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Alguma observação?")).toBeInTheDocument();
+    expect(total()).toContain("R$ 100,00");
+
+    // Clicar sem preencher etapa obrigatória não adiciona ao carrinho
+    fireEvent.click(screen.getByText("Adicionar"));
+    expect(lines()).toEqual([]);
+
+    // Seleciona opção da montagem (+ R$ 15,00), escreve observação e marca 1 Order Bump (+ R$ 7,00)
+    fireEvent.click(screen.getByText("Brigadeiro Gourmet"));
+    expect(screen.queryByText(/Escolha ao menos 1 opção em/)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Alguma observação?"), {
+      target: { value: "  Sem granulado por favor  " },
+    });
+    expect(screen.getByText("27/300")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText("Adicionar Coca-Cola 310ml"));
+    expect(total()).toContain("R$ 122,00"); // 100 + 15 + 7
+
+    fireEvent.click(screen.getByText("Adicionar"));
+
+    await waitFor(() => expect(cartItemsMeta()).toHaveLength(2));
+    expect(cartItemsMeta()).toContainEqual({
+      line: "caixa-doces||1|115",
+      obs: "Sem granulado por favor",
+      custom: "1",
+    });
+    expect(cartItemsMeta()).toContainEqual({
+      line: "coca|bump-coca|1|7",
+      obs: "",
+      custom: "0",
+    });
   });
 });
