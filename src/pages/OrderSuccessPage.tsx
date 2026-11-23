@@ -21,6 +21,7 @@ import { useNoIndex } from "@/hooks/useNoIndex";
 import { formatWhatsAppNumber } from "@/utils/phone";
 import { formatPaymentMethod } from "@/utils/payment-method";
 import { formatOrderStatus } from "@/utils/order-status";
+import { toast } from "sonner";
 
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
 
@@ -106,9 +107,19 @@ export default function OrderSuccessPage() {
 
   // A confirmação da operadora pode chegar alguns segundos depois do retorno para cartão online
   const [pollAttempts, setPollAttempts] = useState(0);
+  const [isPayingNow, setIsPayingNow] = useState(false);
   const MAX_POLL_ATTEMPTS = 30;
-  const isCreditOnline = order?.paymentMethod === "Cartão de Crédito Online";
-  const awaitingPayment = !!order && isCreditOnline && order.paymentStatus !== "PAID" && order.status !== "CANCELLED";
+  const normalizedPaymentType = String(order?.paymentType ?? "").trim().toLowerCase();
+  const normalizedPaymentMethod = String(order?.paymentMethod ?? "").trim().toLowerCase();
+  const isOnlinePayment =
+    normalizedPaymentType === "online" || order?.paymentMethod === "Cartão de Crédito Online";
+  const isPixMethod = normalizedPaymentMethod.includes("pix");
+  const isCreditOnline =
+    (isOnlinePayment && (normalizedPaymentMethod.includes("credit") || normalizedPaymentMethod.includes("cart"))) ||
+    order?.paymentMethod === "Cartão de Crédito Online";
+  const hasGatewayReturnParams = Boolean(transactionId || slug);
+  const awaitingPayment =
+    !!order && isCreditOnline && hasGatewayReturnParams && order.paymentStatus !== "PAID" && order.status !== "CANCELLED";
 
   useEffect(() => {
     if (!id || !awaitingPayment || pollAttempts >= MAX_POLL_ATTEMPTS) return;
@@ -323,8 +334,49 @@ export default function OrderSuccessPage() {
   const currentStepIdx = getStepStatusIndex(order.status, isStorePickup);
   const isCompleted = order.status === "COMPLETED";
 
-  // Se for cartão online e ainda não confirmou o pagamento, mostra tela de espera/retentativa
-  if (isCreditOnline && !isPaid) {
+  const normalizedGateway = String(order.onlineGateway ?? "").trim().toUpperCase();
+  const configuredGateways = (storeSettings as Record<string, any> | undefined)?.paymentGateways || {};
+  const isMercadoPagoOrder =
+    normalizedGateway === "MERCADOPAGO" ||
+    normalizedGateway === "MERCADO_PAGO" ||
+    (!normalizedGateway &&
+      Boolean(configuredGateways.mercadopago?.enabled) &&
+      (isPixMethod
+        ? Boolean(configuredGateways.mercadopago?.acceptPix)
+        : Boolean(configuredGateways.mercadopago?.acceptCreditCard)));
+  const canPayOnlineNow = isOnlinePayment && !isPaid && !isCancelled && (isCreditOnline || isMercadoPagoOrder);
+
+  const handlePayNow = async () => {
+    if (!order || isPayingNow || isPaid || isCancelled) return;
+    setIsPayingNow(true);
+    try {
+      if (isMercadoPagoOrder) {
+        navigate(`/pedido/${order.id}/pagamento?metodo=${isPixMethod ? "pix" : "cartao"}`);
+        return;
+      }
+
+      if (order.gatewayCheckoutUrl && /^https:\/\//i.test(order.gatewayCheckoutUrl)) {
+        window.location.assign(order.gatewayCheckoutUrl);
+        return;
+      }
+
+      const checkoutResponse = await ordersService.createOnlineCheckout(order.id, window.location.origin);
+      if (checkoutResponse?.checkoutUrl && /^https:\/\//i.test(checkoutResponse.checkoutUrl)) {
+        window.location.assign(checkoutResponse.checkoutUrl);
+        return;
+      }
+
+      toast.error("Não foi possível abrir o link de pagamento. Tente novamente.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Não foi possível iniciar o pagamento online.";
+      toast.error(msg);
+    } finally {
+      setIsPayingNow(false);
+    }
+  };
+
+  // Se retornou do gateway de cartão online e ainda não confirmou o pagamento, mostra tela de espera/retentativa
+  if (isCreditOnline && hasGatewayReturnParams && !isPaid) {
     const stillChecking = !isCancelled && pollAttempts < MAX_POLL_ATTEMPTS;
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center p-6 text-center">
@@ -348,13 +400,16 @@ export default function OrderSuccessPage() {
                 : "Não recebemos a confirmação do pagamento, então o pedido está aguardando pagamento. Tente pagar de novo ou escolha outra forma de pagamento."}
             </p>
             <div className="mt-6 flex w-full flex-col gap-3">
-              {!isCancelled && order.gatewayCheckoutUrl && (
-                <a
-                  href={order.gatewayCheckoutUrl}
-                  className="w-full rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground"
+              {canPayOnlineNow && (
+                <button
+                  type="button"
+                  disabled={isPayingNow}
+                  onClick={handlePayNow}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground disabled:opacity-60"
                 >
+                  {isPayingNow && <Loader2 className="h-4 w-4 animate-spin" />}
                   Tentar pagar novamente
-                </a>
+                </button>
               )}
               {!isCancelled && (
                 <button
@@ -577,11 +632,28 @@ export default function OrderSuccessPage() {
                   {formatPaymentMethod(order.paymentMethod)}{" "}
                   {isPaid
                     ? "(Aprovado)"
-                    : isCreditOnline
-                    ? "(Em processamento)"
+                    : isOnlinePayment
+                    ? "(Aguardando pagamento online)"
                     : "(Pendente / Na entrega)"}
                 </strong>
               </p>
+              {canPayOnlineNow && (
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    disabled={isPayingNow}
+                    onClick={handlePayNow}
+                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-opacity hover:opacity-95 disabled:opacity-60"
+                  >
+                    {isPayingNow ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <CreditCard className="h-4 w-4" />
+                    )}
+                    Pagar agora
+                  </button>
+                </div>
+              )}
               {order.deliveryModality === "STORE_PICKUP" ? (
                 <p className="text-foreground">
                   <span className="text-muted-foreground">Modo: </span>

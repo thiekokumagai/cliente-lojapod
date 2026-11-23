@@ -3,17 +3,20 @@ import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/re
 import OrderSuccessPage from "./OrderSuccessPage";
 
 // Nada de rede: serviços, socket, configurações da loja e roteador são mocks.
+const navigateMock = vi.fn();
 vi.mock("react-router-dom", () => ({
   useParams: () => ({ id: "order-1" }),
   useSearchParams: () => [new URLSearchParams("")],
-  useNavigate: () => vi.fn(),
+  useNavigate: () => navigateMock,
 }));
 
 const getStoreOrder = vi.fn();
+const createOnlineCheckout = vi.fn();
 vi.mock("@/services/orders", () => ({
   ordersService: {
     getStoreOrder: (id: string) => getStoreOrder(id),
     checkPaymentStatus: vi.fn(),
+    createOnlineCheckout: (...args: unknown[]) => createOnlineCheckout(...args),
   },
 }));
 vi.mock("@/services/order-socket", () => ({ subscribeToOrderStatus: () => () => {} }));
@@ -45,6 +48,8 @@ const paymentLine = () => screen.getByText("Pagamento:").parentElement as HTMLEl
 describe("OrderSuccessPage: forma de pagamento em português", () => {
   beforeEach(() => {
     getStoreOrder.mockReset();
+    createOnlineCheckout.mockReset();
+    navigateMock.mockReset();
   });
   afterEach(() => {
     cleanup();
@@ -105,5 +110,64 @@ describe("OrderSuccessPage: forma de pagamento em português", () => {
     const text = decodeURIComponent(url.slice(url.indexOf("text=") + 5));
     expect(text).toContain("Forma de pagamento: Cartão de Crédito");
     expect(text).not.toMatch(/Forma de pagamento: credit/i);
+  });
+
+  it("cartão online pendente (Mercado Pago): mostra '(Aguardando pagamento online)' e botão Pagar agora redireciona para /pedido/:id/pagamento", async () => {
+    getStoreOrder.mockResolvedValue(
+      order({
+        paymentType: "online",
+        paymentMethod: "credit",
+        paymentStatus: "PENDING",
+        onlineGateway: "MERCADOPAGO",
+      }),
+    );
+    render(<OrderSuccessPage />);
+
+    await waitFor(() => expect(screen.getByText("Pagamento:")).toBeInTheDocument());
+    expect(paymentLine().textContent).toContain("Cartão de Crédito (Aguardando pagamento online)");
+    expect(paymentLine().textContent).not.toContain("Na entrega");
+
+    fireEvent.click(screen.getByRole("button", { name: /Pagar agora/i }));
+    await waitFor(() =>
+      expect(navigateMock).toHaveBeenCalledWith("/pedido/order-1/pagamento?metodo=cartao"),
+    );
+  });
+
+  it("cartão online pendente (InfinitePay): chama createOnlineCheckout quando não há gatewayCheckoutUrl salvo", async () => {
+    getStoreOrder.mockResolvedValue(
+      order({
+        paymentType: "online",
+        paymentMethod: "credit",
+        paymentStatus: "PENDING",
+        onlineGateway: "INFINITEPAY",
+        gatewayCheckoutUrl: null,
+      }),
+    );
+    createOnlineCheckout.mockResolvedValue({
+      checkoutUrl: "https://checkout.infinitepay.io/pedido-1",
+    });
+    const assignMock = vi.fn();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { ...window.location, origin: "http://localhost:8080", assign: assignMock },
+    });
+
+    render(<OrderSuccessPage />);
+
+    fireEvent.click(await screen.findByRole("button", { name: /Pagar agora/i }));
+    await waitFor(() =>
+      expect(createOnlineCheckout).toHaveBeenCalledWith("order-1", "http://localhost:8080"),
+    );
+    expect(assignMock).toHaveBeenCalledWith("https://checkout.infinitepay.io/pedido-1");
+  });
+
+  it("pedido online já pago ou cancelado NÃO exibe botão Pagar agora", async () => {
+    getStoreOrder.mockResolvedValue(
+      order({ paymentType: "online", paymentMethod: "credit", paymentStatus: "PAID", onlineGateway: "INFINITEPAY" }),
+    );
+    render(<OrderSuccessPage />);
+
+    await waitFor(() => expect(screen.getByText("Pagamento:")).toBeInTheDocument());
+    expect(screen.queryByRole("button", { name: /Pagar agora/i })).not.toBeInTheDocument();
   });
 });
