@@ -10,6 +10,38 @@ import { convertSuggestionToProduct } from "@/utils/order-bump-product";
 /** `bumpId` -> quantidade escolhida. */
 export type BumpSelection = Record<string, number>;
 
+export const DEFAULT_ORDER_BUMP_TITLE = "Peça também";
+
+export interface OrderBumpGroup {
+  title: string;
+  offers: OrderBumpSuggestion[];
+}
+
+/**
+ * Agrupa sugestões pelo título da seção (normalizando espaços nas pontas e usando fallback padrão
+ * quando vazio), preservando a ordem da primeira aparição de cada título e dos itens dentro dele.
+ */
+export function groupOrderBumpsByTitle(
+  offers: OrderBumpSuggestion[],
+  fallbackTitle = DEFAULT_ORDER_BUMP_TITLE,
+): OrderBumpGroup[] {
+  const groups: OrderBumpGroup[] = [];
+  const byTitle = new Map<string, OrderBumpGroup>();
+
+  for (const offer of offers) {
+    const title = offer.sectionTitle?.trim() || fallbackTitle;
+    let group = byTitle.get(title);
+    if (!group) {
+      group = { title, offers: [] };
+      byTitle.set(title, group);
+      groups.push(group);
+    }
+    group.offers.push(offer);
+  }
+
+  return groups;
+}
+
 const round2 = (v: number) => Math.round(v * 100) / 100;
 
 /** Total de unidades escolhidas. */

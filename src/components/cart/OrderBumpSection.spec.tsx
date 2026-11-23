@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, cleanup, within } from "@testing-library/react";
 
 // Nada de rede: ofertas, pixel e análise do carrinho são mocks.
 const getSuggestions = vi.fn();
@@ -102,5 +102,49 @@ describe("OrderBumpSection (carrinho)", () => {
     fireEvent.click(screen.getByLabelText("Diminuir Coca-Cola 310ml"));
     await waitFor(() => expect(lines()).toContain("coca|bump-coca|1|6"));
     expect(lines()).toContain("coca||1|8");
+  });
+
+  it("separa sugestões do carrinho em blocos distintos quando os títulos de seção são diferentes", async () => {
+    getSuggestions.mockResolvedValue([
+      {
+        ...offer,
+        bumpId: "bump-presunto",
+        sectionTitle: "Frios & Queijos",
+        product: { ...offer.product, id: "presunto", title: "Presunto 100g" },
+      },
+      {
+        ...offer,
+        bumpId: "bump-mussarela",
+        sectionTitle: "Frios & Queijos",
+        product: { ...offer.product, id: "mussarela", title: "Mussarela 100g" },
+      },
+      {
+        ...offer,
+        bumpId: "bump-coca",
+        sectionTitle: "Leve junto uma Bebida",
+        product: { ...offer.product, id: "coca", title: "Coca-Cola 310ml" },
+      },
+    ]);
+
+    render(
+      <CartProvider>
+        <Seed products={[donuts]} />
+        <OrderBumpSection />
+        <Probe />
+      </CartProvider>,
+    );
+    fireEvent.click(screen.getByText("seed"));
+
+    const groups = await screen.findAllByTestId("cart-order-bump-group");
+    expect(groups).toHaveLength(2);
+
+    expect(within(groups[0]).getByRole("heading", { name: "Frios & Queijos" })).toBeInTheDocument();
+    expect(within(groups[0]).getByText("Presunto 100g")).toBeInTheDocument();
+    expect(within(groups[0]).getByText("Mussarela 100g")).toBeInTheDocument();
+    expect(within(groups[0]).queryByText("Coca-Cola 310ml")).not.toBeInTheDocument();
+
+    expect(within(groups[1]).getByRole("heading", { name: "Leve junto uma Bebida" })).toBeInTheDocument();
+    expect(within(groups[1]).getByText("Coca-Cola 310ml")).toBeInTheDocument();
+    expect(within(groups[1]).queryByText("Presunto 100g")).not.toBeInTheDocument();
   });
 });

@@ -5,6 +5,7 @@ import {
   canIncrease,
   chosenOffers,
   decrease,
+  groupOrderBumpsByTitle,
   increase,
   offersForProductScreen,
   pruneSelection,
@@ -168,6 +169,31 @@ describe("order-bump-selection: seleção dentro da tela do produto", () => {
       const addToCart = vi.fn();
       addChosenOffersToCart(chosenOffers({}, [coca]), addToCart, vi.fn());
       expect(addToCart).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("groupOrderBumpsByTitle", () => {
+    it("agrupa ofertas por título normalizado preservando ordem da primeira aparição e fallback padrão", () => {
+      const presunto = { ...offer("presunto", 6.5), sectionTitle: "Frios & Queijos" };
+      const mussarela = { ...offer("mussarela", 8.5), sectionTitle: "  Frios & Queijos  " };
+      const cocaBebida = { ...offer("coca-2l", 12), sectionTitle: "Leve junto uma Bebida" };
+      const guaranazinho = { ...offer("guarana", 7), sectionTitle: "Leve junto uma Bebida" };
+      const semTitulo = { ...offer("extra", 5), sectionTitle: "   " };
+
+      const groups = groupOrderBumpsByTitle([presunto, cocaBebida, mussarela, semTitulo, guaranazinho]);
+
+      expect(groups.map((g) => g.title)).toEqual([
+        "Frios & Queijos",
+        "Leve junto uma Bebida",
+        "Peça também",
+      ]);
+      expect(groups[0].offers.map((o) => o.product.id)).toEqual(["presunto", "mussarela"]);
+      expect(groups[1].offers.map((o) => o.product.id)).toEqual(["coca-2l", "guarana"]);
+      expect(groups[2].offers.map((o) => o.product.id)).toEqual(["extra"]);
+    });
+
+    it("retorna lista vazia quando não há ofertas", () => {
+      expect(groupOrderBumpsByTitle([])).toEqual([]);
     });
   });
 });

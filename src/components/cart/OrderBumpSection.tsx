@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useId } from "react";
 import { useCart } from "@/contexts/CartContext";
 import { orderBumpsService, OrderBumpSuggestion } from "@/services/order-bumps";
 import type { Product } from "@/data/products";
 import { buildImageUrl } from "@/utils/image-url";
 import { convertSuggestionToProduct } from "@/utils/order-bump-product";
+import { groupOrderBumpsByTitle } from "@/utils/order-bump-selection";
 import { Plus } from "lucide-react";
 
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
@@ -16,13 +17,18 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
   const { items, addToCart, updateQuantity } = useCart();
   const [suggestions, setSuggestions] = useState<OrderBumpSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const baseId = useId();
 
   // Lista de IDs dos produtos atualmente no carrinho
-  const cartProductIds = useMemo(() => {
-    return items.map((it) => it.product.id).filter(Boolean);
+  const cartProductIdsKey = useMemo(() => {
+    return items
+      .map((it) => it.product.id)
+      .filter(Boolean)
+      .join(",");
   }, [items]);
 
   useEffect(() => {
+    const cartProductIds = cartProductIdsKey ? cartProductIdsKey.split(",") : [];
     if (cartProductIds.length === 0) {
       setSuggestions([]);
       return;
@@ -50,21 +56,21 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
     return () => {
       isMounted = false;
     };
-  }, [cartProductIds.join(",")]);
+  }, [cartProductIdsKey]);
 
   // Se não houver sugestões, não renderiza nada para não poluir
   if (suggestions.length === 0) {
     return null;
   }
 
-  const sectionTitle = suggestions[0]?.sectionTitle || "Peça também";
+  const groups = groupOrderBumpsByTitle(suggestions);
 
   const handleAdd = (sug: OrderBumpSuggestion) => {
     const prod = convertSuggestionToProduct(sug);
     const orderBumpTrigger = {
       triggerType: sug.triggerType,
       triggerProductId: sug.triggerProductId,
-        triggerProductIds: sug.triggerProductIds,
+      triggerProductIds: sug.triggerProductIds,
       triggerCategoryId: sug.triggerCategoryId,
       triggerCategoryIds: sug.triggerCategoryIds,
     };
@@ -75,109 +81,122 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
         isOrderBump: true,
         orderBumpId: sug.bumpId,
         orderBumpTrigger,
-      } as any);
+      } as Product);
     } else {
       addToCart({
         product: prod,
         isOrderBump: true,
         orderBumpId: sug.bumpId,
         orderBumpTrigger,
-      } as any);
+      });
     }
   };
 
   return (
-    <section className="mt-6 space-y-3" aria-labelledby="order-bump-title">
-      <h3 id="order-bump-title" className="text-base font-semibold text-foreground">
-        {sectionTitle}
-      </h3>
+    <div className="mt-6 space-y-5">
+      {groups.map((group, groupIndex) => {
+        const headingId = `${baseId}-title-${groupIndex}`;
 
-      <div
-        className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none no-scrollbar"
-        role="list"
-        aria-label={`Sugestões: ${sectionTitle}`}
-      >
-        {suggestions.map((sug) => {
-          const cartItem = items.find((ci) => ci.product.id === sug.product.id && ci.orderBumpId === sug.bumpId);
-          const inCartQuantity = cartItem ? cartItem.quantity : 0;
-          const isAtStockLimit = inCartQuantity >= sug.product.totalStock;
+        return (
+          <section
+            key={group.title}
+            className="space-y-3"
+            aria-labelledby={headingId}
+            data-testid="cart-order-bump-group"
+          >
+            <h3 id={headingId} className="text-base font-semibold text-foreground">
+              {group.title}
+            </h3>
 
-          return (
-            <article
-              key={sug.bumpId}
-              className="w-[122px] shrink-0 snap-start sm:w-[134px]"
-              role="listitem"
+            <div
+              className="flex gap-3 overflow-x-auto pb-2 snap-x snap-mandatory scrollbar-none no-scrollbar"
+              role="list"
+              aria-label={`Sugestões: ${group.title}`}
             >
-              <div className="relative h-[120px] overflow-hidden rounded-3xl bg-muted sm:h-[138px]">
-                {sug.product.imageUrl ? (
-                  <img
-                    src={buildImageUrl(sug.product.imageUrl)}
-                    alt={sug.product.title}
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
-                    Sem foto
-                  </div>
-                )}
+              {group.offers.map((sug) => {
+                const cartItem = items.find((ci) => ci.product.id === sug.product.id && ci.orderBumpId === sug.bumpId);
+                const inCartQuantity = cartItem ? cartItem.quantity : 0;
+                const isAtStockLimit = inCartQuantity >= sug.product.totalStock;
 
-                {sug.product.hasVariations || inCartQuantity === 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => handleAdd(sug)}
-                    className="absolute bottom-2.5 right-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-[38px] sm:w-[38px]"
-                    title="Adicionar ao carrinho"
-                    aria-label="Adicionar ao carrinho"
+                return (
+                  <article
+                    key={sug.bumpId}
+                    className="w-[122px] shrink-0 snap-start sm:w-[134px]"
+                    role="listitem"
                   >
-                    <Plus className="h-5 w-5 stroke-[2.5]" aria-hidden="true" />
-                  </button>
-                ) : (
-                  <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-background p-1 shadow-md">
-                    <button
-                      type="button"
-                      onClick={() => updateQuantity(sug.product.id, inCartQuantity - 1, undefined, sug.bumpId)}
-                      aria-label={`Diminuir ${sug.product.title}`}
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <span aria-hidden="true" className="text-xl leading-none">−</span>
-                    </button>
-                    <span className="min-w-5 text-center text-sm font-semibold tabular-nums text-foreground" aria-live="polite">
-                      {inCartQuantity}
-                    </span>
-                    <button
-                      type="button"
-                      disabled={isAtStockLimit}
-                      onClick={() => updateQuantity(sug.product.id, inCartQuantity + 1, undefined, sug.bumpId)}
-                      aria-label={`Aumentar ${sug.product.title}`}
-                      className="flex h-9 w-9 items-center justify-center rounded-full text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
-                    >
-                      <Plus className="h-5 w-5" aria-hidden="true" />
-                    </button>
-                  </div>
-                )}
-              </div>
+                    <div className="relative h-[120px] overflow-hidden rounded-3xl bg-muted sm:h-[138px]">
+                      {sug.product.imageUrl ? (
+                        <img
+                          src={buildImageUrl(sug.product.imageUrl)}
+                          alt={sug.product.title}
+                          loading="lazy"
+                          decoding="async"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground">
+                          Sem foto
+                        </div>
+                      )}
 
-              <div className="pt-2">
-                <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                  <span className="text-sm font-semibold tabular-nums text-primary">
-                    {formatPrice(sug.product.price)}
-                  </span>
-                  {sug.product.hasDiscount && (
-                    <span className="text-xs text-muted-foreground line-through">
-                      {formatPrice(sug.product.originalPrice)}
-                    </span>
-                  )}
-                </div>
-                <h4 className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-foreground">
-                  {sug.product.title}
-                </h4>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    </section>
+                      {sug.product.hasVariations || inCartQuantity === 0 ? (
+                        <button
+                          type="button"
+                          onClick={() => handleAdd(sug)}
+                          className="absolute bottom-2.5 right-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-md transition-transform hover:scale-110 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:h-[38px] sm:w-[38px]"
+                          title="Adicionar ao carrinho"
+                          aria-label="Adicionar ao carrinho"
+                        >
+                          <Plus className="h-5 w-5 stroke-[2.5]" aria-hidden="true" />
+                        </button>
+                      ) : (
+                        <div className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-background p-1 shadow-md">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(sug.product.id, inCartQuantity - 1, undefined, sug.bumpId)}
+                            aria-label={`Diminuir ${sug.product.title}`}
+                            className="flex h-9 w-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          >
+                            <span aria-hidden="true" className="text-xl leading-none">−</span>
+                          </button>
+                          <span className="min-w-5 text-center text-sm font-semibold tabular-nums text-foreground" aria-live="polite">
+                            {inCartQuantity}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={isAtStockLimit}
+                            onClick={() => updateQuantity(sug.product.id, inCartQuantity + 1, undefined, sug.bumpId)}
+                            aria-label={`Aumentar ${sug.product.title}`}
+                            className="flex h-9 w-9 items-center justify-center rounded-full text-primary transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-40"
+                          >
+                            <Plus className="h-5 w-5" aria-hidden="true" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="pt-2">
+                      <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                        <span className="text-sm font-semibold tabular-nums text-primary">
+                          {formatPrice(sug.product.price)}
+                        </span>
+                        {sug.product.hasDiscount && (
+                          <span className="text-xs text-muted-foreground line-through">
+                            {formatPrice(sug.product.originalPrice)}
+                          </span>
+                        )}
+                      </div>
+                      <h4 className="mt-1 line-clamp-2 min-h-10 text-sm leading-5 text-foreground">
+                        {sug.product.title}
+                      </h4>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })}
+    </div>
   );
 }

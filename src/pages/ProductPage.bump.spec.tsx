@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { fireEvent, render, screen, waitFor, cleanup } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, cleanup, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 // Nada de rede: ofertas, produto, configurações da loja, pixel e análise do carrinho são mocks.
@@ -40,9 +40,9 @@ vi.mock("@/components/product/ProductInfo", () => ({ default: () => null }));
 import ProductPage from "./ProductPage";
 import { CartProvider, useCart } from "@/contexts/CartContext";
 
-const offer = (id: string, title: string, price: number) => ({
+const offer = (id: string, title: string, price: number, sectionTitle = "Leve junto uma Bebida") => ({
   bumpId: `bump-${id}`,
-  sectionTitle: "Leve junto uma Bebida",
+  sectionTitle,
   product: {
     id,
     title,
@@ -160,5 +160,35 @@ describe("ProductPage: grupo 'Peça também' dentro da página do produto", () =
 
     expect(screen.queryByTestId("product-order-bump-group")).not.toBeInTheDocument();
     expect(screen.getAllByText("Adicionar ao Pedido").length).toBeGreaterThan(0);
+  });
+
+  it("separa sugestões com títulos distintos em seções próprias (ex.: Frios & Queijos e Leve junto uma Bebida)", async () => {
+    getSuggestions.mockResolvedValue([
+      offer("presunto", "Presunto 100g", 4.5, "Frios & Queijos"),
+      offer("mussarela", "Mussarela 100g", 6.5, "Frios & Queijos"),
+      offer("coca", "Coca-Cola 310ml", 7, "Leve junto uma Bebida"),
+      offer("fanta", "Fanta 310ml", 6.5, "Leve junto uma Bebida"),
+    ]);
+    renderPage();
+
+    await waitFor(() => expect(screen.getAllByTestId("product-order-bump-group").length).toBeGreaterThan(0));
+
+    const firstContainer = screen.getAllByTestId("product-order-bump-group")[0];
+    const sections = within(firstContainer).getAllByTestId("product-order-bump-section");
+    expect(sections).toHaveLength(2);
+
+    expect(within(sections[0]).getByRole("heading", { name: "Frios & Queijos" })).toBeInTheDocument();
+    expect(within(sections[0]).getByText("Presunto 100g")).toBeInTheDocument();
+    expect(within(sections[0]).getByText("Mussarela 100g")).toBeInTheDocument();
+    expect(within(sections[0]).queryByText("Coca-Cola 310ml")).not.toBeInTheDocument();
+
+    expect(within(sections[1]).getByRole("heading", { name: "Leve junto uma Bebida" })).toBeInTheDocument();
+    expect(within(sections[1]).getByText("Coca-Cola 310ml")).toBeInTheDocument();
+    expect(within(sections[1]).getByText("Fanta 310ml")).toBeInTheDocument();
+    expect(within(sections[1]).queryByText("Presunto 100g")).not.toBeInTheDocument();
+
+    fireEvent.click(plus("Presunto 100g"));
+    fireEvent.click(plus("Coca-Cola 310ml"));
+    expect(screen.getAllByText("Adicionar ao Pedido · R$ 22,40").length).toBeGreaterThan(0);
   });
 });
