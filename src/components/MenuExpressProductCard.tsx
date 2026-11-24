@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Plus, Minus, ShoppingCart, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
@@ -7,7 +7,7 @@ import ProductVariationModal from "@/components/ProductVariationModal";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { StockNotificationModal } from "@/components/StockNotificationModal";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
-import { supportsCustomization } from "@/utils/business-type";
+import { requiresProductDetails, supportsCustomization } from "@/utils/business-type";
 import ServesIndicator from "@/components/product/ServesIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
@@ -24,6 +24,7 @@ const formatPrice = (price: number) =>
 
 const MenuExpressProductCard = memo(function MenuExpressProductCard({ product, isBestSeller }: MenuExpressProductCardProps) {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { items, addToCart, updateQuantity } = useCart();
   const { data: storeSettings } = useStoreSettings();
   const isFoodStore = supportsCustomization(storeSettings?.businessType);
@@ -65,7 +66,8 @@ const MenuExpressProductCard = memo(function MenuExpressProductCard({ product, i
     return (product.stock ?? 0) <= 0;
   }, [hasVariationGroup, availableOptions.length, product.stock]);
 
-  const isSimpleProduct = !product.isCombo && !hasVariationGroup;
+  const needsDetails = requiresProductDetails(product, storeSettings?.businessType);
+  const isSimpleProduct = !product.isCombo && !hasVariationGroup && !needsDetails;
   const cartQty = useMemo(
     () =>
       items
@@ -105,6 +107,11 @@ const MenuExpressProductCard = memo(function MenuExpressProductCard({ product, i
       return;
     }
 
+    if (needsDetails) {
+      openDetails();
+      return;
+    }
+
     if (hasVariationGroup) {
       setSelectedVariation(null);
       setShowVariationModal(true);
@@ -119,11 +126,19 @@ const MenuExpressProductCard = memo(function MenuExpressProductCard({ product, i
     setShowVariationModal(false);
   };
 
+  function openDetails() {
+    if (!isMobile) {
+      navigate(`/produto/${product.id}`);
+      return;
+    }
+    window.history.pushState({}, '', `/produto/${product.id}`);
+    setShowDetailsModal(true);
+  }
+
   const handleCardClick = (e: React.MouseEvent) => {
     if (isMobile) {
       e.preventDefault();
-      window.history.pushState({}, '', `/produto/${product.id}`);
-      setShowDetailsModal(true);
+      openDetails();
     }
   };
 

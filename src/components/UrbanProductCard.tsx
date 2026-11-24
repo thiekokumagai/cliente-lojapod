@@ -1,5 +1,5 @@
 import { memo, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Plus, BellRing } from "lucide-react";
 import type { Product } from "@/data/products";
 import { useCart } from "@/contexts/CartContext";
@@ -7,7 +7,7 @@ import ProductVariationModal from "@/components/ProductVariationModal";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { StockNotificationModal } from "@/components/StockNotificationModal";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
-import { supportsCustomization } from "@/utils/business-type";
+import { requiresProductDetails, supportsCustomization } from "@/utils/business-type";
 import ServesIndicator from "@/components/product/ServesIndicator";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useComboVariationFlow } from "@/hooks/useComboVariationFlow";
@@ -22,6 +22,7 @@ const formatPrice = (price: number) =>
 
 const UrbanProductCard = memo(function UrbanProductCard({ product, isBestSeller }: UrbanProductCardProps) {
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
   const { addToCart } = useCart();
   const { data: storeSettings } = useStoreSettings();
   const isFoodStore = supportsCustomization(storeSettings?.businessType);
@@ -79,6 +80,11 @@ const UrbanProductCard = memo(function UrbanProductCard({ product, isBestSeller 
       return;
     }
 
+    if (requiresProductDetails(product, storeSettings?.businessType)) {
+      openDetails();
+      return;
+    }
+
     if (hasVariationGroup) {
       setSelectedVariation(null);
       setShowVariationModal(true);
@@ -93,11 +99,19 @@ const UrbanProductCard = memo(function UrbanProductCard({ product, isBestSeller 
     setShowVariationModal(false);
   };
 
+  function openDetails() {
+    if (!isMobile) {
+      navigate(`/produto/${product.id}`);
+      return;
+    }
+    window.history.pushState({}, '', `/produto/${product.id}`);
+    setShowDetailsModal(true);
+  }
+
   const handleCardClick = (e: React.MouseEvent) => {
     if (isMobile) {
       e.preventDefault();
-      window.history.pushState({}, '', `/produto/${product.id}`);
-      setShowDetailsModal(true);
+      openDetails();
     }
   };
 

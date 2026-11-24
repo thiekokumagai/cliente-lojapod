@@ -4,6 +4,17 @@ export function supportsCustomization(businessType?: BusinessType): boolean {
   return businessType === "FOOD" || businessType === "ACAI";
 }
 
+/**
+ * Produto com montagem (grupos/complementos) não pode entrar no carrinho pelo "+" rápido:
+ * os grupos e seus mínimos só são carregados na tela do produto, que é quem valida.
+ */
+export function requiresProductDetails(
+  product: { isCustomizable?: boolean; isCombo?: boolean },
+  businessType?: BusinessType,
+): boolean {
+  return !product.isCombo && Boolean(product.isCustomizable) && supportsCustomization(businessType);
+}
+
 export function getCustomizationCopy(businessType?: BusinessType): {
   buttonLabel: string;
   buttonRepeatLabel: string;

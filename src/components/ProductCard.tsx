@@ -15,6 +15,7 @@ import { getReservedStockInCart, getProductAvailableStock } from "@/utils/cart-s
 import { isBumpLine } from "@/utils/cart-lines";
 import {
   getCustomizationCopy,
+  requiresProductDetails,
   supportsCustomization,
 } from "@/utils/business-type";
 
@@ -128,9 +129,7 @@ const ProductCard = ({ product, index, priority, isBestSeller }: ProductCardProp
     [items, product.id]
   );
   const customQuantityInCart = customItemsInCart.reduce((total, item) => total + item.quantity, 0);
-  const canCustomize =
-    Boolean(product.isCustomizable) &&
-    supportsCustomization(storeSettings?.businessType);
+  const canCustomize = requiresProductDetails(product, storeSettings?.businessType);
   const customizationCopy = getCustomizationCopy(storeSettings?.businessType);
   const isFoodStore = supportsCustomization(storeSettings?.businessType);
 
