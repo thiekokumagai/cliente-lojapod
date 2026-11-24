@@ -54,6 +54,8 @@ import { sendCartContact } from "@/services/analytics";
 import type { Product } from "@/data/products";
 import { OrderBumpSection } from "@/components/cart/OrderBumpSection";
 import ProductVariationModal from "@/components/ProductVariationModal";
+import ProductDetailsModal from "@/components/ProductDetailsModal";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { resolveEffectiveCartItem } from "@/utils/cart-lines";
 
 const SESSION_ADDRESS_KEY = "podemais-checkout-address";
@@ -304,6 +306,17 @@ const CartSidebar = () => {
   const [deliveryModality, setDeliveryModality] = useState<"DELIVERY" | "STORE_PICKUP">("DELIVERY");
   const [bumpProductModal, setBumpProductModal] = useState<Product | null>(null);
   const [bumpSelectedVariation, setBumpSelectedVariation] = useState<string | null>(null);
+  // Oferta com montagem: no celular abre a tela do produto por cima do carrinho; no desktop vai para a página
+  const [bumpDetailsProduct, setBumpDetailsProduct] = useState<Product | null>(null);
+  const isMobileLayout = useIsMobile();
+  const openBumpProductDetails = (product: Product) => {
+    if (isMobileLayout) {
+      setBumpDetailsProduct(product);
+      return;
+    }
+    setIsCartOpen(false);
+    navigate(`/produto/${product.id}`);
+  };
   const previousTotalItems = useRef(totalItems);
 
   // Verifica se o telefone está na block list
@@ -1818,6 +1831,8 @@ const CartSidebar = () => {
                       })}
                     </div>
                     <OrderBumpSection
+                      businessType={storeSettings?.businessType}
+                      onOpenProductDetails={openBumpProductDetails}
                       onOpenVariationModal={(prod) => {
                         setBumpSelectedVariation(null);
                         setBumpProductModal(prod);
@@ -3234,6 +3249,10 @@ const CartSidebar = () => {
           }}
           customConfirmLabel="Adicionar à sacola"
         />
+      )}
+
+      {bumpDetailsProduct && (
+        <ProductDetailsModal product={bumpDetailsProduct} onClose={() => setBumpDetailsProduct(null)} />
       )}
     </>
   );

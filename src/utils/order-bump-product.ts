@@ -54,6 +54,7 @@ export function convertSuggestionToProduct(sug: OrderBumpSuggestion): Product {
     oldPrice: hasDiscount ? rawOrig : undefined,
     isPromo: hasDiscount,
     stock: raw.totalStock,
+    isCustomizable: Boolean(raw.isCustomizable),
     variationGroups: variationGroups.length > 0 ? variationGroups : undefined,
     items: (raw.items || []).map((it) => ({
       stock: it.stock,

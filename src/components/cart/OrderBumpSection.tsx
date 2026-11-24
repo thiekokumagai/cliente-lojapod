@@ -5,15 +5,20 @@ import type { Product } from "@/data/products";
 import { buildImageUrl } from "@/utils/image-url";
 import { convertSuggestionToProduct } from "@/utils/order-bump-product";
 import { groupOrderBumpsByTitle } from "@/utils/order-bump-selection";
+import { requiresProductDetails } from "@/utils/business-type";
+import type { BusinessType } from "@/hooks/useStoreSettings";
 import { Plus } from "lucide-react";
 
 const formatPrice = (price: number) => `R$ ${price.toFixed(2).replace(".", ",")}`;
 
 interface OrderBumpSectionProps {
   onOpenVariationModal?: (product: Product) => void;
+  /** Abre a tela do produto (montagem). Recebe o produto com o preço normal, sem o desconto da oferta. */
+  onOpenProductDetails?: (product: Product) => void;
+  businessType?: BusinessType;
 }
 
-export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps) {
+export function OrderBumpSection({ onOpenVariationModal, onOpenProductDetails, businessType }: OrderBumpSectionProps) {
   const { items, addToCart, updateQuantity } = useCart();
   const [suggestions, setSuggestions] = useState<OrderBumpSuggestion[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -67,6 +72,19 @@ export function OrderBumpSection({ onOpenVariationModal }: OrderBumpSectionProps
 
   const handleAdd = (sug: OrderBumpSuggestion) => {
     const prod = convertSuggestionToProduct(sug);
+
+    // Produto com montagem não entra direto: o cliente escolhe as opções na tela do produto.
+    // Vai como item normal (preço normal), porque a montagem não passa pelo preço da oferta.
+    if (requiresProductDetails(prod, businessType)) {
+      onOpenProductDetails?.({
+        ...prod,
+        price: Number(sug.product.originalPrice) > 0 ? Number(sug.product.originalPrice) : prod.price,
+        oldPrice: undefined,
+        isPromo: false,
+      });
+      return;
+    }
+
     const orderBumpTrigger = {
       triggerType: sug.triggerType,
       triggerProductId: sug.triggerProductId,

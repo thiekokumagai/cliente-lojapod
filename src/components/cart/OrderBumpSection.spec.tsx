@@ -148,3 +148,73 @@ describe("OrderBumpSection (carrinho)", () => {
     expect(within(groups[1]).queryByText("Presunto 100g")).not.toBeInTheDocument();
   });
 });
+
+describe("OrderBumpSection: oferta de produto com montagem", () => {
+  const burgerOffer = {
+    ...offer,
+    bumpId: "bump-burger",
+    product: { ...offer.product, id: "burger", title: "Hambúrguer", price: 90, originalPrice: 100, isCustomizable: true },
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    getSuggestions.mockReset();
+  });
+  afterEach(() => cleanup());
+
+  async function clickAdd(name: string) {
+    const card = (await screen.findByText(name)).closest("article") as HTMLElement;
+    fireEvent.click(within(card).getByRole("button", { name: "Adicionar ao carrinho" }));
+  }
+
+  it("loja de comida: o '+' abre a tela do produto (preço normal) e NÃO adiciona", async () => {
+    getSuggestions.mockResolvedValue([burgerOffer, offer]);
+    const onOpenProductDetails = vi.fn();
+    render(
+      <CartProvider>
+        <Seed products={[donuts]} />
+        <OrderBumpSection businessType="FOOD" onOpenProductDetails={onOpenProductDetails} />
+        <Probe />
+      </CartProvider>,
+    );
+    fireEvent.click(screen.getByText("seed"));
+
+    await clickAdd("Hambúrguer");
+    expect(onOpenProductDetails).toHaveBeenCalledTimes(1);
+    expect(onOpenProductDetails.mock.calls[0][0]).toMatchObject({ id: "burger", price: 100, isPromo: false, isCustomizable: true });
+    expect(lines()).toEqual(["donuts||1|10"]);
+
+    // Produto simples continua indo direto, como oferta
+    await clickAdd("Coca-Cola 310ml");
+    expect(lines()).toEqual(["donuts||1|10", "coca|bump-coca|1|6"]);
+    expect(onOpenProductDetails).toHaveBeenCalledTimes(1);
+  });
+
+  it("mesmo sem quem abra a tela do produto, produto com montagem nunca entra direto", async () => {
+    getSuggestions.mockResolvedValue([burgerOffer]);
+    render(
+      <CartProvider>
+        <Seed products={[donuts]} />
+        <OrderBumpSection businessType="ACAI" />
+        <Probe />
+      </CartProvider>,
+    );
+    fireEvent.click(screen.getByText("seed"));
+    await clickAdd("Hambúrguer");
+    expect(lines()).toEqual(["donuts||1|10"]);
+  });
+
+  it("loja de varejo (sem montagem): continua adicionando direto", async () => {
+    getSuggestions.mockResolvedValue([burgerOffer]);
+    render(
+      <CartProvider>
+        <Seed products={[donuts]} />
+        <OrderBumpSection businessType="POD" />
+        <Probe />
+      </CartProvider>,
+    );
+    fireEvent.click(screen.getByText("seed"));
+    await clickAdd("Hambúrguer");
+    expect(lines()).toEqual(["donuts||1|10", "burger|bump-burger|1|90"]);
+  });
+});

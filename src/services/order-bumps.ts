@@ -37,6 +37,8 @@ export interface OrderBumpSuggestion {
     description?: string | null;
     totalStock: number;
     hasVariations: boolean;
+    /** Produto com montagem: abre a tela do produto em vez de adicionar direto. */
+    isCustomizable?: boolean;
     items?: OrderBumpProductItem[];
   };
 }
