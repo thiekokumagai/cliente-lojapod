@@ -25,12 +25,16 @@ const StoreChromeLayout = () => {
   const { data: settings, isLoading, isError, error } = useStoreSettings();
   const queryClient = useQueryClient();
 
+  const storeId = settings?.storeId;
+
   useEffect(() => {
+    // O servidor só manda aviso de catálogo para quem pediu a loja (catalog.watch); sem storeId não conecta.
+    if (!storeId) return;
     const socketUrl = getApiBaseUrl().replace(/\/api$/, '') || 'http://localhost:3000';
     const socket = io(socketUrl);
 
     socket.on('connect', () => {
-      console.log('Connected to websocket server for catalog updates');
+      socket.emit('catalog.watch', { storeId });
     });
 
     socket.on('products.refresh', () => {
@@ -50,7 +54,7 @@ const StoreChromeLayout = () => {
     return () => {
       socket.disconnect();
     };
-  }, [queryClient]);
+  }, [queryClient, storeId]);
 
   useEffect(() => {
     if (!settings) return;

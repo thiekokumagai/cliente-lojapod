@@ -4,6 +4,8 @@ import { getApiHeaders, getApiBaseUrl, getSubdomain } from "@/services/api";
 export type BusinessType = "POD" | "FOOD" | "ACAI";
 
 interface StoreSettings {
+  /** ID da loja (público): usado para assinar os avisos de catálogo no socket. */
+  storeId?: string;
   storeName: string;
   businessType?: BusinessType;
   logoUrl?: string;
