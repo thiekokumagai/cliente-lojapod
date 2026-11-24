@@ -12,6 +12,7 @@ import MyOrdersButton from "@/components/MyOrdersButton";
 import StoreNotFound from "@/components/StoreNotFound";
 import StoreOffline from "@/components/StoreOffline";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { applyStoreFavicon } from "@/hooks/useStoreFavicon";
 import { getApiBaseUrl } from "@/services/api";
 import { buildImageUrl } from "@/utils/image-url";
 import { io } from "socket.io-client";
@@ -87,23 +88,7 @@ const StoreChromeLayout = () => {
       }
     }
 
-    if (settings.faviconUrl) {
-      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = "icon";
-        document.getElementsByTagName("head")[0].appendChild(link);
-      }
-      link.href = settings.faviconUrl;
-
-      let appleLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
-      if (!appleLink) {
-        appleLink = document.createElement("link");
-        appleLink.rel = "apple-touch-icon";
-        document.getElementsByTagName("head")[0].appendChild(appleLink);
-      }
-      appleLink.href = settings.faviconUrl;
-    }
+    applyStoreFavicon(settings.faviconUrl);
 
     // Aplicação dinâmica de cores primária e secundária do tema
     if (settings.primaryColor) {

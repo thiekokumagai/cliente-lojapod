@@ -17,6 +17,7 @@ import {
 import { ordersService } from "@/services/orders";
 import { subscribeToOrderStatus } from "@/services/order-socket";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useStoreFavicon } from "@/hooks/useStoreFavicon";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { formatWhatsAppNumber } from "@/utils/phone";
 import { formatPaymentMethod } from "@/utils/payment-method";
@@ -50,6 +51,8 @@ export default function OrderSuccessPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { data: storeSettings } = useStoreSettings();
+  // Mesma fonte e mesmo momento do catálogo: aplica o favicon assim que os settings da loja chegam.
+  useStoreFavicon(storeSettings?.faviconUrl);
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);

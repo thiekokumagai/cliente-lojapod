@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MercadoPagoPix } from "@/components/payment/MercadoPagoPix";
 import { MercadoPagoCard } from "@/components/payment/MercadoPagoCard";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useStoreFavicon } from "@/hooks/useStoreFavicon";
 import { useNoIndex } from "@/hooks/useNoIndex";
 import { getMercadoPagoCheckout } from "@/lib/mercadopago";
 import { ordersService } from "@/services/orders";
@@ -19,6 +20,7 @@ export default function MercadoPagoPaymentPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { data: storeSettings } = useStoreSettings();
+  useStoreFavicon(storeSettings?.faviconUrl);
 
   const [order, setOrder] = useState<{
     orderNumber: number;

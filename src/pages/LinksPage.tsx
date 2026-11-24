@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { useStoreFavicon } from '@/hooks/useStoreFavicon';
 import StoreNotFound from '@/components/StoreNotFound';
 import { trackCustomEvent } from '@/components/FacebookPixel';
 
@@ -41,25 +42,9 @@ const LinksPage = () => {
     } else {
       document.title = 'Links';
     }
+  }, [settings?.storeName]);
 
-    if (settings?.faviconUrl) {
-      let link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
-      if (!link) {
-        link = document.createElement("link");
-        link.rel = "icon";
-        document.getElementsByTagName("head")[0].appendChild(link);
-      }
-      link.href = settings.faviconUrl;
-
-      let appleLink = document.querySelector("link[rel='apple-touch-icon']") as HTMLLinkElement;
-      if (!appleLink) {
-        appleLink = document.createElement("link");
-        appleLink.rel = "apple-touch-icon";
-        document.getElementsByTagName("head")[0].appendChild(appleLink);
-      }
-      appleLink.href = settings.faviconUrl;
-    }
-  }, [settings?.storeName, settings?.faviconUrl]);
+  useStoreFavicon(settings?.faviconUrl);
 
   if (isError) {
     return <StoreNotFound />;
