@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Award, Gift, Sparkles, Clock, CheckCircle2, AlertCircle, ChevronRight, Percent, DollarSign, Info } from "lucide-react";
 import { toast } from "sonner";
 import { storeLoyaltyService } from "@/services/loyalty";
+import { getLoyaltyBenefitText, getLoyaltyProgramTitle } from "@/utils/loyalty";
 
 interface LoyaltyCardWidgetProps {
   customerPhone?: string;
@@ -137,16 +138,7 @@ export default function LoyaltyCardWidget({
 
   // Se não temos telefone ainda, mostra um convite amigável com a regra exata da loja
   if (!cleanPhone || cleanPhone.length < 8) {
-    const inviteBenefit =
-      program.type === "CASHBACK"
-        ? `Ganhe ${program.cashbackPercent || 5}% de volta em saldo a cada compra!`
-        : program.type === "POINTS_DISCOUNT"
-        ? `Ganhe ${pointsPerReal} ponto(s) a cada R$ 1,00 gasto. Cada ponto vale ${pointRedemptionValueLabel} em desconto.`
-        : program.type === "PROGRESSIVE_DISCOUNT"
-        ? `Quanto mais pedidos você fizer, maior será seu desconto exclusivo em cada compra.`
-        : program.type === "HYBRID"
-        ? `Junte pontos e escolha entre brinde grátis ou cupom de desconto.`
-        : `Junte ${program.stampsRequired || 10} compras válidas e ganhe: ${program.rewardText}!`;
+    const inviteBenefit = getLoyaltyBenefitText(program);
 
     return (
       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3.5 text-xs text-foreground flex items-center justify-between gap-3">
@@ -164,13 +156,7 @@ export default function LoyaltyCardWidget({
           </div>
           <div>
             <span className="font-bold block text-primary">
-              {program.type === "CASHBACK"
-                ? "Programa de Cashback Ativo!"
-                : program.type === "POINTS_DISCOUNT"
-                ? "Programa de Pontos Ativo!"
-                : program.type === "PROGRESSIVE_DISCOUNT"
-                ? "Programa de Desconto Progressivo Ativo!"
-                : "Programa de Cartão Fidelidade Ativo!"}
+              {getLoyaltyProgramTitle(program)}
             </span>
             <span className="text-muted-foreground text-[11px] block mt-0.5">
               {inviteBenefit} Insira seu WhatsApp na entrega para pontuar.

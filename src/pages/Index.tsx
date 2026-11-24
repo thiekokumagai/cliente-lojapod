@@ -14,6 +14,7 @@ import PromotionsSection from "@/components/PromotionsSection";
 import FeaturedSection from "@/components/FeaturedSection";
 import AllProductsSection from "@/components/AllProductsSection";
 import SiteFooter from "@/components/SiteFooter";
+import LoyaltyProgramBanner from "@/components/LoyaltyProgramBanner";
 import { useCart } from "@/contexts/CartContext";
 import ProductDetailsModal from "@/components/ProductDetailsModal";
 import { useStoreMobilePadding } from "@/hooks/use-store-mobile-padding";
@@ -227,6 +228,8 @@ const Index = () => {
                 </section>
               )}
 
+              <LoyaltyProgramBanner />
+
               <FeaturedSection />
               <PromotionsSection />
               <AllProductsSection />
@@ -285,6 +288,13 @@ const Index = () => {
           </div>
         </section>
       )}
+      {/* Margens negativas encostam a faixa nas seções vizinhas (Categorias pb-10 e Destaques py-8 my-4),
+          que sobravam muito espaço em volta dela no tema Clássico. */}
+      <LoyaltyProgramBanner
+        className={`relative mx-auto max-w-7xl px-4 md:px-8 -mb-6 md:-mb-8 ${
+          isMenuExpress ? "mt-4" : "-mt-6 md:-mt-8"
+        }`}
+      />
       <FeaturedSection />
       <PromotionsSection />
       <AllProductsSection />
