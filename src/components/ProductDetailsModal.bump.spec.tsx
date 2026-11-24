@@ -381,3 +381,44 @@ describe("ProductDetailsModal: grupo 'Peça também' dentro da tela do produto",
     });
   });
 });
+
+describe("ProductDetailsModal: oferta de produto com montagem na tela do produto", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    getSuggestions.mockReset();
+    getProductCompositions.mockReset();
+    getProductCompositions.mockResolvedValue({ stages: [] });
+    getSuggestions.mockResolvedValue([
+      offer("burger", "Hambúrguer", 90, { originalPrice: 100, hasDiscount: true, isCustomizable: true }),
+      offer("coca", "Coca-Cola 310ml", 6, { originalPrice: 8, hasDiscount: true }),
+    ]);
+  });
+  afterEach(() => cleanup());
+
+  it("loja de comida: oferta com montagem não aparece; oferta simples entra com desconto junto com o produto", async () => {
+    mockStoreSettings = { enableStockAlertNotification: true, phone: "", businessType: "FOOD" };
+    renderModal();
+    await screen.findByTestId("product-order-bump-group");
+
+    expect(screen.queryByLabelText("Adicionar Hambúrguer")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("Adicionar Coca-Cola 310ml"));
+    fireEvent.click(screen.getByText("Adicionar"));
+
+    await waitFor(() => expect(lines()).toHaveLength(2));
+    expect(lines()).toContain("donuts||1|10.9");
+    expect(lines()).toContain("coca|bump-coca|1|6");
+    expect(lines().some((l) => l?.startsWith("burger|"))).toBe(false);
+  });
+
+  it("loja de varejo (sem montagem): a mesma oferta continua aparecendo e entrando", async () => {
+    mockStoreSettings = { enableStockAlertNotification: true, phone: "", businessType: "POD" };
+    renderModal();
+    await screen.findByTestId("product-order-bump-group");
+
+    fireEvent.click(screen.getByLabelText("Adicionar Hambúrguer"));
+    fireEvent.click(screen.getByText("Adicionar"));
+
+    await waitFor(() => expect(lines()).toContain("burger|bump-burger|1|90"));
+    expect(lines()).toContain("donuts||1|10.9");
+  });
+});

@@ -1,6 +1,8 @@
 import type { SelectedProduct } from "@/data/products";
 import type { OrderBumpSuggestion } from "@/services/order-bumps";
 import { convertSuggestionToProduct } from "@/utils/order-bump-product";
+import { requiresProductDetails } from "@/utils/business-type";
+import type { BusinessType } from "@/hooks/useStoreSettings";
 
 /**
  * Escolha das ofertas "Peça também" dentro da tela do produto. O "+" só GUARDA a escolha aqui; o
@@ -49,11 +51,19 @@ export const selectedCount = (selection: BumpSelection): number =>
   Object.values(selection).reduce((sum, qty) => sum + qty, 0);
 
 /**
- * Ofertas que o grupo mostra na tela do produto. Oferta de produto com variação (tamanho, sabor)
- * fica só no carrinho, onde o cliente escolhe a variação.
+ * A oferta pode ir junto com o produto principal, sem escolha nenhuma? Não pode quando tem variação
+ * (tamanho, sabor) ou montagem (loja de comida): essas ficam só no carrinho, onde o "+" abre a escolha.
  */
-export const offersForProductScreen = (offers: OrderBumpSuggestion[]): OrderBumpSuggestion[] =>
-  offers.filter((offer) => !offer.product.hasVariations && offer.product.totalStock > 0);
+export const isQuickOffer = (offer: OrderBumpSuggestion, businessType?: BusinessType): boolean =>
+  !offer.product.hasVariations &&
+  !requiresProductDetails({ isCustomizable: offer.product.isCustomizable }, businessType);
+
+/** Ofertas que o grupo mostra na tela do produto: só as rápidas e com estoque. */
+export const offersForProductScreen = (
+  offers: OrderBumpSuggestion[],
+  businessType?: BusinessType,
+): OrderBumpSuggestion[] =>
+  offers.filter((offer) => isQuickOffer(offer, businessType) && offer.product.totalStock > 0);
 
 /** Quantas unidades dessa oferta ainda cabem: o estoque menos o que já está no carrinho. */
 export const stockLeft = (offer: OrderBumpSuggestion, alreadyInCart: number): number =>
@@ -126,8 +136,11 @@ export function addChosenOffersToCart(
     selectedVariation?: string,
     orderBumpId?: string | null,
   ) => void,
+  businessType?: BusinessType,
 ): void {
   for (const { offer, quantity } of chosen) {
+    // Oferta com variação ou montagem nunca entra direto (a escolha é feita no carrinho)
+    if (!isQuickOffer(offer, businessType)) continue;
     addToCart({
       product: convertSuggestionToProduct(offer),
       isOrderBump: true,

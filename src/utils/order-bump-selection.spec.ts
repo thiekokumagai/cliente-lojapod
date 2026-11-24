@@ -197,3 +197,28 @@ describe("order-bump-selection: seleção dentro da tela do produto", () => {
     });
   });
 });
+
+describe("order-bump-selection: oferta com montagem ou variação não entra direto pela tela do produto", () => {
+  const burger = offer("burger", 90, { isCustomizable: true });
+  const suco = offer("suco", 5, { hasVariations: true });
+  const coca = offer("coca", 7);
+
+  it("offersForProductScreen tira a oferta com montagem só em loja de comida", () => {
+    expect(offersForProductScreen([burger, suco, coca], "FOOD").map((o) => o.bumpId)).toEqual(["bump-coca"]);
+    expect(offersForProductScreen([burger, suco, coca], "ACAI").map((o) => o.bumpId)).toEqual(["bump-coca"]);
+    expect(offersForProductScreen([burger, suco, coca], "POD").map((o) => o.bumpId)).toEqual(["bump-burger", "bump-coca"]);
+  });
+
+  it("addChosenOffersToCart ignora oferta com montagem ou variação mesmo se escolhida, e põe a simples", () => {
+    const addToCart = vi.fn();
+    addChosenOffersToCart(
+      chosenOffers({ "bump-burger": 1, "bump-suco": 1, "bump-coca": 1 }, [burger, suco, coca]),
+      addToCart,
+      vi.fn(),
+      "FOOD",
+    );
+    expect(addToCart).toHaveBeenCalledTimes(1);
+    expect(addToCart.mock.calls[0][0].orderBumpId).toBe("bump-coca");
+    expect(addToCart.mock.calls[0][0].product.price).toBe(7);
+  });
+});

@@ -326,12 +326,12 @@ const ProductPage = () => {
   // Ofertas "Peça também" marcadas para a tela do produto (grupo opcional, ex.: "Leve junto uma Bebida").
   // O + só guarda a escolha; o "Adicionar ao Pedido" coloca o produto e as ofertas no carrinho.
   const showBumps = !isInCart && !isUnavailable && !isCombinationUnavailable;
-  const bumpOffers = useProductOrderBumps(product?.id, showBumps);
+  const bumpOffers = useProductOrderBumps(product?.id, showBumps, settings?.businessType);
   const [bumpSelection, setBumpSelection] = useState<BumpSelection>({});
   const activeBumpSelection = useMemo(() => pruneSelection(bumpSelection, bumpOffers), [bumpSelection, bumpOffers]);
   const bumpsTotal = useMemo(() => selectionTotal(activeBumpSelection, bumpOffers), [activeBumpSelection, bumpOffers]);
   const addBumpsToCart = () => {
-    addChosenOffersToCart(chosenOffers(activeBumpSelection, bumpOffers), addToCart, updateQuantity);
+    addChosenOffersToCart(chosenOffers(activeBumpSelection, bumpOffers), addToCart, updateQuantity, settings?.businessType);
     setBumpSelection({});
   };
 
