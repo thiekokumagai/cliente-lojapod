@@ -94,12 +94,13 @@ export default function MercadoPagoPaymentPage() {
   const method: "pix" | "cartao" = wantedMethod === "pix" ? "pix" : "cartao";
   const brandColor = storeSettings?.primaryColor;
   const storeName = storeSettings?.storeName;
-  const canSwitch = !!order && order.status !== "CANCELLED" && checkout.pix && checkout.card;
-
-  const switchTo = (next: "pix" | "cartao") => {
-    if (next === method) return;
-    navigate(`/pedido/${id}/pagamento?metodo=${next}`, { replace: true });
-  };
+  // A forma foi escolhida no carrinho: aqui só paga. Etiqueta informativa, sem troca.
+  const showsMethod =
+    !error &&
+    !!order &&
+    !!storeSettings &&
+    order.status !== "CANCELLED" &&
+    ((method === "pix" && checkout.pix) || (method === "cartao" && checkout.card));
 
   let body: JSX.Element;
   if (error) {
@@ -217,31 +218,15 @@ export default function MercadoPagoPaymentPage() {
           </div>
 
           <section className="space-y-4 px-5 pb-6 pt-5" aria-label="Pagamento">
-            {canSwitch && (
-              <div className="grid grid-cols-2 gap-1 rounded-2xl bg-muted p-1" role="group" aria-label="Forma de pagamento">
-                {(
-                  [
-                    ["pix", "Pix", QrCode],
-                    ["cartao", "Cartão", CreditCard],
-                  ] as const
-                ).map(([value, label, Icon]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-pressed={method === value}
-                    onClick={() => switchTo(value)}
-                    className={cn(
-                      "flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold transition-all",
-                      method === value
-                        ? "bg-card text-foreground shadow-sm ring-1 ring-black/5"
-                        : "text-muted-foreground hover:text-foreground",
-                    )}
-                  >
-                    <Icon className={cn("h-4 w-4", method === value && "text-primary")} aria-hidden="true" />
-                    {label}
-                  </button>
-                ))}
-              </div>
+            {showsMethod && (
+              <p className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary" data-testid="payment-method-label">
+                {method === "pix" ? (
+                  <QrCode className="h-3.5 w-3.5" aria-hidden="true" />
+                ) : (
+                  <CreditCard className="h-3.5 w-3.5" aria-hidden="true" />
+                )}
+                {method === "pix" ? "Pagamento com Pix" : "Pagamento com cartão"}
+              </p>
             )}
             {body}
           </section>

@@ -156,6 +156,8 @@ describe("MercadoPagoCard: aparência do formulário (só visual)", () => {
     const visual = brickSettings.customization.visual;
     expect(visual.style.theme).toBe("default");
     expect(visual.style.customVariables).toMatchObject({ baseColor: "#e11d48", outlinePrimaryColor: "#e11d48", buttonTextColor: "#ffffff", borderRadiusMedium: "12px" });
+    // formPadding é também o espaço entre os campos e antes do botão: nunca zerar (botão colado)
+    expect(visual.style.customVariables.formPadding).toBe("16px");
     // Intl usa espaço inquebrável depois do "R$"
     expect(visual.texts.formSubmit.replace(/\s/g, " ")).toBe("Pagar R$ 101,00");
     expect(visual.hidePaymentButton).toBe(false);

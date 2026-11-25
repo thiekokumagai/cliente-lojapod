@@ -148,7 +148,9 @@ export function buildCardBrickVisual(amount: number, brandColor?: string) {
         borderRadiusSmall: "8px",
         borderRadiusMedium: "12px",
         borderRadiusLarge: "16px",
-        formPadding: "0px",
+        // O Brick usa formPadding também como espaço entre um campo e o próximo (e antes do botão
+        // "Pagar"). Com 0px tudo fica colado. 16px é o padrão do próprio Mercado Pago.
+        formPadding: "16px",
       },
     },
     texts: {

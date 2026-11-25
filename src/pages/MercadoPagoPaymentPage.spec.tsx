@@ -106,20 +106,24 @@ describe("MercadoPagoPaymentPage: resumo e troca de forma", () => {
     expect(screen.getByText("+ 2 itens")).toBeInTheDocument();
   });
 
-  it("loja com Pix e cartão: troca de forma pela URL, sem recarregar o pedido", async () => {
+  it("a forma vem do carrinho: mostra só a etiqueta e não há como trocar na tela", async () => {
     getStoreOrder.mockResolvedValue(order());
     render(<MercadoPagoPaymentPage />);
     await screen.findByText("pix-order-1");
-    expect(screen.getByRole("button", { name: "Pix" })).toHaveAttribute("aria-pressed", "true");
-    screen.getByRole("button", { name: "Cartão" }).click();
-    expect(navigate).toHaveBeenCalledWith("/pedido/order-1/pagamento?metodo=cartao", { replace: true });
+    expect(screen.getByTestId("payment-method-label")).toHaveTextContent("Pagamento com Pix");
+    expect(screen.queryByRole("group", { name: "Forma de pagamento" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Cartão" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Pix" })).toBeNull();
+    // o único botão é o do Pix (mock); nada navega para outra forma
+    expect(navigate).not.toHaveBeenCalledWith(expect.stringContaining("metodo="), expect.anything());
   });
 
-  it("loja só com Pix: não mostra a troca de forma", async () => {
-    gateways = { mercadopago: { ...mp, acceptCreditCard: false } };
+  it("cartão: etiqueta do cartão, sem opção de ir para o Pix", async () => {
+    search = "metodo=cartao";
     getStoreOrder.mockResolvedValue(order());
     render(<MercadoPagoPaymentPage />);
-    await screen.findByText("pix-order-1");
-    expect(screen.queryByRole("button", { name: "Cartão" })).toBeNull();
+    await screen.findByText("card-order-1-100-TEST-public-4");
+    expect(screen.getByTestId("payment-method-label")).toHaveTextContent("Pagamento com cartão");
+    expect(screen.queryByRole("button", { name: "Pix" })).toBeNull();
   });
 });

@@ -132,7 +132,8 @@ export function MercadoPagoCard({ orderId, amount, publicKey, maxInstallments, b
           <p className="text-center text-xs text-muted-foreground">Carregando o pagamento seguro...</p>
         </div>
       )}
-      <div id={CONTAINER_ID} />
+      {/* O Brick tem margem interna de 16px (formPadding); -mx-4 alinha os campos com o resto da tela */}
+      <div id={CONTAINER_ID} className="-mx-4" />
       {message && (
         <p
           className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
