@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { AlertCircle } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
+  buildCardBrickVisual,
   loadMercadoPagoSdk,
   type MercadoPagoBrickController,
   type MercadoPagoCardFormData,
@@ -13,6 +15,8 @@ interface Props {
   amount: number;
   publicKey: string;
   maxInstallments: number;
+  /** Cor da loja (#rrggbb) para o botão e o foco do formulário do Mercado Pago. Só visual. */
+  brandColor?: string;
   /** Cartão aprovado. */
   onApproved: () => void;
   /** Pagamento em análise: o servidor confirma depois (webhook). */
@@ -21,11 +25,12 @@ interface Props {
 
 const CONTAINER_ID = "mercadopago-card-brick";
 
+
 /**
  * Cartão pelo Card Payment Brick do Mercado Pago. O número, a validade e o CVV são digitados no
  * formulário do Mercado Pago e viram um `token` no navegador; nossa API só recebe o token.
  */
-export function MercadoPagoCard({ orderId, amount, publicKey, maxInstallments, onApproved, onInProcess }: Props) {
+export function MercadoPagoCard({ orderId, amount, publicKey, maxInstallments, brandColor, onApproved, onInProcess }: Props) {
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -45,7 +50,7 @@ export function MercadoPagoCard({ orderId, amount, publicKey, maxInstallments, o
           initialization: { amount },
           customization: {
             paymentMethods: { maxInstallments },
-            visual: { hidePaymentButton: false },
+            visual: buildCardBrickVisual(amount, brandColor),
           },
           callbacks: {
             onReady: () => {
@@ -102,28 +107,39 @@ export function MercadoPagoCard({ orderId, amount, publicKey, maxInstallments, o
       cancelled = true;
       controller?.unmount();
     };
-  }, [orderId, amount, publicKey, maxInstallments]);
+  }, [orderId, amount, publicKey, maxInstallments, brandColor]);
 
   if (loadError) {
     return (
-      <p className="py-6 text-center text-sm text-destructive" role="alert">
-        {loadError}
-      </p>
+      <div className="flex flex-col items-center gap-3 rounded-2xl bg-destructive/5 px-4 py-8 text-center" role="alert">
+        <AlertCircle className="h-8 w-8 text-destructive/80" aria-hidden="true" />
+        <p className="max-w-xs text-sm font-medium text-destructive">{loadError}</p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-3">
       {!ready && (
-        <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground" role="status">
-          <Loader2 className="h-4 w-4 animate-spin" />
-          Carregando o pagamento seguro...
+        <div className="space-y-3" role="status">
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <div className="grid grid-cols-2 gap-3">
+            <Skeleton className="h-12 rounded-xl" />
+            <Skeleton className="h-12 rounded-xl" />
+          </div>
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <Skeleton className="h-12 w-full rounded-xl" />
+          <p className="text-center text-xs text-muted-foreground">Carregando o pagamento seguro...</p>
         </div>
       )}
       <div id={CONTAINER_ID} />
       {message && (
-        <p className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive" role="alert">
-          {message}
+        <p
+          className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-sm text-destructive"
+          role="alert"
+        >
+          <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>{message}</span>
         </p>
       )}
     </div>

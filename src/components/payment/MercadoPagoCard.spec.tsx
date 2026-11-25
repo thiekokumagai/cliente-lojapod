@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { MercadoPagoCard } from "./MercadoPagoCard";
+import { buildCardBrickVisual } from "@/lib/mercadopago";
 
 // Nada de rede nem SDK real: window.MercadoPago e o serviço de pedidos são mocks.
 const createMercadoPagoCard = vi.fn();
@@ -10,7 +11,7 @@ vi.mock("@/services/orders", () => ({
 
 type BrickSettings = {
   initialization: { amount: number };
-  customization: { paymentMethods: { maxInstallments: number } };
+  customization: { paymentMethods: { maxInstallments: number }; visual: ReturnType<typeof buildCardBrickVisual> };
   callbacks: {
     onReady: () => void;
     onSubmit: (formData: Record<string, unknown>) => Promise<void>;
@@ -143,5 +144,28 @@ describe("MercadoPagoCard", () => {
     await waitFor(() => expect(brickSettings).toBeDefined());
     unmountView();
     expect(unmount).toHaveBeenCalled();
+  });
+});
+
+describe("MercadoPagoCard: aparência do formulário (só visual)", () => {
+  it("usa a cor da loja, cantos arredondados e o valor no botão, sem tocar no limite de parcelas", async () => {
+    render(
+      <MercadoPagoCard orderId="order-1" amount={101} publicKey="TEST-public" maxInstallments={6} brandColor="#e11d48" onApproved={vi.fn()} onInProcess={vi.fn()} />,
+    );
+    await waitFor(() => expect(brickSettings).toBeDefined());
+    const visual = brickSettings.customization.visual;
+    expect(visual.style.theme).toBe("default");
+    expect(visual.style.customVariables).toMatchObject({ baseColor: "#e11d48", outlinePrimaryColor: "#e11d48", buttonTextColor: "#ffffff", borderRadiusMedium: "12px" });
+    // Intl usa espaço inquebrável depois do "R$"
+    expect(visual.texts.formSubmit.replace(/\s/g, " ")).toBe("Pagar R$ 101,00");
+    expect(visual.hidePaymentButton).toBe(false);
+    expect(brickSettings.customization.paymentMethods.maxInstallments).toBe(6);
+  });
+
+  it("cor clara ganha texto escuro no botão; cor inválida ou ausente fica com as cores do Mercado Pago", () => {
+    expect(buildCardBrickVisual(50, "#facc15").style.customVariables).toMatchObject({ buttonTextColor: "#0f172a" });
+    expect(buildCardBrickVisual(50, "rgb(1,2,3)").style.customVariables).not.toHaveProperty("baseColor");
+    expect(buildCardBrickVisual(50).style.customVariables).not.toHaveProperty("baseColor");
+    expect(buildCardBrickVisual(0).texts.formSubmit).toBe("Pagar");
   });
 });

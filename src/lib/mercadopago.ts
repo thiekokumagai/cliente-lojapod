@@ -1,3 +1,5 @@
+import { prefersDarkText } from "@/utils/color";
+
 /**
  * Mercado Pago no checkout online.
  * A vitrine só recebe `enabled`, `acceptPix`, `acceptCreditCard`, `publicKey` e `maxInstallments`:
@@ -111,4 +113,46 @@ export function loadMercadoPagoSdk(): Promise<MercadoPagoConstructor> {
     document.head.appendChild(script);
   });
   return sdkPromise;
+}
+
+const formatBrl = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
+const isHexColor = (value?: string): value is string => !!value && /^#[0-9a-f]{6}$/i.test(value.trim());
+
+/**
+ * Aparência do Card Payment Brick: só o que o Mercado Pago documenta.
+ * - Tema: customization.visual.style.theme ("default" | "dark" | "bootstrap" | "flat")
+ *   https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/additional-content/set-theme
+ * - Variáveis: customization.visual.style.customVariables (cores, raios, espaçamentos)
+ *   https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/additional-content/modify-css-variables
+ * - Textos: customization.visual.texts.formSubmit
+ *   https://www.mercadopago.com.br/developers/pt/docs/checkout-bricks/card-payment-brick/visual-customizations/change-texts
+ */
+export function buildCardBrickVisual(amount: number, brandColor?: string) {
+  const brand = isHexColor(brandColor) ? brandColor.trim() : undefined;
+  return {
+    hidePaymentButton: false,
+    style: {
+      theme: "default" as const,
+      customVariables: {
+        ...(brand
+          ? {
+              baseColor: brand,
+              outlinePrimaryColor: brand,
+              buttonTextColor: prefersDarkText(brand) ? "#0f172a" : "#ffffff",
+            }
+          : {}),
+        formBackgroundColor: "#ffffff",
+        inputBackgroundColor: "#f8fafc",
+        borderRadiusSmall: "8px",
+        borderRadiusMedium: "12px",
+        borderRadiusLarge: "16px",
+        formPadding: "0px",
+      },
+    },
+    texts: {
+      formSubmit: Number.isFinite(amount) && amount > 0 ? `Pagar ${formatBrl(amount)}` : "Pagar",
+    },
+  };
 }

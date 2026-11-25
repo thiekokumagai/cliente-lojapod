@@ -29,3 +29,28 @@ export function prefersDarkText(hex?: string | null): boolean {
   const contrastWithDark = (lum + 0.05) / (dark + 0.05);
   return contrastWithDark > contrastWithWhite;
 }
+
+/**
+ * Converte "#rrggbb" para o trio HSL que o Tailwind usa nas variáveis do tema
+ * (ex.: "350 89% 60%"). Cor inválida: null.
+ */
+export function hexToHslTriplet(hex?: string | null): string | null {
+  if (!hex) return null;
+  const rgb = parseHex(hex);
+  if (!rgb) return null;
+  const [r, g, b] = rgb.map((c) => c / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const l = (max + min) / 2;
+  let h = 0;
+  let s = 0;
+  if (max !== min) {
+    const d = max - min;
+    s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    if (max === r) h = (g - b) / d + (g < b ? 6 : 0);
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h /= 6;
+  }
+  return `${Math.round(h * 360)} ${Math.round(s * 100)}% ${Math.round(l * 100)}%`;
+}

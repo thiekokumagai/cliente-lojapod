@@ -93,3 +93,33 @@ describe("MercadoPagoPaymentPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Não foi possível carregar o pedido.");
   });
 });
+
+describe("MercadoPagoPaymentPage: resumo e troca de forma", () => {
+  it("mostra até 3 itens do pedido e quantos faltam", async () => {
+    getStoreOrder.mockResolvedValue(
+      order({ items: [1, 2, 3, 4, 5].map((n) => ({ productName: `Item ${n}`, quantity: n })) }),
+    );
+    render(<MercadoPagoPaymentPage />);
+    expect(await screen.findByText("Item 1")).toBeInTheDocument();
+    expect(screen.getByText("Item 3")).toBeInTheDocument();
+    expect(screen.queryByText("Item 4")).toBeNull();
+    expect(screen.getByText("+ 2 itens")).toBeInTheDocument();
+  });
+
+  it("loja com Pix e cartão: troca de forma pela URL, sem recarregar o pedido", async () => {
+    getStoreOrder.mockResolvedValue(order());
+    render(<MercadoPagoPaymentPage />);
+    await screen.findByText("pix-order-1");
+    expect(screen.getByRole("button", { name: "Pix" })).toHaveAttribute("aria-pressed", "true");
+    screen.getByRole("button", { name: "Cartão" }).click();
+    expect(navigate).toHaveBeenCalledWith("/pedido/order-1/pagamento?metodo=cartao", { replace: true });
+  });
+
+  it("loja só com Pix: não mostra a troca de forma", async () => {
+    gateways = { mercadopago: { ...mp, acceptCreditCard: false } };
+    getStoreOrder.mockResolvedValue(order());
+    render(<MercadoPagoPaymentPage />);
+    await screen.findByText("pix-order-1");
+    expect(screen.queryByRole("button", { name: "Cartão" })).toBeNull();
+  });
+});

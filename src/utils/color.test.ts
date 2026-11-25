@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { prefersDarkText, relativeLuminance } from "./color";
+import { hexToHslTriplet, prefersDarkText, relativeLuminance } from "./color";
 
 describe("color", () => {
   it("calcula a luminância dos extremos", () => {
@@ -20,5 +20,16 @@ describe("color", () => {
     expect(prefersDarkText(undefined)).toBe(false);
     expect(prefersDarkText("")).toBe(false);
     expect(prefersDarkText("rgb(0,0,0)")).toBe(false);
+  });
+});
+
+describe("hexToHslTriplet", () => {
+  it("converte para o formato das variáveis do tema", () => {
+    expect(hexToHslTriplet("#e11d48")).toBe("347 77% 50%");
+    expect(hexToHslTriplet("ffffff")).toBe("0 0% 100%");
+  });
+  it("cor inválida ou ausente vira null", () => {
+    expect(hexToHslTriplet("rgb(0,0,0)")).toBeNull();
+    expect(hexToHslTriplet(undefined)).toBeNull();
   });
 });

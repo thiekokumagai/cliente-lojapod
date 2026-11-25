@@ -79,6 +79,7 @@ describe("MercadoPagoPix", () => {
 
     await waitFor(() => expect(writeText).toHaveBeenCalledWith("00020126580014br.gov.bcb.pix-COPIA-E-COLA"));
     expect(toastSuccess).toHaveBeenCalledWith("Código Pix copiado!");
+    expect(await screen.findByRole("button", { name: /Código copiado!/ })).toBeInTheDocument();
   });
 
   it("atualiza sozinho: aviso do websocket de pagamento confirmado chama onPaid uma vez", async () => {
